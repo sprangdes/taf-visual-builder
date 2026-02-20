@@ -19,7 +19,7 @@ interface WeatherState {
   wind: Wind;
   visibility: number;
   weather: string[];
-  clouds: { amount: string; height: number }[];
+  clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[];
 }
 
 interface TAFChange {
@@ -85,9 +85,14 @@ function formatWind({ dir, speed, gust }: Wind) {
   return `${d}${s}${g}KT`;
 }
 
-function formatClouds(clouds: { amount: string; height: number }[]) {
+function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[]) {
   return (clouds || [])
-    .map((c) => `${c.amount}${String(c.height).padStart(3, "0")}`)
+    .map((c) => {
+      let suffix = "";
+      if (c.cb) suffix = "CB";
+      else if (c.tcu) suffix = "TCU";
+      return `${c.amount}${String(c.height).padStart(3, "0")}${suffix}`;
+    })
     .join(" ");
 }
 
@@ -297,7 +302,11 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     onUpdate({ ...change, state: { ...state, weather: value ? [value] : [] } });
   };
 
-  const updateCloud = (index: number, field: "amount" | "height", value: string | number) => {
+  const updateCloud = (
+    index: number,
+    field: "amount" | "height" | "cb" | "tcu",
+    value: string | number | boolean
+  ) => {
     const updatedClouds = [...clouds];
     const target = { ...updatedClouds[index] };
 
@@ -308,6 +317,17 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     if (field === "height") {
       const h = Math.max(0, Math.round(Number(value)));
       target.height = h;
+    }
+
+    if (field === "cb") {
+      target.cb = Boolean(value);
+      // if checked, unset tcu
+      if (target.cb) target.tcu = false;
+    }
+    if (field === "tcu") {
+      target.tcu = Boolean(value);
+      // if checked, unset cb
+      if (target.tcu) target.cb = false;
     }
 
     updatedClouds[index] = target;
@@ -513,6 +533,26 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               />
 
               <span className="text-xs">(hundreds ft)</span>
+
+              {/* CB/TCU checkboxes */}
+              <label className="flex items-center text-xs ml-2">
+                <input
+                  type="checkbox"
+                  checked={!!c.cb}
+                  onChange={(e) => updateCloud(idx, "cb", e.target.checked)}
+                  className="mr-1"
+                />
+                CB
+              </label>
+              <label className="flex items-center text-xs ml-2">
+                <input
+                  type="checkbox"
+                  checked={!!c.tcu}
+                  onChange={(e) => updateCloud(idx, "tcu", e.target.checked)}
+                  className="mr-1"
+                />
+                TCU
+              </label>
 
               <button
                 type="button"
