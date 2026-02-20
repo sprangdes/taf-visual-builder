@@ -46,6 +46,7 @@ interface TAF {
 
 // ---------- Defaults ----------
 const weatherOptions = ["RA", "SN", "DZ", "FG", "BR", "TS", "SH", "HZ"];
+const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 const visibilityOptions = [
   50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
   1400, 1600, 2000, 2400, 2800, 3000, 3200, 4000, 4800, 5000,
@@ -56,12 +57,17 @@ function emptyWeather({
   wind = { dir: 0, speed: 0, gust: null },
   visibility = 9999,
   weather = [],
+  clouds = [],
 }: Partial<WeatherState> = {}): WeatherState {
   return {
-    wind: { dir: wind?.dir ?? 0, speed: wind?.speed ?? 0, gust: wind?.gust ?? null },
+    wind: {
+      dir: wind?.dir ?? 0,
+      speed: wind?.speed ?? 0,
+      gust: wind?.gust ?? null,
+    },
     visibility,
     weather,
-    clouds: [],
+    clouds,
   };
 }
 
@@ -261,6 +267,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const wind = state.wind;
   const visibility = state.visibility;
   const weather = state.weather;
+  const clouds = state.clouds || [];
 
   const nearestVisibility = (val: number) =>
     visibilityOptions.reduce((prev, curr) =>
@@ -288,6 +295,34 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const updateWeather = (value: string) => {
     onUpdate({ ...change, state: { ...state, weather: value ? [value] : [] } });
+  };
+
+  const updateCloud = (index: number, field: "amount" | "height", value: string | number) => {
+    const updatedClouds = [...clouds];
+    const target = { ...updatedClouds[index] };
+
+    if (field === "amount") {
+      target.amount = String(value);
+    }
+
+    if (field === "height") {
+      const h = Math.max(0, Math.round(Number(value)));
+      target.height = h;
+    }
+
+    updatedClouds[index] = target;
+    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
+  };
+
+  const addCloud = () => {
+    const updatedClouds = [...clouds, { amount: "FEW", height: 0 }];
+    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
+  };
+
+  const removeCloud = (index: number) => {
+    const updatedClouds = [...clouds];
+    updatedClouds.splice(index, 1);
+    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
   };
 
   const weatherDisabled = false;
@@ -440,6 +475,56 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           ))}
         </select>
       </label>
+
+      <div className="block text-sm">
+        <div className="flex items-center justify-between">
+          <span>Clouds</span>
+          <button
+            type="button"
+            onClick={addCloud}
+            className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+          >
+            Add Layer
+          </button>
+        </div>
+
+        <div className="space-y-2 mt-2">
+          {clouds.map((c, idx) => (
+            <div key={idx} className="flex items-center space-x-2">
+              <select
+                value={c.amount}
+                onChange={(e) => updateCloud(idx, "amount", e.target.value)}
+                className="border"
+              >
+                {cloudAmountOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                value={c.height}
+                min={0}
+                step={1}
+                onChange={(e) => updateCloud(idx, "height", e.target.value)}
+                className="border w-20"
+              />
+
+              <span className="text-xs">(hundreds ft)</span>
+
+              <button
+                type="button"
+                onClick={() => removeCloud(idx)}
+                className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+              >
+                X
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {showError && (
         <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
