@@ -1,5 +1,13 @@
 import { useState } from "react";
 
+function getCurrentIssueTimeUTC(): string {
+  const now = new Date();
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  const hour = String(now.getUTCHours()).padStart(2, "0");
+  const minute = String(now.getUTCMinutes()).padStart(2, "0");
+  return `${day}${hour}${minute}Z`;
+}
+
 // ---------- Types ----------
 interface Wind {
   dir: number;
@@ -143,12 +151,14 @@ function Timeline({
   changes,
   onSelectRange,
   onSelectChange,
+  startHour,
 }: {
   changes: TAFChange[];
   onSelectRange: (start: number, end: number) => void;
   onSelectChange: (index: number) => void;
+  startHour: number;
 }) {
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
   // Returns the index of the first change covering this hour, or -1 if none
   const getChangeAtHour = (h: number) =>
@@ -454,7 +464,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 export default function TafBuilder() {
   const [taf, setTaf] = useState<TAF>({
     station: "RCTP",
-    issueTime: "100600Z",
+    issueTime: getCurrentIssueTimeUTC(),
     validFrom: "1006",
     validTo: "1106",
     base: emptyWeather({ wind: { dir: 0, speed: 0, gust: null }, visibility: 9999 }),
@@ -462,6 +472,16 @@ export default function TafBuilder() {
   });
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
+
+  function getTimelineStartHour(issueTime: string): number {
+    // Expect format DDHHMMZ
+    const hour = Number(issueTime.slice(2, 4));
+    const minute = Number(issueTime.slice(4, 6));
+    if (isNaN(hour) || isNaN(minute)) return 0;
+    return (hour + (minute > 0 ? 1 : 0)) % 24;
+  }
+
+  const timelineStartHour = getTimelineStartHour(taf.issueTime);
   // Remove showActionButtons state entirely
   // const [showActionButtons, setShowActionButtons] = useState(false);
 
@@ -549,10 +569,14 @@ export default function TafBuilder() {
 
       <section className="border p-4 rounded">
         <h2 className="font-semibold">Timeline (click two hours / select change)</h2>
-        <Timeline changes={taf.changes} onSelectRange={handleSelectRange} onSelectChange={(index) => {
-          setSelectedChangeIndex(index);
-          // setShowActionButtons(true); // removed
-        }} />
+        <Timeline
+          changes={taf.changes}
+          startHour={timelineStartHour}
+          onSelectRange={handleSelectRange}
+          onSelectChange={(index) => {
+            setSelectedChangeIndex(index);
+          }}
+        />
       </section>
 
       <section className="border p-4 rounded">
