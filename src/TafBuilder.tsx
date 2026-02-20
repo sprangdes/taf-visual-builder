@@ -497,7 +497,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       </label>
 
       <div className="block text-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
           <span>Clouds</span>
           <button
             type="button"
