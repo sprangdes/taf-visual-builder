@@ -130,13 +130,24 @@ function generateTAF(taf: TAF) {
     return `${String(day).padStart(2, "0")}${String(h).padStart(2, "0")}`;
   }
 
-  // For FM, from is DDHHMM, for others DDHH/DDHH
-  // Header
-  const header = `TAF ${taf.station} ${taf.issueTime} ${taf.validFrom}/${taf.validTo}`;
+  // Base Forecast time range based on issueTime
+  const baseHour = Number(taf.issueTime.slice(2, 4));
+  const baseDay = Number(taf.issueTime.slice(0, 2));
 
-  // Base forecast: show as validFrom/validTo (DDHH/DDHH)
-  const baseFrom = taf.validFrom.length === 4 ? taf.validFrom : taf.validFrom.slice(0, 4);
-  const baseTo = taf.validTo.length === 4 ? taf.validTo : taf.validTo.slice(0, 4);
+  // 起始下一整點
+  const nextHour = (baseHour + 1) % 24;
+  const fromDay = baseHour === 23 ? baseDay + 1 : baseDay;
+  const baseFrom = `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
+
+  // 結束時間為下一整點 + 24 小時
+  let toHour = nextHour;
+  let toDay = fromDay + 1; // 加一天
+  const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
+
+  // Header line
+  const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
+
+  // Base forecast line
   const baseLine = `${baseFrom}/${baseTo} ${formatWeatherState(taf.base)}`;
 
   const changes = (taf.changes || [])
@@ -758,14 +769,16 @@ export default function TafBuilder() {
             from: (() => {
               const day = Number(taf.issueTime.slice(0, 2));
               const hour = Number(taf.issueTime.slice(2, 4));
-              // from: current hour
-              return `${String(day).padStart(2, "0")}${String(hour).padStart(2, "0")}`;
+              const nextHour = (hour + 1) % 24;
+              const fromDay = hour === 23 ? day + 1 : day;
+              return `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
             to: (() => {
               const day = Number(taf.issueTime.slice(0, 2));
               const hour = Number(taf.issueTime.slice(2, 4));
               const nextHour = (hour + 1) % 24;
-              const toDay = hour === 23 ? day + 1 : day;
+              const toHour = (nextHour + 24) % 24; // 24-hour later
+              const toDay = hour >= 23 ? day + 1 : day + 1; // next day
               return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
             state: taf.base,
