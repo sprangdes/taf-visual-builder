@@ -109,23 +109,61 @@ function formatWeatherState(state: WeatherState) {
 }
 
 function generateTAF(taf: TAF) {
+  // Helper: get date/hour string (DDHH) given base date (from issueTime) and hour offset
+  function getForecastDateHour(baseIssueTime: string, hour: string | number): string {
+    // baseIssueTime: "DDHHMMZ"
+    // hour: number or string, e.g., 8, "12"
+    const baseDay = Number(baseIssueTime.slice(0, 2));
+    const baseHour = Number(baseIssueTime.slice(2, 4));
+    let h = typeof hour === "string" ? Number(hour) : hour;
+    // If hour < baseHour, treat as next day (for validTo or toTime that wraps over midnight)
+    let day = baseDay;
+    if (h < baseHour) {
+      day = baseDay + 1;
+    }
+    // If hour is >=24, wrap day forward
+    if (h >= 24) {
+      day += Math.floor(h / 24);
+      h = h % 24;
+    }
+    // Pad day/hour
+    return `${String(day).padStart(2, "0")}${String(h).padStart(2, "0")}`;
+  }
+
+  // For FM, from is DDHHMM, for others DDHH/DDHH
+  // Header
   const header = `TAF ${taf.station} ${taf.issueTime} ${taf.validFrom}/${taf.validTo}`;
-  const baseForecast = formatWeatherState(taf.base);
+
+  // Base forecast: show as validFrom/validTo (DDHH/DDHH)
+  const baseFrom = taf.validFrom.length === 4 ? taf.validFrom : taf.validFrom.slice(0, 4);
+  const baseTo = taf.validTo.length === 4 ? taf.validTo : taf.validTo.slice(0, 4);
+  const baseLine = `${baseFrom}/${baseTo} ${formatWeatherState(taf.base)}`;
 
   const changes = (taf.changes || [])
     .map((c) => {
       if (c.type === "FM") {
-        const fmTime = String(c.from).padStart(6, "0");
+        // FM: from is DDHHMM, based on taf.issueTime's date and c.from hour
+        // Use c.from as hour, taf.issueTime as base
+        // Compose DDHHMM
+        let h = typeof c.from === "string" ? Number(c.from) : c.from;
+        let day = Number(taf.issueTime.slice(0, 2));
+        const baseHour = Number(taf.issueTime.slice(2, 4));
+        if (h < baseHour) day += 1;
+        const dd = String(day).padStart(2, "0");
+        const hh = String(h).padStart(2, "0");
+        // Use 00 for MM
+        const fmTime = `${dd}${hh}00`;
         return `FM${fmTime} ${formatWeatherState(c.state)}`;
       } else {
-        const fromTime = String(c.from).padStart(4, "0");
-        const toTime = String(c.to).padStart(4, "0");
+        // TEMPO/BECMG: show as DDHH/DDHH, both from/to as hour, based on taf.issueTime
+        const fromTime = getForecastDateHour(taf.issueTime, c.from);
+        const toTime = getForecastDateHour(taf.issueTime, c.to);
         return `${c.type} ${fromTime}/${toTime} ${formatWeatherState(c.state)}`;
       }
     })
     .join("\n");
 
-  return [header, baseForecast, changes].filter(Boolean).join("\n");
+  return [header, baseLine, changes].filter(Boolean).join("\n");
 }
 
 // ---------- Timeline Hook ----------
