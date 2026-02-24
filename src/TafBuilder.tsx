@@ -208,13 +208,36 @@ function Timeline({
   startHour: number;
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
+
+  // Map hour → index on circular timeline
+  const hourIndexMap = new Map<number, number>();
+  hours.forEach((h, idx) => hourIndexMap.set(h, idx));
+
+  // Determine if target hour is between start and end on circular timeline
+  function isBetweenCircular(target: number, start: number, end: number): boolean {
+    const t = hourIndexMap.get(target);
+    const s = hourIndexMap.get(start);
+    const e = hourIndexMap.get(end);
+    if (t === undefined || s === undefined || e === undefined) return false;
+
+    if (s <= e) {
+      return t >= s && t <= e;
+    }
+
+    // Cross midnight on circular array
+    return t >= s || t <= e;
+  }
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
-  // Returns the index of the first change covering this hour, or -1 if none
+  // Returns the index of the first change covering this hour, or -1 if none (circular)
   const getChangeAtHour = (h: number) =>
-    (changes || []).findIndex((c) => h >= Number(c.from) && h <= Number(c.to));
-  // Returns the change object at this hour, or null if none
+    (changes || []).findIndex((c) =>
+      isBetweenCircular(h, Number(c.from), Number(c.to))
+    );
+  // Returns the change object at this hour, or null if none (circular)
   const getChangeObjAtHour = (h: number) =>
-    (changes || []).find((c) => h >= Number(c.from) && h <= Number(c.to)) || null;
+    (changes || []).find((c) =>
+      isBetweenCircular(h, Number(c.from), Number(c.to))
+    ) || null;
 
   // Track drag selection state in local state
   const [internalPending, setInternalPending] = useState<number | null>(null);
@@ -225,12 +248,10 @@ function Timeline({
   // But since Timeline is a function component, we need to "lift" state up to this component.
   // Let's use the hook's state for the actual logic.
 
-  // Helper to determine if hour is in current drag/hover range
+  // Helper to determine if hour is in current drag/hover range (circular)
   function isInHoverSelection(h: number) {
     if (pendingRange !== null && hoverHour !== null) {
-      const s = Math.min(pendingRange, hoverHour);
-      const e = Math.max(pendingRange, hoverHour);
-      return h >= s && h <= e;
+      return isBetweenCircular(h, pendingRange, hoverHour);
     }
     return false;
   }
@@ -272,11 +293,19 @@ function Timeline({
         return (
           <div
             key={h}
-            onClick={() =>
-              changeIndex !== -1
-                ? onSelectChange(changeIndex)
-                : selectHour(h, onSelectRange)
-            }
+            onClick={() => {
+              if (changeIndex !== -1) {
+                onSelectChange(changeIndex);
+                return;
+              }
+
+              if (pendingRange === null) {
+                selectHour(h, onSelectRange);
+              } else {
+                onSelectRange(pendingRange, h);
+                reset();
+              }
+            }}
             onMouseEnter={() => {
               if (pendingRange !== null) setHover(h);
             }}
