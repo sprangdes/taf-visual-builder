@@ -148,7 +148,7 @@ function generateTAF(taf: TAF) {
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
 
   // Base forecast line
-  const baseLine = `${baseFrom}/${baseTo} ${formatWeatherState(taf.base)}`;
+  const baseLine = `${formatWeatherState(taf.base)}`;
 
   const changes = (taf.changes || [])
     .map((c) => {
@@ -174,7 +174,7 @@ function generateTAF(taf: TAF) {
     })
     .join("\n");
 
-  return [header, baseLine, changes].filter(Boolean).join("\n");
+  return [header + ' ' + baseLine, changes].filter(Boolean).join("\n");
 }
 
 // ---------- Timeline Hook ----------
