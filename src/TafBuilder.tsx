@@ -754,7 +754,22 @@ export default function TafBuilder() {
       <section className="border p-4 rounded">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
-          change={{ from: taf.validFrom, to: taf.validTo, state: taf.base }}
+          change={{
+            from: (() => {
+              const day = Number(taf.issueTime.slice(0, 2));
+              const hour = Number(taf.issueTime.slice(2, 4));
+              // from: current hour
+              return `${String(day).padStart(2, "0")}${String(hour).padStart(2, "0")}`;
+            })(),
+            to: (() => {
+              const day = Number(taf.issueTime.slice(0, 2));
+              const hour = Number(taf.issueTime.slice(2, 4));
+              const nextHour = (hour + 1) % 24;
+              const toDay = hour === 23 ? day + 1 : day;
+              return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
+            })(),
+            state: taf.base,
+          }}
           onUpdate={(updated) => setTaf((prev) => ({ ...prev, base: updated.state }))}
         />
       </section>
