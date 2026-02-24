@@ -326,7 +326,7 @@ function Timeline({
             className={`flex-1 h-12 text-xs flex items-center justify-center border-r cursor-pointer ${bgClass}`}
             style={{ transition: "background 0.1s" }}
           >
-            {h}Z
+            {String(h).padStart(2, "0")}Z
           </div>
         );
       })}
@@ -488,7 +488,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         <span className="ml-2">
           {renderTypeButton()}
         </span>
-        {change.from}Z–{change.to}Z
+        {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
       </h3>
 
       <label className="block text-sm">
