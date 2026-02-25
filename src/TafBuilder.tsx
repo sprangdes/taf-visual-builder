@@ -321,8 +321,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   // Use enabledBlocks in state if present, else fallback to isBase
   // enabledBlocks: { wind: boolean, vis: boolean, clouds: boolean }
   const enabledBlocks =
-    (change.state && (change.state as any).enabledBlocks) ||
-    { wind: isBase, vis: isBase, clouds: isBase };
+    (change.state.enabledBlocks) ||
+    { wind: false, vis: false, clouds: false };
   const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
   const [visEnabled, setVisEnabled] = useState(enabledBlocks.vis ?? isBase);
   const [cloudEnabled, setCloudEnabled] = useState(enabledBlocks.clouds ?? isBase);
