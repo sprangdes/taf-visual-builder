@@ -770,7 +770,7 @@ export default function TafBuilder() {
     issueTime: getCurrentIssueTimeUTC(),
     validFrom: "1006",
     validTo: "1106",
-    base: emptyWeather({ wind: { dir: 0, speed: 0, gust: null }, visibility: 9999 }),
+    base: emptyWeather({ wind: { dir: 0, speed: 0, gust: null }, visibility: 10000 }),
     changes: [],
   });
 
@@ -793,7 +793,7 @@ export default function TafBuilder() {
       type: "TEMPO",
       from: String(from),
       to: String(to),
-      state: emptyWeather({ wind: { dir: 0, speed: 0, gust: null }, visibility: 9999 }),
+      state: emptyWeather({ wind: { dir: 0, speed: 0, gust: null }, visibility: 10000 }),
     };
     const updatedChanges = [...taf.changes, newChange];
     return { taf: { ...taf, changes: updatedChanges }, index: updatedChanges.length - 1 };
