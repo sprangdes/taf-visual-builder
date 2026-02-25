@@ -98,11 +98,11 @@ function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tc
 }
 
 function formatWeatherState(state: WeatherState) {
-  const vis = state.enabledBlocks?.vis ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, "0") : "";
-  const wind = state.enabledBlocks?.wind ? formatWind(state.wind) : "";
-  const clouds = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : "";
-  const weather = state.enabledBlocks?.vis ? (state.weather || []).join("") : "";
-  return [wind, vis, weather, clouds].filter(Boolean).join(" ");
+  const wind = state.enabledBlocks?.wind ? formatWind(state.wind) : '';
+  const vis = state.enabledBlocks?.vis ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, '0') : '';
+  const weather = state.enabledBlocks?.vis ? (state.weather || []).join('') : '';
+  const clouds = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : '';
+  return [wind, vis, weather, clouds].filter(Boolean).join(' ');
 }
 
 function generateTAF(taf: TAF) {
@@ -142,12 +142,9 @@ function generateTAF(taf: TAF) {
 
   // Only include enabled changes (at least one block enabled)
   const changes = (taf.changes || [])
-    .filter((c) => {
-      // Only show if at least one block enabled
+    .filter(c => {
       const eb = c.state.enabledBlocks;
-      return eb
-        ? (eb.wind || eb.vis || eb.clouds)
-        : true; // fallback: show if no enabledBlocks (old data)
+      return eb ? (eb.wind || eb.vis || eb.clouds) : true;
     })
     .map((c) => {
       if (c.type === "FM") {
@@ -338,26 +335,32 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const weatherArr = state.weather || [];
 
   const addWeather = (w: string) => {
-    const arr = [...weatherArr, w];
+    const arr = [...(change.state.weather || []), w];
     onUpdate({
       ...change,
       state: {
-        ...state,
+        ...change.state,
         weather: arr,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          vis: change.state.enabledBlocks?.vis ?? visEnabled,
+        },
       },
     });
   };
 
   const removeWeather = (idx: number) => {
-    const arr = weatherArr.slice();
+    const arr = [...(change.state.weather || [])];
     arr.splice(idx, 1);
     onUpdate({
       ...change,
       state: {
-        ...state,
+        ...change.state,
         weather: arr,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          vis: change.state.enabledBlocks?.vis ?? visEnabled,
+        },
       },
     });
   };
@@ -368,12 +371,11 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     );
 
   const updateWind = (field: keyof Wind, value: number | string) => {
-    const newWind: Wind = { ...wind };
+    const prevWind = change.state.wind || { dir: 0, speed: 0, gust: null };
+    const newWind: Wind = { ...prevWind };
     if (field === "dir") {
       let dirVal = Number(value);
-      if (dirVal < 0) dirVal = 0;
-      else if (dirVal > 360) dirVal = 360;
-      dirVal = Math.round(dirVal / 10) * 10;
+      dirVal = Math.max(0, Math.min(360, Math.round(dirVal / 10) * 10));
       newWind.dir = dirVal;
     }
     if (field === "speed") newWind.speed = Math.max(0, Math.round(Number(value)));
@@ -381,9 +383,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     onUpdate({
       ...change,
       state: {
-        ...state,
+        ...change.state,
         wind: newWind,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        visibility: change.state.visibility,
+        weather: [...(change.state.weather || [])],
+        clouds: [...(change.state.clouds || [])],
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          wind: change.state.enabledBlocks?.wind ?? windEnabled,
+        },
       },
     });
   };
@@ -393,9 +401,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     onUpdate({
       ...change,
       state: {
-        ...state,
+        ...change.state,
+        wind: change.state.wind,
         visibility: vis,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        weather: [...(change.state.weather || [])],
+        clouds: [...(change.state.clouds || [])],
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          vis: change.state.enabledBlocks?.vis ?? visEnabled,
+        },
       },
     });
   };
@@ -405,18 +419,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     field: "amount" | "height" | "cb" | "tcu",
     value: string | number | boolean
   ) => {
-    const updatedClouds = [...clouds];
-    const target = { ...updatedClouds[index] };
-
+    const prevClouds = [...(change.state.clouds || [])];
+    const target = { ...prevClouds[index] };
     if (field === "amount") {
       target.amount = String(value);
     }
-
     if (field === "height") {
       const h = Math.max(0, Math.round(Number(value)));
       target.height = h;
     }
-
     if (field === "cb") {
       target.cb = Boolean(value);
       if (target.cb) target.tcu = false;
@@ -425,39 +436,57 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       target.tcu = Boolean(value);
       if (target.tcu) target.cb = false;
     }
-
-    updatedClouds[index] = target;
+    prevClouds[index] = target;
     onUpdate({
       ...change,
       state: {
-        ...state,
-        clouds: updatedClouds,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        ...change.state,
+        wind: change.state.wind,
+        visibility: change.state.visibility,
+        weather: [...(change.state.weather || [])],
+        clouds: prevClouds,
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
+        },
       },
     });
   };
 
   const addCloud = () => {
-    const updatedClouds = [...clouds, { amount: "FEW", height: 0 }];
+    const prevClouds = [...(change.state.clouds || [])];
+    const updatedClouds = [...prevClouds, { amount: "FEW", height: 0 }];
     onUpdate({
       ...change,
       state: {
-        ...state,
+        ...change.state,
+        wind: change.state.wind,
+        visibility: change.state.visibility,
+        weather: [...(change.state.weather || [])],
         clouds: updatedClouds,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
+        },
       },
     });
   };
 
   const removeCloud = (index: number) => {
-    const updatedClouds = [...clouds];
-    updatedClouds.splice(index, 1);
+    const prevClouds = [...(change.state.clouds || [])];
+    prevClouds.splice(index, 1);
     onUpdate({
       ...change,
       state: {
-        ...state,
-        clouds: updatedClouds,
-        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+        ...change.state,
+        wind: change.state.wind,
+        visibility: change.state.visibility,
+        weather: [...(change.state.weather || [])],
+        clouds: prevClouds,
+        enabledBlocks: {
+          ...(change.state.enabledBlocks || {}),
+          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
+        },
       },
     });
   };
@@ -980,9 +1009,18 @@ export default function TafBuilder() {
               const toDay = hour >= 23 ? day + 1 : day + 1;
               return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
-            state: taf.base,
+            state: {
+              ...taf.base,
+              enabledBlocks: { wind: true, vis: true, clouds: true }
+            },
           }}
-          onUpdate={(updated) => setTaf((prev) => ({ ...prev, base: updated.state }))}
+          onUpdate={(updated) => setTaf((prev) => ({
+            ...prev,
+            base: {
+              ...updated.state,
+              enabledBlocks: undefined // base forecast always all enabled, so remove enabledBlocks from base
+            }
+          }))}
         />
       </section>
 
