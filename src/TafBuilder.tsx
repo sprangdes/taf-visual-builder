@@ -493,13 +493,29 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   return (
     <div className="border p-4 rounded bg-gray-100 space-y-2 relative">
-      <h3 className="font-semibold flex items-center">
-        Edit{" "}
-        <span className="ml-2">
-          {renderTypeButton()}
-        </span>
-        {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
-      </h3>
+      <div className="flex items-center relative">
+        <h3 className="font-semibold flex items-center m-0 p-0">
+          Edit{" "}
+          <span className="ml-2">
+            {renderTypeButton()}
+          </span>
+          {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
+        </h3>
+        {showActionButtons && onDelete && (
+          <div className="absolute right-0 inset-y-0 flex items-center justify-end">
+            <button
+              className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              style={{ zIndex: 10 }}
+            >
+              X
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ---- Top Layer: Wind block (left) + Visibility/Weather block (right) ---- */}
       <div className="flex gap-4 mb-2">
@@ -747,17 +763,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
 
-      {showActionButtons && onDelete && (
-        <button
-          className="absolute bottom-2 right-2 bg-red-500 text-white px-3 py-1 rounded"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          delete
-        </button>
-      )}
+      {/* moved delete button up to header area */}
     </div>
   );
 }
@@ -863,7 +869,7 @@ export default function TafBuilder() {
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-bold">TAF Visual Builder (MVP)</h1>
 
-      <section className="border p-4 rounded">
+      <section className="p-4 rounded">
         <h2 className="font-semibold">Header</h2>
         <input
           value={taf.station}
@@ -877,7 +883,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="border p-4 rounded">
+      <section className="p-4 rounded">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
@@ -902,7 +908,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="border p-4 rounded">
+      <section className="p-4 rounded">
         <h2 className="font-semibold">Timeline (click two hours / select change)</h2>
         <Timeline
           changes={taf.changes}
@@ -914,7 +920,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="border p-4 rounded">
+      <section className="p-4 rounded">
         <h2 className="font-semibold">Selected Change</h2>
         {selectedChangeIndex !== null ? (
           <div>
@@ -931,7 +937,7 @@ export default function TafBuilder() {
         )}
       </section>
 
-      <section className="border p-4 rounded bg-gray-50">
+      <section className="p-4 rounded">
         <h2 className="font-semibold">Generated TAF</h2>
         <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded">
           {generateTAF(taf)}
