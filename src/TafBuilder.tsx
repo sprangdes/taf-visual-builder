@@ -8,7 +8,6 @@ function getCurrentIssueTimeUTC(): string {
   return `${day}${hour}${minute}Z`;
 }
 
-// ---------- Types ----------
 interface Wind {
   dir: number;
   speed: number;
@@ -44,7 +43,6 @@ interface TAF {
   changes: TAFChange[];
 }
 
-// ---------- Defaults ----------
 const weatherOptions = [" ", "+", "-", "VC", "HZ", "BR", "FG", "DZ", "RA", "SH", "SN", "TS"];
 const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 const visibilityOptions = [
@@ -71,12 +69,9 @@ function emptyWeather({
   };
 }
 
-// ---------- Format Functions ----------
 function formatWind({ dir, speed, gust }: Wind) {
-  // Normalize dir for display: 0 => "000", 360 => "360"
   const normalizedDir = dir === 360 ? 360 : dir === 0 ? 0 : Math.round(dir / 10) * 10;
   const d = normalizedDir === 0 ? "000" : normalizedDir === 360 ? "360" : String(normalizedDir).padStart(3, "0");
-  // Speed displayed as two digits, even if 0
   const s = String(Math.max(Math.round(speed), 0)).padStart(2, "0");
   let g = "";
   if (typeof gust === "number" && Math.round(gust) - Math.round(speed) >= 15) {
@@ -101,7 +96,7 @@ function formatWeatherState(state: WeatherState) {
   return [
     formatWind(state.wind),
     vis,
-    (state.weather || []).map(w => w).join(""), // 直接依照選取結果，不拆開
+    (state.weather || []).map(w => w).join(""),
     formatClouds(state.clouds),
   ]
     .filter(Boolean)
@@ -109,64 +104,48 @@ function formatWeatherState(state: WeatherState) {
 }
 
 function generateTAF(taf: TAF) {
-  // Helper: get date/hour string (DDHH) given base date (from issueTime) and hour offset
   function getForecastDateHour(baseIssueTime: string, hour: string | number): string {
-    // baseIssueTime: "DDHHMMZ"
-    // hour: number or string, e.g., 8, "12"
     const baseDay = Number(baseIssueTime.slice(0, 2));
     const baseHour = Number(baseIssueTime.slice(2, 4));
     let h = typeof hour === "string" ? Number(hour) : hour;
-    // If hour < baseHour, treat as next day (for validTo or toTime that wraps over midnight)
     let day = baseDay;
     if (h < baseHour) {
       day = baseDay + 1;
     }
-    // If hour is >=24, wrap day forward
     if (h >= 24) {
       day += Math.floor(h / 24);
       h = h % 24;
     }
-    // Pad day/hour
     return `${String(day).padStart(2, "0")}${String(h).padStart(2, "0")}`;
   }
 
-  // Base Forecast time range based on issueTime
   const baseHour = Number(taf.issueTime.slice(2, 4));
   const baseDay = Number(taf.issueTime.slice(0, 2));
 
-  // 起始下一整點
   const nextHour = (baseHour + 1) % 24;
   const fromDay = baseHour === 23 ? baseDay + 1 : baseDay;
   const baseFrom = `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
 
-  // 結束時間為下一整點 + 24 小時
   let toHour = nextHour;
-  let toDay = fromDay + 1; // 加一天
+  let toDay = fromDay + 1;
   const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
 
-  // Header line
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
 
-  // Base forecast line
   const baseLine = `${formatWeatherState(taf.base)}`;
 
   const changes = (taf.changes || [])
     .map((c) => {
       if (c.type === "FM") {
-        // FM: from is DDHHMM, based on taf.issueTime's date and c.from hour
-        // Use c.from as hour, taf.issueTime as base
-        // Compose DDHHMM
         let h = typeof c.from === "string" ? Number(c.from) : c.from;
         let day = Number(taf.issueTime.slice(0, 2));
         const baseHour = Number(taf.issueTime.slice(2, 4));
         if (h < baseHour) day += 1;
         const dd = String(day).padStart(2, "0");
         const hh = String(h).padStart(2, "0");
-        // Use 00 for MM
         const fmTime = `${dd}${hh}00`;
         return `FM${fmTime} ${formatWeatherState(c.state)}`;
       } else {
-        // TEMPO/BECMG: show as DDHH/DDHH, both from/to as hour, based on taf.issueTime
         const fromTime = getForecastDateHour(taf.issueTime, c.from);
         const toTime = getForecastDateHour(taf.issueTime, c.to);
         return `${c.type} ${fromTime}/${toTime} ${formatWeatherState(c.state)}`;
@@ -177,7 +156,6 @@ function generateTAF(taf: TAF) {
   return [header + ' ' + baseLine, changes].filter(Boolean).join("\n");
 }
 
-// ---------- Timeline Hook ----------
 function useTimeRange() {
   const [pendingRange, setPendingRange] = useState<number | null>(null);
   const [hoverHour, setHoverHour] = useState<number | null>(null);
@@ -206,7 +184,6 @@ function useTimeRange() {
   return { pendingRange, selectHour, hoverHour, setHover, reset };
 }
 
-// ---------- Timeline Component ----------
 function Timeline({
   changes,
   onSelectRange,
@@ -220,11 +197,9 @@ function Timeline({
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
 
-  // Map hour → index on circular timeline
   const hourIndexMap = new Map<number, number>();
   hours.forEach((h, idx) => hourIndexMap.set(h, idx));
 
-  // Determine if target hour is between start and end on circular timeline
   function isBetweenCircular(target: number, start: number, end: number): boolean {
     const t = hourIndexMap.get(target);
     const s = hourIndexMap.get(start);
@@ -235,31 +210,22 @@ function Timeline({
       return t >= s && t <= e;
     }
 
-    // Cross midnight on circular array
     return t >= s || t <= e;
   }
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
-  // Returns the index of the first change covering this hour, or -1 if none (circular)
+
   const getChangeAtHour = (h: number) =>
     (changes || []).findIndex((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
     );
-  // Returns the change object at this hour, or null if none (circular)
   const getChangeObjAtHour = (h: number) =>
     (changes || []).find((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
     ) || null;
 
-  // Track drag selection state in local state
   const [internalPending, setInternalPending] = useState<number | null>(null);
   const [internalHover, setInternalHover] = useState<number | null>(null);
 
-  // We want to use the hook's state, but also expose it to the parent Timeline component
-  // So, we combine both: the hook's state (pendingRange, hoverHour) and our own internal state.
-  // But since Timeline is a function component, we need to "lift" state up to this component.
-  // Let's use the hook's state for the actual logic.
-
-  // Helper to determine if hour is in current drag/hover range (circular)
   function isInHoverSelection(h: number) {
     if (pendingRange !== null && hoverHour !== null) {
       return isBetweenCircular(h, pendingRange, hoverHour);
@@ -267,13 +233,10 @@ function Timeline({
     return false;
   }
 
-  // Helper to determine if hour is the pending start
   function isPendingStart(h: number) {
     return pendingRange !== null && h === pendingRange;
   }
 
-  // Mouse event handlers for drag selection
-  // Only allow drag select on empty cells (not already covered by a change)
   return (
     <div
       className="flex border rounded-lg overflow-hidden select-none"
@@ -285,14 +248,11 @@ function Timeline({
         const changeIndex = getChangeAtHour(h);
         const changeObj = getChangeObjAtHour(h);
         let bgClass = "bg-white";
-        // If currently selecting and hovering, highlight the range in blue
         if (pendingRange !== null && hoverHour !== null && isInHoverSelection(h)) {
           bgClass = "bg-blue-300";
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
-          // Only start selected, no hover yet
           bgClass = "bg-blue-300";
         } else if (changeObj) {
-          // Set color according to type
           if (changeObj.type === "TEMPO") {
             bgClass = "bg-yellow-300";
           } else if (changeObj.type === "BECMG") {
@@ -334,7 +294,6 @@ function Timeline({
   );
 }
 
-// ---------- ChangeEditor Component ----------
 interface ChangeEditorProps {
   change: TAFChange | BaseForecast | null;
   onUpdate: (updated: TAFChange | BaseForecast) => void;
@@ -351,16 +310,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const visibility = state.visibility;
   const clouds = state.clouds || [];
 
-  // 新增 weather 狀態直接依賴 state.weather
   const weatherArr = state.weather || [];
 
-  // 新增天氣現象，append 到陣列（包括空格）
   const addWeather = (w: string) => {
     const arr = [...weatherArr, w];
     onUpdate({ ...change, state: { ...state, weather: arr } });
   };
 
-  // 移除指定 index 的天氣現象
   const removeWeather = (idx: number) => {
     const arr = weatherArr.slice();
     arr.splice(idx, 1);
@@ -410,12 +366,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
     if (field === "cb") {
       target.cb = Boolean(value);
-      // if checked, unset tcu
       if (target.cb) target.tcu = false;
     }
     if (field === "tcu") {
       target.tcu = Boolean(value);
-      // if checked, unset cb
       if (target.tcu) target.cb = false;
     }
 
@@ -438,25 +392,20 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const showError = visibility <= 5000 && (weatherArr.length === 0);
 
-  // Calculate left position for value label
   const minVis = 50;
   const maxVis = 10000;
-  // We'll calculate relative left position based on visibility value
   const clampedVis = Math.min(Math.max(visibility, minVis), maxVis);
   const relativePos = ((clampedVis - minVis) / (maxVis - minVis)) * 100;
 
-  // Determine current type for buttons (if any)
   const currentType = "type" in change && change.type ? change.type : null;
   const allTypes: ("TEMPO" | "BECMG" | "FM")[] = ["TEMPO", "BECMG", "FM"];
 
-  // For cycling type: TEMPO → BECMG → FM → TEMPO
   function nextType(type: "TEMPO" | "BECMG" | "FM"): "TEMPO" | "BECMG" | "FM" {
     if (type === "TEMPO") return "BECMG";
     if (type === "BECMG") return "FM";
     return "TEMPO";
   }
 
-  // For displaying as a button
   function renderTypeButton() {
     if (showActionButtons && onChangeType && change && "type" in change) {
       const type = change.type as "TEMPO" | "BECMG" | "FM";
@@ -517,9 +466,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         )}
       </div>
 
-      {/* ---- Top Layer: Wind block (left) + Visibility/Weather block (right) ---- */}
+      
       <div className="flex gap-4 mb-2">
-        {/* Wind block (left) */}
+        
         <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
           <label className="text-sm">
             <span className="inline-block w-28">Wind Direction</span>
@@ -559,7 +508,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="ml-1 text-sm">KT</span>
           </label>
         </div>
-        {/* Visibility + Weather block (right) */}
+        
       <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
         <label className="block text-sm">
           Visibility
@@ -595,7 +544,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <div className="block text-sm">
             <div className="mb-1">Weather</div>
             <div className="flex flex-wrap gap-2 mb-2 items-center">
-              {/* "+" 按鈕 */}
               <button
                 key="+"
                 type="button"
@@ -607,7 +555,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               >
                 +
               </button>
-              {/* "-" 按鈕 */}
               <button
                 key="-"
                 type="button"
@@ -619,7 +566,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               >
                 -
               </button>
-              {/* "VC" 按鈕 */}
               <button
                 key="VC"
                 type="button"
@@ -631,7 +577,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               >
                 VC
               </button>
-              {/* 空白按鈕 */}
               <button
                 key="space"
                 type="button"
@@ -645,13 +590,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   space
                 </span>
               </button>
-              {/* 分隔線 */}
               <span className="border-l mx-1 h-6" />
-              {/* 其他天氣現象按鈕 */}
               {weatherOptions
                 .filter((w) => !["+", "-", "VC", " "].includes(w))
                 .map((w) => {
-                  // 天氣現象按鈕背景顏色
                   let bgClass = "bg-white";
                   if (["HZ", "BR", "FG"].includes(w)) {
                     bgClass = "bg-green-100";
@@ -675,7 +617,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   );
                 })}
             </div>
-            {/* 已選天氣標籤容器，明顯區隔，位於按鈕區下方 */}
             {weatherArr.length > 0 && (
               <div className="border p-2 rounded-lg bg-white flex flex-wrap gap-2 items-center mt-2">
                 {weatherArr.map((w, idx) => (
@@ -700,7 +641,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
 
-      {/* ---- Bottom Layer: Clouds ---- */}
+      
       <div className="block text-sm mt-2 border p-2 rounded-lg bg-white">
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
@@ -728,7 +669,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 className="border w-20"
               />
               <span className="text-xs">(hundreds ft)</span>
-              {/* CB/TCU checkboxes */}
               <label className="flex items-center text-xs ml-2">
                 <input
                   type="checkbox"
@@ -766,12 +706,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
 
-      {/* moved delete button up to header area */}
     </div>
   );
 }
 
-// ---------- TafBuilder ----------
 export default function TafBuilder() {
   const [taf, setTaf] = useState<TAF>({
     station: "RCTP",
@@ -783,11 +721,9 @@ export default function TafBuilder() {
   });
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
-  // 1️⃣ 複製成功提示 state
   const [copied, setCopied] = useState(false);
 
   function getTimelineStartHour(issueTime: string): number {
-    // Expect format DDHHMMZ
     const hour = Number(issueTime.slice(2, 4));
     const minute = Number(issueTime.slice(4, 6));
     if (isNaN(hour) || isNaN(minute)) return 0;
@@ -795,20 +731,15 @@ export default function TafBuilder() {
   }
 
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
-  // Remove showActionButtons state entirely
-  // const [showActionButtons, setShowActionButtons] = useState(false);
 
   function addTempo(taf: TAF, from: number, to: number) {
-    // 預設天氣狀況為 base forecast
     let defaultState: WeatherState = taf.base;
-    // 從最後往前找最近的 BECMG
     for (let i = taf.changes.length - 1; i >= 0; i--) {
       if (taf.changes[i].type === "BECMG") {
         defaultState = taf.changes[i].state;
         break;
       }
     }
-    // 深拷貝 defaultState
     const deepCopyState: WeatherState = {
       wind: { ...defaultState.wind },
       visibility: defaultState.visibility,
@@ -829,7 +760,6 @@ export default function TafBuilder() {
     const result = addTempo(taf, from, to);
     setTaf(result.taf);
     setSelectedChangeIndex(result.index);
-    // setShowActionButtons(true); // removed
   }
 
   function updateChange(index: number | null, updatedChange: TAFChange) {
@@ -841,12 +771,6 @@ export default function TafBuilder() {
     });
   }
 
-  // Remove handleSelectedChangeClick function
-  // function handleSelectedChangeClick() {
-  //   if (selectedChangeIndex !== null) {
-  //     setShowActionButtons((prev) => !prev);
-  //   }
-  // }
 
   function handleDelete() {
     if (selectedChangeIndex === null) return;
@@ -856,7 +780,6 @@ export default function TafBuilder() {
       return { ...prev, changes };
     });
     setSelectedChangeIndex(null);
-    // setShowActionButtons(false); // removed
   }
 
   function handleChangeType(type: "BECMG" | "FM" | "TEMPO") {
@@ -867,10 +790,8 @@ export default function TafBuilder() {
       changes[selectedChangeIndex] = { ...change, type };
       return { ...prev, changes };
     });
-    // setShowActionButtons(false); // removed
   }
 
-  // 1️⃣ 複製功能（含複製成功提示）
   function handleCopyTAF() {
     const text = generateTAF(taf);
     navigator.clipboard.writeText(text).then(() => {
@@ -912,8 +833,8 @@ export default function TafBuilder() {
               const day = Number(taf.issueTime.slice(0, 2));
               const hour = Number(taf.issueTime.slice(2, 4));
               const nextHour = (hour + 1) % 24;
-              const toHour = (nextHour + 24) % 24; // 24-hour later
-              const toDay = hour >= 23 ? day + 1 : day + 1; // next day
+              const toHour = (nextHour + 24) % 24;
+              const toDay = hour >= 23 ? day + 1 : day + 1;
               return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
             state: taf.base,
@@ -941,7 +862,7 @@ export default function TafBuilder() {
             <ChangeEditor
               change={taf.changes[selectedChangeIndex]}
               onUpdate={(updated) => updateChange(selectedChangeIndex, updated as TAFChange)}
-              showActionButtons={true} // always show action buttons if selectedChangeIndex !== null
+              showActionButtons={true}
               onDelete={handleDelete}
               onChangeType={handleChangeType}
             />
