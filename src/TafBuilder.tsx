@@ -45,7 +45,7 @@ interface TAF {
 }
 
 // ---------- Defaults ----------
-const weatherOptions = ["RA", "SN", "DZ", "FG", "BR", "TS", "SH", "HZ"];
+const weatherOptions = [" ", "+", "-", "VC", "HZ", "BR", "FG", "DZ", "RA", "SH", "SN", "TS"];
 const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 const visibilityOptions = [
   50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
@@ -101,7 +101,7 @@ function formatWeatherState(state: WeatherState) {
   return [
     formatWind(state.wind),
     vis,
-    (state.weather || []).join(""),
+    (state.weather || []).map(w => w).join(""), // 直接依照選取結果，不拆開
     formatClouds(state.clouds),
   ]
     .filter(Boolean)
@@ -349,8 +349,23 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
-  const weather = state.weather;
   const clouds = state.clouds || [];
+
+  // 新增 weather 狀態直接依賴 state.weather
+  const weatherArr = state.weather || [];
+
+  // 新增天氣現象，append 到陣列（包括空格）
+  const addWeather = (w: string) => {
+    const arr = [...weatherArr, w];
+    onUpdate({ ...change, state: { ...state, weather: arr } });
+  };
+
+  // 移除指定 index 的天氣現象
+  const removeWeather = (idx: number) => {
+    const arr = weatherArr.slice();
+    arr.splice(idx, 1);
+    onUpdate({ ...change, state: { ...state, weather: arr } });
+  };
 
   const nearestVisibility = (val: number) =>
     visibilityOptions.reduce((prev, curr) =>
@@ -374,10 +389,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const updateVisibility = (value: number) => {
     const vis = nearestVisibility(Number(value));
     onUpdate({ ...change, state: { ...state, visibility: vis } });
-  };
-
-  const updateWeather = (value: string) => {
-    onUpdate({ ...change, state: { ...state, weather: value ? [value] : [] } });
   };
 
   const updateCloud = (
@@ -425,7 +436,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const weatherDisabled = false;
 
-  const showError = visibility <= 5000 && weather.length === 0;
+  const showError = visibility <= 5000 && (weatherArr.length === 0);
 
   // Calculate left position for value label
   const minVis = 50;
@@ -557,22 +568,111 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </label>
 
-      <label className="block text-sm">
-        Weather
-        <select
-          value={weather[0] || ""}
-          onChange={(e) => updateWeather(e.target.value)}
-          disabled={weatherDisabled}
-          className="border ml-2"
-        >
-          <option value="">--Select--</option>
-          {weatherOptions.map((w) => (
-            <option key={w} value={w}>
-              {w}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="block text-sm">
+        <div className="mb-1">Weather</div>
+        <div className="flex flex-wrap gap-2 mb-2 items-center">
+          {/* "+" 按鈕 */}
+          <button
+            key="+"
+            type="button"
+            className="px-2 py-1 rounded border bg-blue-200 text-black"
+            onClick={() => addWeather("+")}
+            disabled={weatherDisabled}
+            tabIndex={0}
+            aria-label="Add +"
+          >
+            +
+          </button>
+          {/* "-" 按鈕 */}
+          <button
+            key="-"
+            type="button"
+            className="px-2 py-1 rounded border bg-blue-200 text-black"
+            onClick={() => addWeather("-")}
+            disabled={weatherDisabled}
+            tabIndex={0}
+            aria-label="Add -"
+          >
+            -
+          </button>
+          {/* "VC" 按鈕 */}
+          <button
+            key="VC"
+            type="button"
+            className="px-2 py-1 rounded border bg-purple-200 text-black"
+            onClick={() => addWeather("VC")}
+            disabled={weatherDisabled}
+            tabIndex={0}
+            aria-label="Add VC"
+          >
+            VC
+          </button>
+          {/* 空白按鈕 */}
+          <button
+            key="space"
+            type="button"
+            className="px-2 py-1 rounded border bg-white text-black font-mono"
+            onClick={() => addWeather(" ")}
+            disabled={weatherDisabled}
+            tabIndex={0}
+            aria-label="Add space"
+          >
+            <span className="inline-block" style={{ minWidth: "3em" }}>
+              space
+            </span>
+          </button>
+          {/* 分隔線 */}
+          <span className="border-l mx-1 h-6" />
+          {/* 其他天氣現象按鈕 */}
+          {weatherOptions
+            .filter((w) => !["+", "-", "VC", " "].includes(w))
+            .map((w) => {
+              // 天氣現象按鈕背景顏色
+              let bgClass = "bg-white";
+              if (["HZ", "BR", "FG"].includes(w)) {
+                bgClass = "bg-green-100";
+              } else if (["DZ", "RA", "SH", "SN"].includes(w)) {
+                bgClass = "bg-yellow-100";
+              } else if (w === "TS") {
+                bgClass = "bg-red-100";
+              }
+              return (
+                <button
+                  key={w}
+                  type="button"
+                  className={`px-2 py-1 rounded border ${bgClass} text-black`}
+                  onClick={() => addWeather(w)}
+                  disabled={weatherDisabled}
+                  tabIndex={0}
+                  aria-label={`Add ${w}`}
+                >
+                  {w}
+                </button>
+              );
+            })}
+        </div>
+        {/* 已選天氣標籤容器，明顯區隔，位於按鈕區下方 */}
+        {weatherArr.length > 0 && (
+          <div className="border p-2 rounded bg-gray-200 flex flex-wrap gap-2 items-center mt-2">
+            {weatherArr.map((w, idx) => (
+              <span
+                key={idx + "-" + w + "-tag"}
+                className={
+                  w === " "
+                    ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded font-mono border border-gray-400"
+                    : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200"
+                }
+                onClick={() => removeWeather(idx)}
+                style={{ cursor: "pointer" }}
+                aria-label={`Remove ${w === " " ? "space" : w}`}
+                tabIndex={0}
+              >
+                {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="block text-sm">
         <div className="flex items-center space-x-2">
