@@ -680,13 +680,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       <div className="block text-sm mt-4">
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
-          <button
-            type="button"
-            onClick={addCloud}
-            className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
-          >
-            Add Layer
-          </button>
         </div>
 
         <div className="space-y-2 mt-2">
@@ -744,6 +737,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               </button>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={addCloud}
+            className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+          >
+            Add Layer
+          </button>
         </div>
       </div>
 
