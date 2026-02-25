@@ -789,11 +789,27 @@ export default function TafBuilder() {
   // const [showActionButtons, setShowActionButtons] = useState(false);
 
   function addTempo(taf: TAF, from: number, to: number) {
+    // 預設天氣狀況為 base forecast
+    let defaultState: WeatherState = taf.base;
+    // 從最後往前找最近的 BECMG
+    for (let i = taf.changes.length - 1; i >= 0; i--) {
+      if (taf.changes[i].type === "BECMG") {
+        defaultState = taf.changes[i].state;
+        break;
+      }
+    }
+    // 深拷貝 defaultState
+    const deepCopyState: WeatherState = {
+      wind: { ...defaultState.wind },
+      visibility: defaultState.visibility,
+      weather: [...(defaultState.weather || [])],
+      clouds: (defaultState.clouds || []).map(cloud => ({ ...cloud })),
+    };
     const newChange: TAFChange = {
       type: "TEMPO",
       from: String(from),
       to: String(to),
-      state: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
+      state: deepCopyState,
     };
     const updatedChanges = [...taf.changes, newChange];
     return { taf: { ...taf, changes: updatedChanges }, index: updatedChanges.length - 1 };
