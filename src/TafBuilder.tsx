@@ -19,6 +19,12 @@ interface WeatherState {
   visibility: number;
   weather: string[];
   clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[];
+  // Optional enabledBlocks for per-block enable status
+  enabledBlocks?: {
+    wind?: boolean;
+    vis?: boolean;
+    clouds?: boolean;
+  };
 }
 
 interface TAFChange {
@@ -91,16 +97,17 @@ function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tc
     .join(" ");
 }
 
-function formatWeatherState(state: WeatherState) {
-  const vis = String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, "0");
-  return [
-    formatWind(state.wind),
-    vis,
-    (state.weather || []).map(w => w).join(""),
-    formatClouds(state.clouds),
-  ]
-    .filter(Boolean)
-    .join(" ");
+function formatWeatherState(
+  state: WeatherState & { enabledBlocks?: { wind?: boolean; vis?: boolean; clouds?: boolean } }
+) {
+  const vis =
+    state.enabledBlocks?.vis !== false
+      ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, "0")
+      : "";
+  const wind = state.enabledBlocks?.wind !== false ? formatWind(state.wind) : "";
+  const clouds = state.enabledBlocks?.clouds !== false ? formatClouds(state.clouds) : "";
+  const weather = state.enabledBlocks?.vis !== false ? (state.weather || []).join("") : "";
+  return [wind, vis, weather, clouds].filter(Boolean).join(" ");
 }
 
 function generateTAF(taf: TAF) {
@@ -132,9 +139,21 @@ function generateTAF(taf: TAF) {
 
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
 
-  const baseLine = `${formatWeatherState(taf.base)}`;
+  // Base forecast: always all enabled
+  const baseLine = `${formatWeatherState({
+    ...taf.base,
+    enabledBlocks: { wind: true, vis: true, clouds: true },
+  })}`;
 
+  // Only include enabled changes (at least one block enabled)
   const changes = (taf.changes || [])
+    .filter((c) => {
+      // Only show if at least one block enabled
+      const eb = c.state.enabledBlocks;
+      return eb
+        ? (eb.wind || eb.vis || eb.clouds)
+        : true; // fallback: show if no enabledBlocks (old data)
+    })
     .map((c) => {
       if (c.type === "FM") {
         let h = typeof c.from === "string" ? Number(c.from) : c.from;
@@ -305,6 +324,12 @@ interface ChangeEditorProps {
 function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ChangeEditorProps) {
   if (!change) return null;
 
+  // Each section enabled state: base forecast always enabled; for changes, default to disabled
+  const isBase = !("type" in change);
+  const [windEnabled, setWindEnabled] = useState(isBase);
+  const [visEnabled, setVisEnabled] = useState(isBase);
+  const [cloudEnabled, setCloudEnabled] = useState(isBase);
+
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
@@ -466,10 +491,21 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         )}
       </div>
 
-      
+
       <div className="flex gap-4 mb-2">
-        
-        <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
+        {/* Wind Section */}
+        <div className={`flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+          {!windEnabled && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => setWindEnabled(true)}
+                className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+              >
+                點一下來新增變化
+              </button>
+            </div>
+          )}
           <label className="text-sm">
             <span className="inline-block w-28">Wind Direction</span>
             <input
@@ -508,36 +544,47 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="ml-1 text-sm">KT</span>
           </label>
         </div>
-        
-      <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
-        <label className="block text-sm">
-          Visibility
-          <div className="relative w-full mt-2">
-            <input
-              type="range"
-              min={minVis}
-              max={maxVis}
-              step={50}
-              className="w-full"
-              value={visibility}
-              onChange={(e) => updateVisibility(Number(e.target.value))}
-              style={{ zIndex: 1 }}
-            />
-            <div
-              className="absolute top-0 -mt-6 bg-white border rounded-lg px-2 py-0.5 text-xs shadow"
-              style={{
-                width: "80px",
-                left: `calc(${relativePos}% - 40px)`,
-                whiteSpace: "nowrap",
-                pointerEvents: "none",
-                textAlign: "center",
-                overflow: "hidden",
-              }}
-            >
-              {visibility === 10000 ? "10000+" : String(visibility).padStart(4, "0")}
+        {/* Visibility/Weather Section */}
+        <div className={`flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+          {!visEnabled && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => setVisEnabled(true)}
+                className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+              >
+                點一下來新增變化
+              </button>
             </div>
-          </div>
-        </label>
+          )}
+          <label className="block text-sm">
+            Visibility
+            <div className="relative w-full mt-2">
+              <input
+                type="range"
+                min={minVis}
+                max={maxVis}
+                step={50}
+                className="w-full"
+                value={visibility}
+                onChange={(e) => updateVisibility(Number(e.target.value))}
+                style={{ zIndex: 1 }}
+              />
+              <div
+                className="absolute top-0 -mt-6 bg-white border rounded-lg px-2 py-0.5 text-xs shadow"
+                style={{
+                  width: "80px",
+                  left: `calc(${relativePos}% - 40px)`,
+                  whiteSpace: "nowrap",
+                  pointerEvents: "none",
+                  textAlign: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {visibility === 10000 ? "10000+" : String(visibility).padStart(4, "0")}
+              </div>
+            </div>
+          </label>
           {showError && (
             <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
           )}
@@ -640,9 +687,19 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           </div>
         </div>
       </div>
-
-      
-      <div className="block text-sm mt-2 border p-2 rounded-lg bg-white">
+      {/* Clouds Section */}
+      <div className={`block text-sm mt-2 border p-2 rounded-lg bg-white relative ${!cloudEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+        {!cloudEnabled && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setCloudEnabled(true)}
+              className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+            >
+              點一下來新增變化
+            </button>
+          </div>
+        )}
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
         </div>
@@ -745,6 +802,7 @@ export default function TafBuilder() {
       visibility: defaultState.visibility,
       weather: [...(defaultState.weather || [])],
       clouds: (defaultState.clouds || []).map(cloud => ({ ...cloud })),
+      enabledBlocks: { wind: false, vis: false, clouds: false },
     };
     const newChange: TAFChange = {
       type: "TEMPO",
