@@ -281,7 +281,7 @@ function Timeline({
         if (pendingRange !== null) setHover(null);
       }}
     >
-      {hours.map((h) => {
+      {hours.map((h, idx) => {
         const changeIndex = getChangeAtHour(h);
         const changeObj = getChangeObjAtHour(h);
         let bgClass = "bg-white";
@@ -323,7 +323,7 @@ function Timeline({
             onMouseLeave={() => {
               if (pendingRange !== null) setHover(null);
             }}
-            className={`flex-1 h-12 text-xs flex items-center justify-center border-r cursor-pointer ${bgClass}`}
+            className={`flex-1 h-12 text-xs flex items-center justify-center cursor-pointer ${bgClass} ${idx !== hours.length - 1 ? 'border-r' : ''}`}
             style={{ transition: "background 0.1s" }}
           >
             {String(h).padStart(2, "0")}Z
