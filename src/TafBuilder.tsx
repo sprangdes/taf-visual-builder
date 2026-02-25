@@ -532,6 +532,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               max={360}
               onChange={(e) => updateWind("dir", e.target.value)}
             />
+            <span className="ml-1 text-sm">°</span>
           </label>
           <label className="text-sm">
             <span className="inline-block w-28">Wind Speed</span>
@@ -543,6 +544,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               step={1}
               onChange={(e) => updateWind("speed", e.target.value)}
             />
+            <span className="ml-1 text-sm">KT</span>
           </label>
           <label className="text-sm">
             <span className="inline-block w-28">Wind Gust</span>
@@ -554,6 +556,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               step={1}
               onChange={(e) => updateWind("gust", e.target.value)}
             />
+            <span className="ml-1 text-sm">KT</span>
           </label>
         </div>
         {/* Visibility + Weather block (right) */}
