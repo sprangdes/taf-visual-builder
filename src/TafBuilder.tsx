@@ -276,7 +276,7 @@ function Timeline({
   // Only allow drag select on empty cells (not already covered by a change)
   return (
     <div
-      className="flex border rounded overflow-hidden select-none"
+      className="flex border rounded-lg overflow-hidden select-none"
       onMouseLeave={() => {
         if (pendingRange !== null) setHover(null);
       }}
@@ -470,7 +470,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       return (
         <button
-          className={`px-3 py-1 rounded font-semibold mr-1 ${colorClass}`}
+          className={`px-3 py-1 rounded-lg font-semibold mr-1 ${colorClass}`}
           onClick={(e) => {
             e.stopPropagation();
             onChangeType(nextType(type));
@@ -485,14 +485,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     }
 
     return (
-      <span className="bg-gray-300 px-2 rounded font-semibold text-black mr-1">
+      <span className="bg-gray-300 px-2 rounded-lg font-semibold text-black mr-1">
         BASE
       </span>
     );
   }
 
   return (
-    <div className="border p-4 rounded bg-gray-100 space-y-2 relative">
+    <div className="border p-4 rounded-lg bg-gray-100 space-y-2 relative">
       <div className="flex items-center relative">
         <h3 className="font-semibold flex items-center m-0 p-0">
           Edit{" "}
@@ -520,7 +520,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       {/* ---- Top Layer: Wind block (left) + Visibility/Weather block (right) ---- */}
       <div className="flex gap-4 mb-2">
         {/* Wind block (left) */}
-        <div className="flex-1 border p-2 rounded flex flex-col gap-2 bg-white">
+        <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
           <label className="text-sm">
             <span className="inline-block w-28">Wind Direction</span>
             <input
@@ -557,7 +557,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           </label>
         </div>
         {/* Visibility + Weather block (right) */}
-      <div className="flex-1 border p-2 rounded flex flex-col gap-2 bg-white">
+      <div className="flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white">
         <label className="block text-sm">
           Visibility
           <div className="relative w-full mt-2">
@@ -572,7 +572,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               style={{ zIndex: 1 }}
             />
             <div
-              className="absolute top-0 -mt-6 bg-white border rounded px-2 py-0.5 text-xs shadow"
+              className="absolute top-0 -mt-6 bg-white border rounded-lg px-2 py-0.5 text-xs shadow"
               style={{
                 width: "80px",
                 left: `calc(${relativePos}% - 40px)`,
@@ -596,7 +596,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="+"
                 type="button"
-                className="px-2 py-1 rounded border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-lg border bg-blue-200 text-black"
                 onClick={() => addWeather("+")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -608,7 +608,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="-"
                 type="button"
-                className="px-2 py-1 rounded border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-lg border bg-blue-200 text-black"
                 onClick={() => addWeather("-")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -620,7 +620,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="VC"
                 type="button"
-                className="px-2 py-1 rounded border bg-purple-200 text-black"
+                className="px-2 py-1 rounded-lg border bg-purple-200 text-black"
                 onClick={() => addWeather("VC")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -632,7 +632,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="space"
                 type="button"
-                className="px-2 py-1 rounded border bg-white text-black font-mono"
+                className="px-2 py-1 rounded-lg border bg-white text-black font-mono"
                 onClick={() => addWeather(" ")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -661,7 +661,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     <button
                       key={w}
                       type="button"
-                      className={`px-2 py-1 rounded border ${bgClass} text-black`}
+                      className={`px-2 py-1 rounded-lg border ${bgClass} text-black`}
                       onClick={() => addWeather(w)}
                       disabled={weatherDisabled}
                       tabIndex={0}
@@ -674,14 +674,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             </div>
             {/* 已選天氣標籤容器，明顯區隔，位於按鈕區下方 */}
             {weatherArr.length > 0 && (
-              <div className="border p-2 rounded bg-white flex flex-wrap gap-2 items-center mt-2">
+              <div className="border p-2 rounded-lg bg-white flex flex-wrap gap-2 items-center mt-2">
                 {weatherArr.map((w, idx) => (
                   <span
                     key={idx + "-" + w + "-tag"}
                     className={
                       w === " "
-                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded font-mono border border-gray-400"
-                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200"
+                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-lg font-mono border border-gray-400"
+                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-lg border border-blue-200"
                     }
                     onClick={() => removeWeather(idx)}
                     style={{ cursor: "pointer" }}
@@ -698,7 +698,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       </div>
 
       {/* ---- Bottom Layer: Clouds ---- */}
-      <div className="block text-sm mt-2 border p-2 rounded bg-white">
+      <div className="block text-sm mt-2 border p-2 rounded-lg bg-white">
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
         </div>
@@ -747,7 +747,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 type="button"
                 onClick={() => removeCloud(idx)}
-                className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                className="bg-red-500 text-white px-2 py-1 rounded-lg text-xs"
               >
                 X
               </button>
@@ -756,7 +756,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <button
             type="button"
             onClick={addCloud}
-            className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
+            className="bg-blue-500 text-white px-2 py-1 rounded-lg text-xs"
           >
             Add Layer
           </button>
@@ -869,7 +869,7 @@ export default function TafBuilder() {
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-bold">TAF Visual Builder (MVP)</h1>
 
-      <section className="p-4 rounded">
+      <section className="p-4 rounded-lg">
         <h2 className="font-semibold">Header</h2>
         <input
           value={taf.station}
@@ -883,7 +883,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded">
+      <section className="p-4 rounded-lg">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
@@ -908,7 +908,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded">
+      <section className="p-4 rounded-lg">
         <h2 className="font-semibold">Timeline (click two hours / select change)</h2>
         <Timeline
           changes={taf.changes}
@@ -920,7 +920,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded">
+      <section className="p-4 rounded-lg">
         <h2 className="font-semibold">Selected Change</h2>
         {selectedChangeIndex !== null ? (
           <div>
@@ -939,7 +939,7 @@ export default function TafBuilder() {
 
       <section className="p-4 rounded">
         <h2 className="font-semibold">Generated TAF</h2>
-        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded">
+        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-lg">
           {generateTAF(taf)}
         </pre>
       </section>
