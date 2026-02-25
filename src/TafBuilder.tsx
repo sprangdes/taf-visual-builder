@@ -97,16 +97,11 @@ function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tc
     .join(" ");
 }
 
-function formatWeatherState(
-  state: WeatherState & { enabledBlocks?: { wind?: boolean; vis?: boolean; clouds?: boolean } }
-) {
-  const vis =
-    state.enabledBlocks?.vis !== false
-      ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, "0")
-      : "";
-  const wind = state.enabledBlocks?.wind !== false ? formatWind(state.wind) : "";
-  const clouds = state.enabledBlocks?.clouds !== false ? formatClouds(state.clouds) : "";
-  const weather = state.enabledBlocks?.vis !== false ? (state.weather || []).join("") : "";
+function formatWeatherState(state: WeatherState) {
+  const vis = state.enabledBlocks?.vis ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, "0") : "";
+  const wind = state.enabledBlocks?.wind ? formatWind(state.wind) : "";
+  const clouds = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : "";
+  const weather = state.enabledBlocks?.vis ? (state.weather || []).join("") : "";
   return [wind, vis, weather, clouds].filter(Boolean).join(" ");
 }
 
@@ -560,10 +555,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     state: {
                       ...change.state,
                       enabledBlocks: {
-                        ...(change.state && (change.state as any).enabledBlocks),
+                        ...(change.state?.enabledBlocks || {}),
                         wind: true,
-                        vis: visEnabled,
-                        clouds: cloudEnabled,
                       },
                     },
                   });
@@ -625,10 +618,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     state: {
                       ...change.state,
                       enabledBlocks: {
-                        ...(change.state && (change.state as any).enabledBlocks),
-                        wind: windEnabled,
+                        ...(change.state?.enabledBlocks || {}),
                         vis: true,
-                        clouds: cloudEnabled,
                       },
                     },
                   });
@@ -782,9 +773,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   state: {
                     ...change.state,
                     enabledBlocks: {
-                      ...(change.state && (change.state as any).enabledBlocks),
-                      wind: windEnabled,
-                      vis: visEnabled,
+                      ...(change.state?.enabledBlocks || {}),
                       clouds: true,
                     },
                   },
