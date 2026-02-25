@@ -783,6 +783,8 @@ export default function TafBuilder() {
   });
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
+  // 1️⃣ 複製成功提示 state
+  const [copied, setCopied] = useState(false);
 
   function getTimelineStartHour(issueTime: string): number {
     // Expect format DDHHMMZ
@@ -868,6 +870,15 @@ export default function TafBuilder() {
     // setShowActionButtons(false); // removed
   }
 
+  // 1️⃣ 複製功能（含複製成功提示）
+  function handleCopyTAF() {
+    const text = generateTAF(taf);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-bold">TAF Visual Builder (MVP)</h1>
@@ -945,6 +956,15 @@ export default function TafBuilder() {
         <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-lg">
           {generateTAF(taf)}
         </pre>
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={handleCopyTAF}
+            className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </section>
     </div>
   );
