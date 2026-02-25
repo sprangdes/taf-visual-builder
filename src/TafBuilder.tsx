@@ -344,13 +344,27 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const addWeather = (w: string) => {
     const arr = [...weatherArr, w];
-    onUpdate({ ...change, state: { ...state, weather: arr } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        weather: arr,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const removeWeather = (idx: number) => {
     const arr = weatherArr.slice();
     arr.splice(idx, 1);
-    onUpdate({ ...change, state: { ...state, weather: arr } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        weather: arr,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const nearestVisibility = (val: number) =>
@@ -369,12 +383,26 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     }
     if (field === "speed") newWind.speed = Math.max(0, Math.round(Number(value)));
     if (field === "gust") newWind.gust = value ? Math.round(Number(value)) : null;
-    onUpdate({ ...change, state: { ...state, wind: newWind } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        wind: newWind,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const updateVisibility = (value: number) => {
     const vis = nearestVisibility(Number(value));
-    onUpdate({ ...change, state: { ...state, visibility: vis } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        visibility: vis,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const updateCloud = (
@@ -404,18 +432,39 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     }
 
     updatedClouds[index] = target;
-    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        clouds: updatedClouds,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const addCloud = () => {
     const updatedClouds = [...clouds, { amount: "FEW", height: 0 }];
-    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        clouds: updatedClouds,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const removeCloud = (index: number) => {
     const updatedClouds = [...clouds];
     updatedClouds.splice(index, 1);
-    onUpdate({ ...change, state: { ...state, clouds: updatedClouds } });
+    onUpdate({
+      ...change,
+      state: {
+        ...state,
+        clouds: updatedClouds,
+        enabledBlocks: state.enabledBlocks ? { ...state.enabledBlocks } : undefined,
+      },
+    });
   };
 
   const weatherDisabled = false;
