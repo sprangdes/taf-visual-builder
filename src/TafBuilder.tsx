@@ -326,9 +326,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   // Each section enabled state: base forecast always enabled; for changes, default to disabled
   const isBase = !("type" in change);
-  const [windEnabled, setWindEnabled] = useState(isBase);
-  const [visEnabled, setVisEnabled] = useState(isBase);
-  const [cloudEnabled, setCloudEnabled] = useState(isBase);
+  // Use enabledBlocks in state if present, else fallback to isBase
+  // enabledBlocks: { wind: boolean, vis: boolean, clouds: boolean }
+  const enabledBlocks =
+    (change.state && (change.state as any).enabledBlocks) ||
+    { wind: isBase, vis: isBase, clouds: isBase };
+  const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
+  const [visEnabled, setVisEnabled] = useState(enabledBlocks.vis ?? isBase);
+  const [cloudEnabled, setCloudEnabled] = useState(enabledBlocks.clouds ?? isBase);
 
   const state = emptyWeather(change.state);
   const wind = state.wind;
@@ -499,7 +504,21 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
-                onClick={() => setWindEnabled(true)}
+                onClick={() => {
+                  setWindEnabled(true);
+                  onUpdate({
+                    ...change,
+                    state: {
+                      ...change.state,
+                      enabledBlocks: {
+                        ...(change.state && (change.state as any).enabledBlocks),
+                        wind: true,
+                        vis: visEnabled,
+                        clouds: cloudEnabled,
+                      },
+                    },
+                  });
+                }}
                 className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
               >
                 點一下來新增變化
@@ -550,7 +569,21 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
-                onClick={() => setVisEnabled(true)}
+                onClick={() => {
+                  setVisEnabled(true);
+                  onUpdate({
+                    ...change,
+                    state: {
+                      ...change.state,
+                      enabledBlocks: {
+                        ...(change.state && (change.state as any).enabledBlocks),
+                        wind: windEnabled,
+                        vis: true,
+                        clouds: cloudEnabled,
+                      },
+                    },
+                  });
+                }}
                 className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
               >
                 點一下來新增變化
@@ -693,7 +726,21 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
             <button
               type="button"
-              onClick={() => setCloudEnabled(true)}
+              onClick={() => {
+                setCloudEnabled(true);
+                onUpdate({
+                  ...change,
+                  state: {
+                    ...change.state,
+                    enabledBlocks: {
+                      ...(change.state && (change.state as any).enabledBlocks),
+                      wind: windEnabled,
+                      vis: visEnabled,
+                      clouds: true,
+                    },
+                  },
+                });
+              }}
               className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
             >
               點一下來新增變化
