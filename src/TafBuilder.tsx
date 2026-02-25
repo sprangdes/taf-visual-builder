@@ -568,6 +568,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </label>
 
+      {showError && (
+        <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
+      )}
+
       <div className="block text-sm">
         <div className="mb-1">Weather</div>
         <div className="flex flex-wrap gap-2 mb-2 items-center">
@@ -744,9 +748,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
 
-      {showError && (
-        <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
-      )}
 
       {showActionButtons && onDelete && (
         <button
