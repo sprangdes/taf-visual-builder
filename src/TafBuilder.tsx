@@ -441,7 +441,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   // Calculate left position for value label
   const minVis = 50;
   const maxVis = 10000;
-  const sliderWidth = 300; // approximate width in px of the slider container for positioning
   // We'll calculate relative left position based on visibility value
   const clampedVis = Math.min(Math.max(visibility, minVis), maxVis);
   const relativePos = ((clampedVis - minVis) / (maxVis - minVis)) * 100;
@@ -502,186 +501,191 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
       </h3>
 
-      <div className="flex flex-col gap-2 mb-4">
-        <label className="text-sm">
-          <span className="inline-block w-28">Wind Direction</span>
-          <input
-            type="number"
-            className="border ml-2 w-20 inline-block"
-            value={wind.dir}
-            step={10}
-            min={0}
-            max={360}
-            onChange={(e) => updateWind("dir", e.target.value)}
-          />
-        </label>
-        <label className="text-sm">
-          <span className="inline-block w-28">Wind Speed</span>
-          <input
-            type="number"
-            className="border ml-2 w-20 inline-block"
-            value={wind.speed}
-            min={0}
-            step={1}
-            onChange={(e) => updateWind("speed", e.target.value)}
-          />
-        </label>
-        <label className="text-sm">
-          <span className="inline-block w-28">Wind Gust</span>
-          <input
-            type="number"
-            className="border ml-2 w-20 inline-block"
-            value={wind.gust ?? ""}
-            min={0}
-            step={1}
-            onChange={(e) => updateWind("gust", e.target.value)}
-          />
-        </label>
-      </div>
-      <label className="block text-sm mb-4">
-        Visibility
-        <div className="relative w-full mt-2" style={{ maxWidth: "300px" }}>
-          <input
-            type="range"
-            min={minVis}
-            max={maxVis}
-            step={50}
-            className="w-full"
-            value={visibility}
-            onChange={(e) => updateVisibility(Number(e.target.value))}
-            style={{ zIndex: 1 }}
-          />
-          <div
-            className="absolute top-0 -mt-6 bg-white border rounded px-2 py-0.5 text-xs shadow"
-            style={{
-              width: "80px",
-              left: `calc(${relativePos}% - 40px)`,
-              whiteSpace: "nowrap",
-              pointerEvents: "none",
-              textAlign: "center",
-              overflow: "hidden",
-            }}
-          >
-            {visibility === 10000 ? "10000+" : String(visibility).padStart(4, "0")}
+      {/* ---- Top Layer: Wind block (left) + Visibility/Weather block (right) ---- */}
+      <div className="flex gap-4 mb-2">
+        {/* Wind block (left) */}
+        <div className="flex-1 border p-2 rounded flex flex-col gap-2 bg-white">
+          <label className="text-sm">
+            <span className="inline-block w-28">Wind Direction</span>
+            <input
+              type="number"
+              className="border ml-2 w-20 inline-block"
+              value={wind.dir}
+              step={10}
+              min={0}
+              max={360}
+              onChange={(e) => updateWind("dir", e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            <span className="inline-block w-28">Wind Speed</span>
+            <input
+              type="number"
+              className="border ml-2 w-20 inline-block"
+              value={wind.speed}
+              min={0}
+              step={1}
+              onChange={(e) => updateWind("speed", e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            <span className="inline-block w-28">Wind Gust</span>
+            <input
+              type="number"
+              className="border ml-2 w-20 inline-block"
+              value={wind.gust ?? ""}
+              min={0}
+              step={1}
+              onChange={(e) => updateWind("gust", e.target.value)}
+            />
+          </label>
+        </div>
+        {/* Visibility + Weather block (right) */}
+      <div className="flex-1 border p-2 rounded flex flex-col gap-2 bg-white">
+        <label className="block text-sm">
+          Visibility
+          <div className="relative w-full mt-2">
+            <input
+              type="range"
+              min={minVis}
+              max={maxVis}
+              step={50}
+              className="w-full"
+              value={visibility}
+              onChange={(e) => updateVisibility(Number(e.target.value))}
+              style={{ zIndex: 1 }}
+            />
+            <div
+              className="absolute top-0 -mt-6 bg-white border rounded px-2 py-0.5 text-xs shadow"
+              style={{
+                width: "80px",
+                left: `calc(${relativePos}% - 40px)`,
+                whiteSpace: "nowrap",
+                pointerEvents: "none",
+                textAlign: "center",
+                overflow: "hidden",
+              }}
+            >
+              {visibility === 10000 ? "10000+" : String(visibility).padStart(4, "0")}
+            </div>
           </div>
-        </div>
-      </label>
-
-      {showError && (
-        <div className="text-red-500 text-sm mb-4">Visibility ≤5000, weather must be selected</div>
-      )}
-
-      <div className="block text-sm mb-4">
-        <div className="mb-1">Weather</div>
-        <div className="flex flex-wrap gap-2 mb-2 items-center">
-          {/* "+" 按鈕 */}
-          <button
-            key="+"
-            type="button"
-            className="px-2 py-1 rounded border bg-blue-200 text-black"
-            onClick={() => addWeather("+")}
-            disabled={weatherDisabled}
-            tabIndex={0}
-            aria-label="Add +"
-          >
-            +
-          </button>
-          {/* "-" 按鈕 */}
-          <button
-            key="-"
-            type="button"
-            className="px-2 py-1 rounded border bg-blue-200 text-black"
-            onClick={() => addWeather("-")}
-            disabled={weatherDisabled}
-            tabIndex={0}
-            aria-label="Add -"
-          >
-            -
-          </button>
-          {/* "VC" 按鈕 */}
-          <button
-            key="VC"
-            type="button"
-            className="px-2 py-1 rounded border bg-purple-200 text-black"
-            onClick={() => addWeather("VC")}
-            disabled={weatherDisabled}
-            tabIndex={0}
-            aria-label="Add VC"
-          >
-            VC
-          </button>
-          {/* 空白按鈕 */}
-          <button
-            key="space"
-            type="button"
-            className="px-2 py-1 rounded border bg-white text-black font-mono"
-            onClick={() => addWeather(" ")}
-            disabled={weatherDisabled}
-            tabIndex={0}
-            aria-label="Add space"
-          >
-            <span className="inline-block" style={{ minWidth: "3em" }}>
-              space
-            </span>
-          </button>
-          {/* 分隔線 */}
-          <span className="border-l mx-1 h-6" />
-          {/* 其他天氣現象按鈕 */}
-          {weatherOptions
-            .filter((w) => !["+", "-", "VC", " "].includes(w))
-            .map((w) => {
-              // 天氣現象按鈕背景顏色
-              let bgClass = "bg-white";
-              if (["HZ", "BR", "FG"].includes(w)) {
-                bgClass = "bg-green-100";
-              } else if (["DZ", "RA", "SH", "SN"].includes(w)) {
-                bgClass = "bg-yellow-100";
-              } else if (w === "TS") {
-                bgClass = "bg-red-100";
-              }
-              return (
-                <button
-                  key={w}
-                  type="button"
-                  className={`px-2 py-1 rounded border ${bgClass} text-black`}
-                  onClick={() => addWeather(w)}
-                  disabled={weatherDisabled}
-                  tabIndex={0}
-                  aria-label={`Add ${w}`}
-                >
-                  {w}
-                </button>
-              );
-            })}
-        </div>
-        {/* 已選天氣標籤容器，明顯區隔，位於按鈕區下方 */}
-        {weatherArr.length > 0 && (
-          <div className="border p-2 rounded bg-gray-200 flex flex-wrap gap-2 items-center mt-2">
-            {weatherArr.map((w, idx) => (
-              <span
-                key={idx + "-" + w + "-tag"}
-                className={
-                  w === " "
-                    ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded font-mono border border-gray-400"
-                    : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200"
-                }
-                onClick={() => removeWeather(idx)}
-                style={{ cursor: "pointer" }}
-                aria-label={`Remove ${w === " " ? "space" : w}`}
+        </label>
+          {showError && (
+            <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
+          )}
+          <div className="block text-sm">
+            <div className="mb-1">Weather</div>
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
+              {/* "+" 按鈕 */}
+              <button
+                key="+"
+                type="button"
+                className="px-2 py-1 rounded border bg-blue-200 text-black"
+                onClick={() => addWeather("+")}
+                disabled={weatherDisabled}
                 tabIndex={0}
+                aria-label="Add +"
               >
-                {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
-              </span>
-            ))}
+                +
+              </button>
+              {/* "-" 按鈕 */}
+              <button
+                key="-"
+                type="button"
+                className="px-2 py-1 rounded border bg-blue-200 text-black"
+                onClick={() => addWeather("-")}
+                disabled={weatherDisabled}
+                tabIndex={0}
+                aria-label="Add -"
+              >
+                -
+              </button>
+              {/* "VC" 按鈕 */}
+              <button
+                key="VC"
+                type="button"
+                className="px-2 py-1 rounded border bg-purple-200 text-black"
+                onClick={() => addWeather("VC")}
+                disabled={weatherDisabled}
+                tabIndex={0}
+                aria-label="Add VC"
+              >
+                VC
+              </button>
+              {/* 空白按鈕 */}
+              <button
+                key="space"
+                type="button"
+                className="px-2 py-1 rounded border bg-white text-black font-mono"
+                onClick={() => addWeather(" ")}
+                disabled={weatherDisabled}
+                tabIndex={0}
+                aria-label="Add space"
+              >
+                <span className="inline-block" style={{ minWidth: "3em" }}>
+                  space
+                </span>
+              </button>
+              {/* 分隔線 */}
+              <span className="border-l mx-1 h-6" />
+              {/* 其他天氣現象按鈕 */}
+              {weatherOptions
+                .filter((w) => !["+", "-", "VC", " "].includes(w))
+                .map((w) => {
+                  // 天氣現象按鈕背景顏色
+                  let bgClass = "bg-white";
+                  if (["HZ", "BR", "FG"].includes(w)) {
+                    bgClass = "bg-green-100";
+                  } else if (["DZ", "RA", "SH", "SN"].includes(w)) {
+                    bgClass = "bg-yellow-100";
+                  } else if (w === "TS") {
+                    bgClass = "bg-red-100";
+                  }
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      className={`px-2 py-1 rounded border ${bgClass} text-black`}
+                      onClick={() => addWeather(w)}
+                      disabled={weatherDisabled}
+                      tabIndex={0}
+                      aria-label={`Add ${w}`}
+                    >
+                      {w}
+                    </button>
+                  );
+                })}
+            </div>
+            {/* 已選天氣標籤容器，明顯區隔，位於按鈕區下方 */}
+            {weatherArr.length > 0 && (
+              <div className="border p-2 rounded bg-white flex flex-wrap gap-2 items-center mt-2">
+                {weatherArr.map((w, idx) => (
+                  <span
+                    key={idx + "-" + w + "-tag"}
+                    className={
+                      w === " "
+                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded font-mono border border-gray-400"
+                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200"
+                    }
+                    onClick={() => removeWeather(idx)}
+                    style={{ cursor: "pointer" }}
+                    aria-label={`Remove ${w === " " ? "space" : w}`}
+                    tabIndex={0}
+                  >
+                    {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="block text-sm mt-4">
+      {/* ---- Bottom Layer: Clouds ---- */}
+      <div className="block text-sm mt-2 border p-2 rounded bg-white">
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
         </div>
-
         <div className="space-y-2 mt-2">
           {clouds.map((c, idx) => (
             <div key={idx} className="flex items-center space-x-2">
@@ -696,7 +700,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   </option>
                 ))}
               </select>
-
               <input
                 type="number"
                 value={c.height}
@@ -705,9 +708,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 onChange={(e) => updateCloud(idx, "height", e.target.value)}
                 className="border w-20"
               />
-
               <span className="text-xs">(hundreds ft)</span>
-
               {/* CB/TCU checkboxes */}
               <label className="flex items-center text-xs ml-2">
                 <input
@@ -727,7 +728,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 />
                 TCU
               </label>
-
               <button
                 type="button"
                 onClick={() => removeCloud(idx)}
@@ -746,7 +746,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           </button>
         </div>
       </div>
-
 
       {showActionButtons && onDelete && (
         <button
