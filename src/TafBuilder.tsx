@@ -502,44 +502,43 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
       </h3>
 
-      <label className="block text-sm">
-        Wind Direction (0-360°, 10° increments)
-        <input
-          type="number"
-          className="border ml-2"
-          value={wind.dir}
-          step={10}
-          min={0}
-          max={360}
-          onChange={(e) => updateWind("dir", e.target.value)}
-        />
-      </label>
-
-      <label className="block text-sm">
-        Wind Speed
-        <input
-          type="number"
-          className="border ml-2"
-          value={wind.speed}
-          min={0}
-          step={1}
-          onChange={(e) => updateWind("speed", e.target.value)}
-        />
-      </label>
-
-      <label className="block text-sm">
-        Wind Gust
-        <input
-          type="number"
-          className="border ml-2"
-          value={wind.gust ?? ""}
-          min={0}
-          step={1}
-          onChange={(e) => updateWind("gust", e.target.value)}
-        />
-      </label>
-
-      <label className="block text-sm">
+      <div className="flex flex-col gap-2 mb-4">
+        <label className="text-sm">
+          <span className="inline-block w-28">Wind Direction</span>
+          <input
+            type="number"
+            className="border ml-2 w-20 inline-block"
+            value={wind.dir}
+            step={10}
+            min={0}
+            max={360}
+            onChange={(e) => updateWind("dir", e.target.value)}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="inline-block w-28">Wind Speed</span>
+          <input
+            type="number"
+            className="border ml-2 w-20 inline-block"
+            value={wind.speed}
+            min={0}
+            step={1}
+            onChange={(e) => updateWind("speed", e.target.value)}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="inline-block w-28">Wind Gust</span>
+          <input
+            type="number"
+            className="border ml-2 w-20 inline-block"
+            value={wind.gust ?? ""}
+            min={0}
+            step={1}
+            onChange={(e) => updateWind("gust", e.target.value)}
+          />
+        </label>
+      </div>
+      <label className="block text-sm mb-4">
         Visibility
         <div className="relative w-full mt-2" style={{ maxWidth: "300px" }}>
           <input
@@ -569,10 +568,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       </label>
 
       {showError && (
-        <div className="text-red-500 text-sm">Visibility ≤5000, weather must be selected</div>
+        <div className="text-red-500 text-sm mb-4">Visibility ≤5000, weather must be selected</div>
       )}
 
-      <div className="block text-sm">
+      <div className="block text-sm mb-4">
         <div className="mb-1">Weather</div>
         <div className="flex flex-wrap gap-2 mb-2 items-center">
           {/* "+" 按鈕 */}
@@ -678,7 +677,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         )}
       </div>
 
-      <div className="block text-sm">
+      <div className="block text-sm mt-4">
         <div className="flex items-center space-x-2">
           <span>Clouds</span>
           <button
