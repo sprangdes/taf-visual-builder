@@ -330,7 +330,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
-  const clouds = state.clouds || [];
+  // Ensure at least one cloud layer exists
+  const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [{ amount: "FEW", height: 0 }];
 
   const weatherArr = state.weather || [];
 
@@ -928,13 +929,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 />
                 TCU
               </label>
-              <button
-                type="button"
-                onClick={() => removeCloud(idx)}
-                className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
-              >
-                X
-              </button>
+              {clouds.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCloud(idx)}
+                  className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+                >
+                  X
+                </button>
+              )}
             </div>
           ))}
           <button
