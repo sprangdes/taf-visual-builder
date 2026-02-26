@@ -590,9 +590,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     },
                   });
                 }}
-                className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
+                className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
               >
-                點一下來新增變化
+                Active Wind to Edit
               </button>
             </div>
           )}
@@ -634,7 +634,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="ml-1 text-sm">KT</span>
           </label>
           {!windEnabled && (
-            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
           )}
         </div>
         {/* Visibility/Weather Section */}
@@ -656,9 +656,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     },
                   });
                 }}
-                className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
+                className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
               >
-                點一下來新增變化
+                Active Visibility/Weather to Edit
               </button>
             </div>
           )}
@@ -791,7 +791,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             )}
           </div>
           {!visEnabled && (
-            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
           )}
         </div>
       </div>
@@ -814,9 +814,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   },
                 });
               }}
-              className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
+              className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
             >
-              點一下來新增變化
+              Active Clouds to Edit
             </button>
           </div>
         )}
@@ -882,7 +882,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           </button>
         </div>
         {!cloudEnabled && (
-          <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+          <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
         )}
       </div>
 
