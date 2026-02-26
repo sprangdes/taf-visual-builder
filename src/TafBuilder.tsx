@@ -1056,7 +1056,7 @@ export default function TafBuilder() {
         <input
           value={taf.station}
           onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
-          className="border p-1 mr-2"
+          className="border p-1 mr-2 rounded-xl"
           placeholder="ICAO Code"
         />
         <IssueTimeInput
@@ -1349,7 +1349,7 @@ function IssueTimeInput({
   };
 
   return (
-    <span className="inline-flex items-center border">
+    <span className="inline-flex items-center border rounded-xl">
       <input
         type="text"
         inputMode="numeric"
