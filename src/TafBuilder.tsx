@@ -812,26 +812,24 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   );
                 })}
             </div>
-            {weatherArr.length > 0 && (
-              <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2">
-                {weatherArr.map((w, idx) => (
-                  <span
-                    key={idx + "-" + w + "-tag"}
-                    className={
-                      w === " "
-                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-xl font-mono border border-gray-400"
-                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-xl border border-blue-200"
-                    }
-                    onClick={() => removeWeather(idx)}
-                    style={{ cursor: "pointer" }}
-                    aria-label={`Remove ${w === " " ? "space" : w}`}
-                    tabIndex={0}
-                  >
-                    {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
+              {weatherArr.map((w, idx) => (
+                <span
+                  key={idx + "-" + w + "-tag"}
+                  className={
+                    w === " "
+                      ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-xl font-mono border border-gray-400"
+                      : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-xl border border-blue-200"
+                  }
+                  onClick={() => removeWeather(idx)}
+                  style={{ cursor: "pointer" }}
+                  aria-label={`Remove ${w === " " ? "space" : w}`}
+                  tabIndex={0}
+                >
+                  {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
+                </span>
+              ))}
+            </div>
           </div>
           {!visEnabled && (
             <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
