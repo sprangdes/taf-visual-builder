@@ -954,7 +954,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
 export default function TafBuilder() {
   const [taf, setTaf] = useState<TAF>({
-    station: "RCTP",
+    station: "RCSS",
     issueTime: getCurrentIssueTimeUTC(),
     base: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
     changes: []
