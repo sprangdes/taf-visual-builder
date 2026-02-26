@@ -573,7 +573,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
         <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {windEnabled && (
+          {isBase === false && windEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -661,7 +661,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
         {/* Visibility/Weather Section */}
         <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {visEnabled && (
+          {isBase === false && visEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -840,7 +840,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       </div>
       {/* Clouds Section */}
       <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${!cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-        {cloudEnabled && (
+        {isBase === false && cloudEnabled && (
           <button
             type="button"
             onClick={() => {
