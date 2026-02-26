@@ -1,6 +1,19 @@
 import { useState } from "react";
 
-const weatherOptions = [" ", "+", "-", "VC", "HZ", "BR", "FG", "DZ", "RA", "SH", "SN", "TS"];
+const weatherOptions = [
+  { code: " ", color: "bg-white" },
+  { code: "+", color: "bg-blue-200" },
+  { code: "-", color: "bg-blue-200" },
+  { code: "VC", color: "bg-purple-200" },
+  { code: "HZ", color: "bg-green-100" },
+  { code: "BR", color: "bg-green-100" },
+  { code: "FG", color: "bg-green-100" },
+  { code: "DZ", color: "bg-yellow-100" },
+  { code: "RA", color: "bg-yellow-100" },
+  { code: "SH", color: "bg-yellow-100" },
+  { code: "SN", color: "bg-yellow-100" },
+  { code: "TS", color: "bg-red-100" },
+];
 const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 const visibilityOptions = [
   50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
@@ -722,96 +735,48 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <div className="block text-sm">
             <div className="mb-1">Weather</div>
             <div className="flex flex-wrap gap-2 mb-2 items-center">
-              <button
-                key="+"
-                type="button"
-                className="px-2 py-1 rounded-xl border bg-blue-200 text-black cursor-pointer"
-                onClick={() => addWeather("+")}
-                disabled={weatherDisabled}
-                tabIndex={0}
-                aria-label="Add +"
-              >
-                +
-              </button>
-              <button
-                key="-"
-                type="button"
-                className="px-2 py-1 rounded-xl border bg-blue-200 text-black cursor-pointer"
-                onClick={() => addWeather("-")}
-                disabled={weatherDisabled}
-                tabIndex={0}
-                aria-label="Add -"
-              >
-                -
-              </button>
-              <button
-                key="VC"
-                type="button"
-                className="px-2 py-1 rounded-xl border bg-purple-200 text-black cursor-pointer"
-                onClick={() => addWeather("VC")}
-                disabled={weatherDisabled}
-                tabIndex={0}
-                aria-label="Add VC"
-              >
-                VC
-              </button>
-              <button
-                key="space"
-                type="button"
-                className="px-2 py-1 rounded-xl border bg-white text-black font-mono cursor-pointer"
-                onClick={() => addWeather(" ")}
-                disabled={weatherDisabled}
-                tabIndex={0}
-                aria-label="Add space"
-              >
-                <span className="inline-block" style={{ minWidth: "3em" }}>
-                  space
-                </span>
-              </button>
-              <span className="border-l mx-1 h-6" />
-              {weatherOptions
-                .filter((w) => !["+", "-", "VC", " "].includes(w))
-                .map((w) => {
-                  let bgClass = "bg-white";
-                  if (["HZ", "BR", "FG"].includes(w)) {
-                    bgClass = "bg-green-100";
-                  } else if (["DZ", "RA", "SH", "SN"].includes(w)) {
-                    bgClass = "bg-yellow-100";
-                  } else if (w === "TS") {
-                    bgClass = "bg-red-100";
-                  }
-                  return (
-                    <button
-                      key={w}
-                      type="button"
-                      className={`px-2 py-1 rounded-xl border ${bgClass} text-black cursor-pointer`}
-                      onClick={() => addWeather(w)}
-                      disabled={weatherDisabled}
-                      tabIndex={0}
-                      aria-label={`Add ${w}`}
-                    >
-                      {w}
-                    </button>
-                  );
-                })}
+              {weatherOptions.map((opt) => (
+                <button
+                  key={opt.code === " " ? "space" : opt.code}
+                  type="button"
+                  className={`px-2 py-1 rounded-xl border ${opt.color} text-black cursor-pointer`}
+                  onClick={() => addWeather(opt.code)}
+                  disabled={weatherDisabled}
+                  tabIndex={0}
+                  aria-label={`Add ${opt.code === " " ? "space" : opt.code}`}
+                >
+                  {opt.code === " " ? (
+                    <span className="inline-block" style={{ minWidth: "3em" }}>
+                      space
+                    </span>
+                  ) : (
+                    opt.code
+                  )}
+                </button>
+              ))}
             </div>
             <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
-              {weatherArr.map((w, idx) => (
-                <span
-                  key={idx + "-" + w + "-tag"}
-                  className={
-                    w === " "
-                      ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-xl font-mono border border-gray-400"
-                      : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-xl border border-blue-200"
-                  }
-                  onClick={() => removeWeather(idx)}
-                  style={{ cursor: "pointer" }}
-                  aria-label={`Remove ${w === " " ? "space" : w}`}
-                  tabIndex={0}
-                >
-                  {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
-                </span>
-              ))}
+              {weatherArr.map((w, idx) => {
+                const opt = weatherOptions.find(o => o.code === w);
+                const bgClass = opt ? opt.color : "bg-white";
+
+                return (
+                  <span
+                    key={idx + "-" + w + "-tag"}
+                    className={`inline-flex items-center ${bgClass} text-black px-2 py-0.5 rounded-xl border border-gray-300 ${w === " " ? "font-mono" : ""}`}
+                    onClick={() => removeWeather(idx)}
+                    style={{ cursor: "pointer" }}
+                    aria-label={`Remove ${w === " " ? "space" : w}`}
+                    tabIndex={0}
+                  >
+                    {w === " " ? (
+                      <span className="font-mono" style={{ minWidth: "3em" }}>space</span>
+                    ) : (
+                      w
+                    )}
+                  </span>
+                );
+              })}
             </div>
           </div>
           {!visEnabled && (
@@ -933,7 +898,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
         )}
       </div>
-
     </div>
   );
 }
