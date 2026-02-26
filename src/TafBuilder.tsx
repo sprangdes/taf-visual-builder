@@ -318,6 +318,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   // Each section enabled state: base forecast always enabled; for changes, default to disabled
   const isBase = !("type" in change);
+  const isChange = !isBase;
   // Use enabledBlocks in state if present, else fallback to isBase
   // enabledBlocks: { wind: boolean, vis: boolean, clouds: boolean }
   const enabledBlocks =
@@ -572,8 +573,32 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {!windEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+          isChange && !windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
+        }`}>
+          {isChange && windEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                setWindEnabled(false);
+                onUpdate({
+                  ...change,
+                  state: {
+                    ...change.state,
+                    enabledBlocks: {
+                      ...(change.state?.enabledBlocks || {}),
+                      wind: false,
+                    },
+                  },
+                });
+              }}
+              className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+              style={{ zIndex: 20 }}
+            >
+              X
+            </button>
+          )}
+          {isChange && !windEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
@@ -633,13 +658,37 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             />
             <span className="ml-1 text-sm">KT</span>
           </label>
-          {!windEnabled && (
+          {isChange && !windEnabled && (
             <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
           )}
         </div>
         {/* Visibility/Weather Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {!visEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+          isChange && !visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
+        }`}>
+          {isChange && visEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                setVisEnabled(false);
+                onUpdate({
+                  ...change,
+                  state: {
+                    ...change.state,
+                    enabledBlocks: {
+                      ...(change.state?.enabledBlocks || {}),
+                      vis: false,
+                    },
+                  },
+                });
+              }}
+              className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+              style={{ zIndex: 20 }}
+            >
+              X
+            </button>
+          )}
+          {isChange && !visEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
@@ -796,8 +845,32 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
       {/* Clouds Section */}
-      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${!cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-        {!cloudEnabled && (
+      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${
+        isChange && !cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
+      }`}>
+        {isChange && cloudEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              setCloudEnabled(false);
+              onUpdate({
+                ...change,
+                state: {
+                  ...change.state,
+                  enabledBlocks: {
+                    ...(change.state?.enabledBlocks || {}),
+                    clouds: false,
+                  },
+                },
+              });
+            }}
+            className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+            style={{ zIndex: 20 }}
+          >
+            X
+          </button>
+        )}
+        {isChange && !cloudEnabled && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
             <button
               type="button"
@@ -881,7 +954,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             Add Layer
           </button>
         </div>
-        {!cloudEnabled && (
+        {isChange && !cloudEnabled && (
           <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
         )}
       </div>
