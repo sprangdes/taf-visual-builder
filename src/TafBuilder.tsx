@@ -680,7 +680,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="inline-block w-28">Wind Direction</span>
             <input
               type="number"
-              className="border ml-2 w-20 inline-block"
+              className="border p-1 mr-2 rounded-xl px-3 w-20"
               value={wind.dir}
               step={10}
               min={0}
@@ -693,7 +693,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="inline-block w-28">Wind Speed</span>
             <input
               type="number"
-              className="border ml-2 w-20 inline-block"
+              className="border p-1 mr-2 rounded-xl px-3 w-20"
               value={wind.speed}
               min={0}
               step={1}
@@ -705,7 +705,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             <span className="inline-block w-28">Wind Gust</span>
             <input
               type="number"
-              className="border ml-2 w-20 inline-block"
+              className="border p-1 mr-2 rounded-xl px-3 w-20"
               value={wind.gust ?? ""}
               min={0}
               step={1}
@@ -902,7 +902,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <select
                 value={c.amount}
                 onChange={(e) => updateCloud(idx, "amount", e.target.value)}
-                className="border"
+                className="border p-1 mr-2 rounded-xl px-3 w-20"
               >
                 {cloudAmountOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -916,7 +916,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 min={0}
                 step={1}
                 onChange={(e) => updateCloud(idx, "height", e.target.value)}
-                className="border w-20"
+                className="border p-1 mr-2 rounded-xl px-3 w-20"
               />
               <span className="text-xs">(hundreds ft)</span>
               <label className="flex items-center text-xs ml-2">
@@ -937,9 +937,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 />
                 TCU
               </label>
-          {clouds.length > 1 && (
-            <CloudDeleteButton onClick={() => removeCloud(idx)} />
-          )}
+              {clouds.length > 1 && (
+                <CloudDeleteButton onClick={() => removeCloud(idx)} />
+              )}
             </div>
           ))}
           <button
