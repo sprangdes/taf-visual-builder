@@ -474,6 +474,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const removeCloud = (index: number) => {
     const prevClouds = [...(change.state.clouds || [])];
+    if (prevClouds.length <= 1) return; // 保留至少一個 layer
     prevClouds.splice(index, 1);
     onUpdate({
       ...change,
