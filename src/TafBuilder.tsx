@@ -323,9 +323,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
   const [visEnabled, setVisEnabled] = useState(enabledBlocks.vis ?? isBase);
   const [cloudEnabled, setCloudEnabled] = useState(enabledBlocks.clouds ?? isBase);
-  // Tooltip state for delete button
-  const [showTooltip, setShowTooltip] = useState(false);
-  let tooltipTimer: NodeJS.Timeout;
+  const [showDeleteChangeTooltip, setShowDeleteChangeTooltip] = useState(false);
+  let deleteChangeTooltipTimer: NodeJS.Timeout;
 
   const state = emptyWeather(change.state);
   const wind = state.wind;
@@ -562,17 +561,17 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   onDelete();
                 }}
                 onMouseEnter={() => {
-                  tooltipTimer = setTimeout(() => setShowTooltip(true), 500);
+                  deleteChangeTooltipTimer = setTimeout(() => setShowDeleteChangeTooltip(true), 500);
                 }}
                 onMouseLeave={() => {
-                  clearTimeout(tooltipTimer);
-                  setShowTooltip(false);
+                  clearTimeout(deleteChangeTooltipTimer);
+                  setShowDeleteChangeTooltip(false);
                 }}
                 style={{ zIndex: 10 }}
               >
                 X
               </button>
-              {showTooltip && (
+              {showDeleteChangeTooltip && (
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-black text-white text-xs rounded px-1 py-0.5 z-20 whitespace-nowrap">
                   Delete Change
                 </div>
@@ -892,15 +891,9 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 />
                 TCU
               </label>
-              {clouds.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeCloud(idx)}
-                  className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
-                >
-                  X
-                </button>
-              )}
+          {clouds.length > 1 && (
+            <CloudDeleteButton onClick={() => removeCloud(idx)} />
+          )}
             </div>
           ))}
           <button
@@ -1121,6 +1114,35 @@ export default function TafBuilder() {
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function CloudDeleteButton({ onClick }: { onClick: () => void }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  let tooltipTimer: NodeJS.Timeout;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+        onMouseEnter={() => {
+          tooltipTimer = setTimeout(() => setShowTooltip(true), 500);
+        }}
+        onMouseLeave={() => {
+          clearTimeout(tooltipTimer);
+          setShowTooltip(false);
+        }}
+        style={{ zIndex: 10 }}
+      >
+        X
+      </button>
+      {showTooltip && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-black text-white text-xs rounded px-1 py-0.5 z-20 whitespace-nowrap">
+          Delete Layer
+        </div>
+      )}
     </div>
   );
 }
