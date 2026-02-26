@@ -1073,9 +1073,9 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded-xl">
-        <h2 className="font-semibold">Selected Change</h2>
-        {selectedChangeIndex !== null ? (
+      {selectedChangeIndex !== null && (
+        <section className="p-4 rounded-xl">
+          <h2 className="font-semibold">Selected Change</h2>
           <div>
             <ChangeEditor
               key={selectedChangeIndex}
@@ -1086,10 +1086,8 @@ export default function TafBuilder() {
               onChangeType={handleChangeType}
             />
           </div>
-        ) : (
-          <div className="text-gray-500">No change selected</div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="p-4 rounded">
         <h2 className="font-semibold">Generated TAF</h2>
