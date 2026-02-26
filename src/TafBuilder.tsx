@@ -1050,7 +1050,9 @@ export default function TafBuilder() {
           startHour={timelineStartHour}
           onSelectRange={handleSelectRange}
           onSelectChange={(index) => {
-            setSelectedChangeIndex(index);
+            setSelectedChangeIndex((prev) =>
+              prev === index ? null : index
+            );
           }}
         />
       </section>
