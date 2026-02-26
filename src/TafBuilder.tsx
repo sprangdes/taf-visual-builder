@@ -960,7 +960,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
 export default function TafBuilder() {
   const [taf, setTaf] = useState<TAF>({
-    station: "RCSS",
+    station: "",
     issueTime: getCurrentIssueTimeUTC(),
     base: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
     changes: []
@@ -1057,11 +1057,11 @@ export default function TafBuilder() {
           value={taf.station}
           onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
           className="border p-1 mr-2"
+          placeholder="ICAO Code"
         />
-        <input
+        <IssueTimeInput
           value={taf.issueTime}
-          onChange={(e) => setTaf((prev) => ({ ...prev, issueTime: e.target.value }))}
-          className="border p-1"
+          onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
         />
       </section>
 
@@ -1322,5 +1322,56 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: { onClick:
         </div>
       )}
     </>
+  );
+}
+
+function IssueTimeInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  useEffect(() => {
+    if (!value || value.length < 6) {
+      const now = new Date();
+      const day = String(now.getUTCDate()).padStart(2, "0");
+      const hour = String(now.getUTCHours()).padStart(2, "0");
+      const minute = String(now.getUTCMinutes()).padStart(2, "0");
+      onChange(`${day}${hour}${minute}`);
+    }
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/[^0-9]/g, "");
+    if (val.length > 6) val = val.slice(0, 6);
+    onChange(val);
+  };
+
+  return (
+    <span className="inline-flex items-center border">
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={6}
+        value={value.slice(0, 6)}
+        onChange={handleChange}
+        className="border-0 p-1 focus:outline-none w-24"
+        style={{ borderRight: "none", borderRadius: "0.375rem 0 0 0.375rem" }}
+        aria-label="Issue time (DDHHMM)"
+        placeholder={!value.slice(0, 6) ? "UTC Time" : undefined}
+      />
+      <span
+        className="px-2"
+        style={{
+          height: "100%",
+          fontWeight: 500,
+          fontSize: "1rem"
+        }}
+      >
+        Z
+      </span>
+    </span>
   );
 }
