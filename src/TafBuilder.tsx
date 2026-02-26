@@ -318,7 +318,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   // Each section enabled state: base forecast always enabled; for changes, default to disabled
   const isBase = !("type" in change);
-  const isChange = !isBase;
   // Use enabledBlocks in state if present, else fallback to isBase
   // enabledBlocks: { wind: boolean, vis: boolean, clouds: boolean }
   const enabledBlocks =
@@ -573,10 +572,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
-          isChange && !windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
-        }`}>
-          {isChange && windEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
+          {windEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -598,7 +595,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               X
             </button>
           )}
-          {isChange && !windEnabled && (
+          {!windEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
@@ -658,15 +655,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             />
             <span className="ml-1 text-sm">KT</span>
           </label>
-          {isChange && !windEnabled && (
+          {!windEnabled && (
             <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
           )}
         </div>
         {/* Visibility/Weather Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
-          isChange && !visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
-        }`}>
-          {isChange && visEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
+          {visEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -688,7 +683,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               X
             </button>
           )}
-          {isChange && !visEnabled && (
+          {!visEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
                 type="button"
@@ -712,8 +707,20 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             </div>
           )}
           <label className="block text-sm">
-            Visibility
-            <div className="relative w-full mt-2">
+            <div className="flex items-center">
+              <span>Visibility</span>
+              <span
+                style={{
+                  marginLeft: '8px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#333'
+                }}
+              >
+                {visibility} m
+              </span>
+            </div>
+            <div className="w-full mt-2">
               <input
                 type="range"
                 min={minVis}
@@ -724,19 +731,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 onChange={(e) => updateVisibility(Number(e.target.value))}
                 style={{ zIndex: 1 }}
               />
-              <div
-                className="absolute top-0 -mt-6 bg-white border rounded-xl px-2 py-0.5 text-xs shadow"
-                style={{
-                  width: "80px",
-                  left: `calc(${relativePos}% - 40px)`,
-                  whiteSpace: "nowrap",
-                  pointerEvents: "none",
-                  textAlign: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {visibility === 10000 ? "10000+" : String(visibility).padStart(4, "0")}
-              </div>
             </div>
           </label>
           {showError && (
@@ -845,10 +839,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
       {/* Clouds Section */}
-      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${
-        isChange && !cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""
-      }`}>
-        {isChange && cloudEnabled && (
+      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${!cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
+        {cloudEnabled && (
           <button
             type="button"
             onClick={() => {
@@ -870,7 +862,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             X
           </button>
         )}
-        {isChange && !cloudEnabled && (
+        {!cloudEnabled && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
             <button
               type="button"
@@ -954,7 +946,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             Add Layer
           </button>
         </div>
-        {isChange && !cloudEnabled && (
+        {!cloudEnabled && (
           <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
         )}
       </div>
