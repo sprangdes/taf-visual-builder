@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-function getCurrentIssueTimeUTC(): string {
-  const now = new Date();
-  const day = String(now.getUTCDate()).padStart(2, "0");
-  const hour = String(now.getUTCHours()).padStart(2, "0");
-  const minute = String(now.getUTCMinutes()).padStart(2, "0");
-  return `${day}${hour}${minute}Z`;
-}
+const weatherOptions = [" ", "+", "-", "VC", "HZ", "BR", "FG", "DZ", "RA", "SH", "SN", "TS"];
+const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
+const visibilityOptions = [
+  50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
+  1400, 1600, 2000, 2400, 2800, 3000, 3200, 4000, 4800, 5000,
+  6000, 7000, 8000, 9000, 10000,
+];
 
 interface Wind {
   dir: number;
@@ -50,13 +50,21 @@ interface TAF {
   changes: TAFChange[];
 }
 
-const weatherOptions = [" ", "+", "-", "VC", "HZ", "BR", "FG", "DZ", "RA", "SH", "SN", "TS"];
-const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
-const visibilityOptions = [
-  50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
-  1400, 1600, 2000, 2400, 2800, 3000, 3200, 4000, 4800, 5000,
-  6000, 7000, 8000, 9000, 10000,
-];
+interface ChangeEditorProps {
+  change: TAFChange | BaseForecast | null;
+  onUpdate: (updated: TAFChange | BaseForecast) => void;
+  showActionButtons?: boolean;
+  onDelete?: () => void;
+  onChangeType?: (type: "BECMG" | "FM" | "TEMPO") => void;
+}
+
+function getCurrentIssueTimeUTC(): string {
+  const now = new Date();
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  const hour = String(now.getUTCHours()).padStart(2, "0");
+  const minute = String(now.getUTCMinutes()).padStart(2, "0");
+  return `${day}${hour}${minute}Z`;
+}
 
 function emptyWeather({
   wind = { dir: 0, speed: 0, gust: 0 },
@@ -290,14 +298,6 @@ function Timeline({
       })}
     </div>
   );
-}
-
-interface ChangeEditorProps {
-  change: TAFChange | BaseForecast | null;
-  onUpdate: (updated: TAFChange | BaseForecast) => void;
-  showActionButtons?: boolean;
-  onDelete?: () => void;
-  onChangeType?: (type: "BECMG" | "FM" | "TEMPO") => void;
 }
 
 function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ChangeEditorProps) {
