@@ -282,9 +282,9 @@ function Timeline({
         const changeObj = getChangeObjAtHour(h);
         let bgClass = "bg-white";
         if (pendingRange !== null && hoverHour !== null && isInHoverSelection(h)) {
-          bgClass = "bg-blue-300";
+          bgClass = "bg-blue-200";
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
-          bgClass = "bg-blue-300";
+          bgClass = "bg-blue-200";
         } else if (changeObj) {
           if (changeObj.type === "TEMPO") {
             bgClass = "bg-yellow-300";
@@ -316,7 +316,7 @@ function Timeline({
             onMouseLeave={() => {
               if (pendingRange !== null) setHover(null);
             }}
-            className={`flex-1 h-12 text-xs flex items-center justify-center cursor-pointer ${bgClass} ${idx !== hours.length - 1 ? 'border-r' : ''}`}
+            className={`flex-1 h-12 text-xs flex items-center justify-center cursor-pointer ${bgClass} hover:bg-blue-200 ${idx !== hours.length - 1 ? 'border-r' : ''}`}
             style={{ transition: "background 0.1s" }}
           >
             {String(h).padStart(2, "0")}Z
