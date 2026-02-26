@@ -918,8 +918,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 onChange={(e) => updateCloud(idx, "height", e.target.value)}
                 className="border p-1 mr-2 rounded-xl px-3 w-20"
               />
-              <span className="text-xs">(hundreds ft)</span>
-              <label className="flex items-center text-xs ml-2">
+              <span className="text-sm">(hundreds ft)</span>
+              <label className="flex items-center text-sm ml-2">
                 <input
                   type="checkbox"
                   checked={!!c.cb}
@@ -928,7 +928,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 />
                 CB
               </label>
-              <label className="flex items-center text-xs ml-2">
+              <label className="flex items-center text-sm ml-2">
                 <input
                   type="checkbox"
                   checked={!!c.tcu}
@@ -1056,7 +1056,7 @@ export default function TafBuilder() {
         <input
           value={taf.station}
           onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
-          className="border p-1 mr-2 rounded-xl"
+          className="border p-1 mr-2 rounded-xl w-30"
           placeholder="ICAO Code"
         />
         <IssueTimeInput
