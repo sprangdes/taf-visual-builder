@@ -1044,7 +1044,23 @@ export default function TafBuilder() {
       </section>
 
       <section className="p-4 rounded-xl">
-        <h2 className="font-semibold">Timeline (click two hours / select change)</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="font-semibold mb-0">Timeline (click two hours / select change)</h2>
+          <div className="flex gap-2">
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-yellow-300 rounded-sm border border-black"></span>
+              <span className="text-xs">TEMPO</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-green-300 rounded-sm border border-black"></span>
+              <span className="text-xs">BECMG</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-orange-300 rounded-sm border border-black"></span>
+              <span className="text-xs">FM</span>
+            </div>
+          </div>
+        </div>
         <Timeline
           changes={taf.changes}
           startHour={timelineStartHour}
