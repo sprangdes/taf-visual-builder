@@ -403,7 +403,10 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     field: "amount" | "height" | "cb" | "tcu",
     value: string | number | boolean
   ) => {
-    const prevClouds = [...(change.state.clouds || [])];
+    const prevClouds =
+      change.state.clouds && change.state.clouds.length > 0
+        ? [...change.state.clouds]
+        : [{ amount: "FEW", height: 0 }];
     const target = { ...prevClouds[index] };
     if (field === "amount") {
       target.amount = String(value);
