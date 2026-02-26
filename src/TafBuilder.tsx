@@ -250,7 +250,7 @@ function Timeline({
 
   return (
     <div
-      className="flex border rounded-lg overflow-hidden select-none"
+      className="flex border rounded-xl overflow-hidden select-none"
       onMouseLeave={() => {
         if (pendingRange !== null) setHover(null);
       }}
@@ -522,7 +522,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       return (
         <button
-          className={`px-3 py-1 rounded-lg font-semibold mr-1 ${colorClass}`}
+          className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass}`}
           onClick={(e) => {
             e.stopPropagation();
             onChangeType(nextType(type));
@@ -537,14 +537,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     }
 
     return (
-      <span className="bg-gray-300 px-2 rounded-lg font-semibold text-black mr-1">
+      <span className="bg-gray-300 px-2 rounded-xl font-semibold text-black mr-1">
         BASE
       </span>
     );
   }
 
   return (
-    <div className="border p-4 rounded-lg bg-gray-100 space-y-2 relative">
+    <div className="border p-4 rounded-xl bg-gray-100 space-y-2 relative">
       <div className="flex items-center relative">
         <h3 className="font-semibold flex items-center m-0 p-0">
           Edit{" "}
@@ -556,7 +556,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         {showActionButtons && onDelete && (
           <div className="absolute right-0 inset-y-0 flex items-center justify-end">
             <button
-              className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+              className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
@@ -572,7 +572,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
-        <div className={`flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
           {!windEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
@@ -590,7 +590,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     },
                   });
                 }}
-                className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+                className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
               >
                 點一下來新增變化
               </button>
@@ -633,9 +633,12 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             />
             <span className="ml-1 text-sm">KT</span>
           </label>
+          {!windEnabled && (
+            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+          )}
         </div>
         {/* Visibility/Weather Section */}
-        <div className={`flex-1 border p-2 rounded-lg flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
           {!visEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
@@ -653,7 +656,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     },
                   });
                 }}
-                className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+                className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
               >
                 點一下來新增變化
               </button>
@@ -673,7 +676,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 style={{ zIndex: 1 }}
               />
               <div
-                className="absolute top-0 -mt-6 bg-white border rounded-lg px-2 py-0.5 text-xs shadow"
+                className="absolute top-0 -mt-6 bg-white border rounded-xl px-2 py-0.5 text-xs shadow"
                 style={{
                   width: "80px",
                   left: `calc(${relativePos}% - 40px)`,
@@ -696,7 +699,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="+"
                 type="button"
-                className="px-2 py-1 rounded-lg border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-blue-200 text-black"
                 onClick={() => addWeather("+")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -707,7 +710,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="-"
                 type="button"
-                className="px-2 py-1 rounded-lg border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-blue-200 text-black"
                 onClick={() => addWeather("-")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -718,7 +721,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="VC"
                 type="button"
-                className="px-2 py-1 rounded-lg border bg-purple-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-purple-200 text-black"
                 onClick={() => addWeather("VC")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -729,7 +732,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="space"
                 type="button"
-                className="px-2 py-1 rounded-lg border bg-white text-black font-mono"
+                className="px-2 py-1 rounded-xl border bg-white text-black font-mono"
                 onClick={() => addWeather(" ")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -755,7 +758,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     <button
                       key={w}
                       type="button"
-                      className={`px-2 py-1 rounded-lg border ${bgClass} text-black`}
+                      className={`px-2 py-1 rounded-xl border ${bgClass} text-black`}
                       onClick={() => addWeather(w)}
                       disabled={weatherDisabled}
                       tabIndex={0}
@@ -767,14 +770,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 })}
             </div>
             {weatherArr.length > 0 && (
-              <div className="border p-2 rounded-lg bg-white flex flex-wrap gap-2 items-center mt-2">
+              <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2">
                 {weatherArr.map((w, idx) => (
                   <span
                     key={idx + "-" + w + "-tag"}
                     className={
                       w === " "
-                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-lg font-mono border border-gray-400"
-                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-lg border border-blue-200"
+                        ? "inline-flex items-center bg-white text-black px-2 py-0.5 rounded-xl font-mono border border-gray-400"
+                        : "inline-flex items-center bg-blue-50 text-blue-800 px-2 py-0.5 rounded-xl border border-blue-200"
                     }
                     onClick={() => removeWeather(idx)}
                     style={{ cursor: "pointer" }}
@@ -787,10 +790,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               </div>
             )}
           </div>
+          {!visEnabled && (
+            <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+          )}
         </div>
       </div>
       {/* Clouds Section */}
-      <div className={`block text-sm mt-2 border p-2 rounded-lg bg-white relative ${!cloudEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${!cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
         {!cloudEnabled && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
             <button
@@ -808,7 +814,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   },
                 });
               }}
-              className="bg-gray-600 text-white px-3 py-1 rounded-lg text-sm"
+              className="bg-gray-600 text-white px-3 py-1 rounded-xl text-sm"
             >
               點一下來新增變化
             </button>
@@ -861,7 +867,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 type="button"
                 onClick={() => removeCloud(idx)}
-                className="bg-red-500 text-white px-2 py-1 rounded-lg text-xs"
+                className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs"
               >
                 X
               </button>
@@ -870,11 +876,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <button
             type="button"
             onClick={addCloud}
-            className="bg-blue-500 text-white px-2 py-1 rounded-lg text-xs"
+            className="bg-blue-500 text-white px-2 py-1 rounded-xl text-xs"
           >
             Add Layer
           </button>
         </div>
+        {!cloudEnabled && (
+          <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[1px] rounded-xl"></div>
+        )}
       </div>
 
     </div>
@@ -976,7 +985,7 @@ export default function TafBuilder() {
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-bold">TAF Visual Builder (MVP)</h1>
 
-      <section className="p-4 rounded-lg">
+      <section className="p-4 rounded-xl">
         <h2 className="font-semibold">Header</h2>
         <input
           value={taf.station}
@@ -990,7 +999,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded-lg">
+      <section className="p-4 rounded-xl">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
@@ -1024,7 +1033,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded-lg">
+      <section className="p-4 rounded-xl">
         <h2 className="font-semibold">Timeline (click two hours / select change)</h2>
         <Timeline
           changes={taf.changes}
@@ -1036,7 +1045,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded-lg">
+      <section className="p-4 rounded-xl">
         <h2 className="font-semibold">Selected Change</h2>
         {selectedChangeIndex !== null ? (
           <div>
@@ -1056,14 +1065,14 @@ export default function TafBuilder() {
 
       <section className="p-4 rounded">
         <h2 className="font-semibold">Generated TAF</h2>
-        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-lg">
+        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-xl">
           {generateTAF(taf)}
         </pre>
         <div className="flex justify-end mt-2">
           <button
             type="button"
             onClick={handleCopyTAF}
-            className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs"
+            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs"
           >
             {copied ? "Copied" : "Copy"}
           </button>
