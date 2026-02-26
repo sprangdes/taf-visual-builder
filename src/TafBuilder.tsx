@@ -533,7 +533,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     }
 
     return (
-      <span className="bg-gray-300 px-2 rounded-xl font-semibold text-black mr-1">
+      <span className="inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 bg-gray-300 text-black">
         BASE
       </span>
     );
