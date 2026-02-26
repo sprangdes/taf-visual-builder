@@ -522,9 +522,14 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   }
 
   function renderTypeButton() {
+    const [showTypeTooltip, setShowTypeTooltip] = useState(false);
+    const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+    const btnRef = useRef<HTMLButtonElement>(null);
+    let tooltipTimer: NodeJS.Timeout;
+
     if (showActionButtons && onChangeType && change && "type" in change) {
       const type = change.type as "TEMPO" | "BECMG" | "FM";
-
+      const next = nextType(type);
       let colorClass =
         type === "TEMPO"
           ? "bg-yellow-400 text-black"
@@ -532,19 +537,57 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           ? "bg-green-400 text-black"
           : "bg-orange-400 text-black";
 
+      const tooltipText = `Switch to ${next}`;
+
+      React.useEffect(() => {
+        if (showTypeTooltip && btnRef.current) {
+          setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+        }
+      }, [showTypeTooltip]);
+
       return (
-        <button
-          className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onChangeType(nextType(type));
-          }}
-          type="button"
-          tabIndex={0}
-          aria-label="Change type"
-        >
-          {type}
-        </button>
+        <>
+          <button
+            ref={btnRef}
+            className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChangeType(next);
+            }}
+            type="button"
+            tabIndex={0}
+            aria-label="Change type"
+            onMouseEnter={() => {
+              tooltipTimer = setTimeout(() => setShowTypeTooltip(true), 400);
+            }}
+            onMouseLeave={() => {
+              clearTimeout(tooltipTimer);
+              setShowTypeTooltip(false);
+            }}
+          >
+            {type}
+          </button>
+          {showTypeTooltip && (
+            <div
+              style={{
+                position: "fixed",
+                top: tooltipPos.top,
+                left: tooltipPos.left,
+                background: "rgba(0,0,0,0.7)",
+                color: "white",
+                fontSize: "0.75rem",
+                borderRadius: "0.375rem",
+                padding: "0.25rem 0.7rem",
+                zIndex: 9999,
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                pointerEvents: "none"
+              }}
+            >
+              {tooltipText}
+            </div>
+          )}
+        </>
       );
     }
 
