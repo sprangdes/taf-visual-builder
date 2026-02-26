@@ -85,6 +85,10 @@ function emptyWeather({
   weather = [],
   clouds = [],
 }: Partial<WeatherState> = {}): WeatherState {
+  let cloudsArr = clouds;
+  if (!cloudsArr || cloudsArr.length === 0) {
+    cloudsArr = [{ amount: "FEW", height: 0 }];
+  }
   return {
     wind: {
       dir: wind?.dir ?? 0,
@@ -93,7 +97,7 @@ function emptyWeather({
     },
     visibility,
     weather,
-    clouds,
+    clouds: cloudsArr,
   };
 }
 
@@ -119,12 +123,18 @@ function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tc
     .join(" ");
 }
 
-function formatWeatherState(state: WeatherState) {
+function formatWeatherState(state: WeatherState, isBase: boolean = false) {
   const wind = state.enabledBlocks?.wind ? formatWind(state.wind) : '';
   const vis = state.enabledBlocks?.vis ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, '0') : '';
   const weather = state.enabledBlocks?.vis ? (state.weather || []).join('') : '';
-  const clouds = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : '';
-  return [wind, vis, weather, clouds].filter(Boolean).join(' ');
+  let cloudsStr = '';
+  if (isBase) {
+    let cloudsArr = state.clouds && state.clouds.length > 0 ? state.clouds : [{ amount: "FEW", height: 0 }];
+    cloudsStr = formatClouds(cloudsArr);
+  } else {
+    cloudsStr = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : '';
+  }
+  return [wind, vis, weather, cloudsStr].filter(Boolean).join(' ');
 }
 
 function generateTAF(taf: TAF) {
@@ -153,10 +163,13 @@ function generateTAF(taf: TAF) {
   let toDay = fromDay + 1;
   const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
-  const baseLine = `${formatWeatherState({
-    ...taf.base,
-    enabledBlocks: { wind: true, vis: true, clouds: true },
-  })}`;
+  const baseLine = `${formatWeatherState(
+    {
+      ...taf.base,
+      enabledBlocks: { wind: true, vis: true, clouds: true },
+    },
+    true
+  )}`;
 
   const changes = (taf.changes || [])
     .filter(c => {
@@ -1040,6 +1053,7 @@ export default function TafBuilder() {
             })(),
             state: {
               ...taf.base,
+              clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [{ amount: "FEW", height: 0 }],
               enabledBlocks: { wind: true, vis: true, clouds: true }
             },
           }}
@@ -1047,6 +1061,7 @@ export default function TafBuilder() {
             ...prev,
             base: {
               ...updated.state,
+              clouds: (updated.state.clouds && updated.state.clouds.length > 0) ? updated.state.clouds : [{ amount: "FEW", height: 0 }],
               enabledBlocks: undefined
             }
           }))}
