@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React, { useRef, useEffect } from "react";
 
 const weatherOptions = [
   { code: " ", color: "bg-white" },
@@ -567,28 +568,11 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         {showActionButtons && onDelete && (
           <div className="absolute right-0 inset-y-0 flex items-center justify-end">
             <div className="relative">
-              <button
-                className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                onMouseEnter={() => {
-                  deleteChangeTooltipTimer = setTimeout(() => setShowDeleteChangeTooltip(true), 500);
-                }}
-                onMouseLeave={() => {
-                  clearTimeout(deleteChangeTooltipTimer);
-                  setShowDeleteChangeTooltip(false);
-                }}
-                style={{ zIndex: 10 }}
-              >
-                X
-              </button>
-              {showDeleteChangeTooltip && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-black text-white text-xs rounded px-1 py-0.5 z-20 whitespace-nowrap">
-                  Delete Change
-                </div>
-              )}
+              <ChangeDeleteButton
+                onClick={onDelete}
+                setShowTooltip={setShowDeleteChangeTooltip}
+                showTooltip={showDeleteChangeTooltip}
+              />
             </div>
           </div>
         )}
@@ -1133,12 +1117,72 @@ export default function TafBuilder() {
   );
 }
 
+function getTooltipPosition(
+  btn: HTMLButtonElement | null,
+  preferred: "right-top" | "left-top" = "right-top",
+  tooltipWidth = 120,
+  tooltipHeight = 32
+) {
+  if (!btn) return { top: 0, left: 0 };
+  const rect = btn.getBoundingClientRect();
+  let top = rect.top;
+  let left = rect.right + 8;
+  const willOverflowRight = (left + tooltipWidth > window.innerWidth);
+  const willOverflowBottom = (rect.bottom + tooltipHeight > window.innerHeight);
+
+  if (willOverflowRight || willOverflowBottom) {
+    left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    top = rect.top - tooltipHeight;
+
+    if (top < 0) {
+      top = rect.bottom + 8;
+    }
+
+    if (left < 8) left = 8;
+
+    if (left + tooltipWidth > window.innerWidth - 8) {
+      left = window.innerWidth - tooltipWidth - 8;
+    }
+
+    if (top + tooltipHeight > window.innerHeight - 8) {
+      top = window.innerHeight - tooltipHeight - 8;
+    }
+    if (top < 8) top = 8;
+    return { top, left };
+  }
+
+  top = rect.top - tooltipHeight / 2 + rect.height / 2;
+
+  if (top < 8) top = 8;
+
+  if (top + tooltipHeight > window.innerHeight - 8) {
+    top = window.innerHeight - tooltipHeight - 8;
+  }
+
+  if (left + tooltipWidth > window.innerWidth - 8) {
+    left = window.innerWidth - tooltipWidth - 8;
+  }
+
+  if (left < 8) left = 8;
+  return { top, left };
+}
+
 function CloudDeleteButton({ onClick }: { onClick: () => void }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
   let tooltipTimer: NodeJS.Timeout;
+
+  useEffect(() => {
+    if (showTooltip && btnRef.current) {
+      setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+    }
+  }, [showTooltip]);
+
   return (
-    <div className="relative">
+    <div>
       <button
+        ref={btnRef}
         type="button"
         onClick={onClick}
         className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
@@ -1154,10 +1198,80 @@ function CloudDeleteButton({ onClick }: { onClick: () => void }) {
         X
       </button>
       {showTooltip && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-black text-white text-xs rounded px-1 py-0.5 z-20 whitespace-nowrap">
+        <div
+          style={{
+            position: "fixed",
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            background: "rgba(0,0,0,0.6)",
+            color: "white",
+            fontSize: "0.75rem",
+            borderRadius: "0.375rem",
+            padding: "0.25rem 0.5rem",
+            zIndex: 9999,
+            whiteSpace: "nowrap",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            pointerEvents: "none"
+          }}
+        >
           Delete Layer
         </div>
       )}
     </div>
+  );
+}
+
+function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: { onClick: () => void, setShowTooltip: (v: boolean) => void, showTooltip: boolean }) {
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  let tooltipTimer: NodeJS.Timeout;
+
+  useEffect(() => {
+    if (showTooltip && btnRef.current) {
+      setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+    }
+  }, [showTooltip]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        onMouseEnter={() => {
+          tooltipTimer = setTimeout(() => setShowTooltip(true), 500);
+        }}
+        onMouseLeave={() => {
+          clearTimeout(tooltipTimer);
+          setShowTooltip(false);
+        }}
+        style={{ zIndex: 10 }}
+      >
+        X
+      </button>
+      {showTooltip && (
+        <div
+          style={{
+            position: "fixed",
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            background: "rgba(0,0,0,0.6)",
+            color: "white",
+            fontSize: "0.75rem",
+            borderRadius: "0.375rem",
+            padding: "0.25rem 0.5rem",
+            zIndex: 9999,
+            whiteSpace: "nowrap",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            pointerEvents: "none"
+          }}
+        >
+          Delete Change
+        </div>
+      )}
+    </>
   );
 }
