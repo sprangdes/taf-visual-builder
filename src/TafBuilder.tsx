@@ -19,7 +19,6 @@ interface WeatherState {
   visibility: number;
   weather: string[];
   clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[];
-  // Optional enabledBlocks for per-block enable status
   enabledBlocks?: {
     wind?: boolean;
     vis?: boolean;
@@ -134,13 +133,11 @@ function generateTAF(taf: TAF) {
 
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
 
-  // Base forecast: always all enabled
   const baseLine = `${formatWeatherState({
     ...taf.base,
     enabledBlocks: { wind: true, vis: true, clouds: true },
   })}`;
 
-  // Only include enabled changes (at least one block enabled)
   const changes = (taf.changes || [])
     .filter(c => {
       const eb = c.state.enabledBlocks;
@@ -316,10 +313,7 @@ interface ChangeEditorProps {
 function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ChangeEditorProps) {
   if (!change) return null;
 
-  // Each section enabled state: base forecast always enabled; for changes, default to disabled
   const isBase = !("type" in change);
-  // Use enabledBlocks in state if present, else fallback to isBase
-  // enabledBlocks: { wind: boolean, vis: boolean, clouds: boolean }
   const enabledBlocks =
     (change.state.enabledBlocks) ||
     { wind: false, vis: false, clouds: false };
@@ -330,7 +324,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
-  // Ensure at least one cloud layer exists
   const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [{ amount: "FEW", height: 0 }];
 
   const weatherArr = state.weather || [];
@@ -475,7 +468,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const removeCloud = (index: number) => {
     const prevClouds = [...(change.state.clouds || [])];
-    if (prevClouds.length <= 1) return; // 保留至少一個 layer
+    if (prevClouds.length <= 1) return;
     prevClouds.splice(index, 1);
     onUpdate({
       ...change,
@@ -1094,7 +1087,7 @@ export default function TafBuilder() {
             ...prev,
             base: {
               ...updated.state,
-              enabledBlocks: undefined // base forecast always all enabled, so remove enabledBlocks from base
+              enabledBlocks: undefined
             }
           }))}
         />
