@@ -606,7 +606,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <span className="ml-2">
             {renderTypeButton()}
           </span>
-          {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
+          {isBase ? (
+            <>{String(Number(change.from.slice(-2))).padStart(2, "0")}Z</>
+          ) : (
+            <>
+              {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
+            </>
+          )}
         </h3>
         {showActionButtons && onDelete && (
           <div className="absolute right-0 inset-y-0 flex items-center justify-end">
