@@ -1041,6 +1041,7 @@ export default function TafBuilder() {
         {selectedChangeIndex !== null ? (
           <div>
             <ChangeEditor
+              key={selectedChangeIndex}
               change={taf.changes[selectedChangeIndex]}
               onUpdate={(updated) => updateChange(selectedChangeIndex, updated as TAFChange)}
               showActionButtons={true}
