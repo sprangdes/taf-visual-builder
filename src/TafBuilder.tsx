@@ -18,7 +18,11 @@ interface WeatherState {
   wind: Wind;
   visibility: number;
   weather: string[];
-  clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[];
+  clouds: { 
+    amount: string; 
+    height: number; 
+    cb?: boolean; 
+    tcu?: boolean }[];
   enabledBlocks?: {
     wind?: boolean;
     vis?: boolean;
@@ -42,8 +46,6 @@ interface BaseForecast {
 interface TAF {
   station: string;
   issueTime: string;
-  validFrom: string;
-  validTo: string;
   base: WeatherState;
   changes: TAFChange[];
 }
@@ -122,7 +124,6 @@ function generateTAF(taf: TAF) {
 
   const baseHour = Number(taf.issueTime.slice(2, 4));
   const baseDay = Number(taf.issueTime.slice(0, 2));
-
   const nextHour = (baseHour + 1) % 24;
   const fromDay = baseHour === 23 ? baseDay + 1 : baseDay;
   const baseFrom = `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
@@ -130,9 +131,7 @@ function generateTAF(taf: TAF) {
   let toHour = nextHour;
   let toDay = fromDay + 1;
   const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
-
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
-
   const baseLine = `${formatWeatherState({
     ...taf.base,
     enabledBlocks: { wind: true, vis: true, clouds: true },
@@ -167,7 +166,6 @@ function generateTAF(taf: TAF) {
 function useTimeRange() {
   const [pendingRange, setPendingRange] = useState<number | null>(null);
   const [hoverHour, setHoverHour] = useState<number | null>(null);
-
   const selectHour = (h: number, onSelectRange: (s: number, e: number) => void) => {
     if (pendingRange === null) {
       setPendingRange(h);
@@ -204,7 +202,6 @@ function Timeline({
   startHour: number;
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
-
   const hourIndexMap = new Map<number, number>();
   hours.forEach((h, idx) => hourIndexMap.set(h, idx));
 
@@ -213,15 +210,11 @@ function Timeline({
     const s = hourIndexMap.get(start);
     const e = hourIndexMap.get(end);
     if (t === undefined || s === undefined || e === undefined) return false;
-
-    if (s <= e) {
-      return t >= s && t <= e;
-    }
-
+    if (s <= e) return t >= s && t <= e;
     return t >= s || t <= e;
   }
-  const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
 
+  const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
   const getChangeAtHour = (h: number) =>
     (changes || []).findIndex((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
@@ -230,9 +223,6 @@ function Timeline({
     (changes || []).find((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
     ) || null;
-
-  const [internalPending, setInternalPending] = useState<number | null>(null);
-  const [internalHover, setInternalHover] = useState<number | null>(null);
 
   function isInHoverSelection(h: number) {
     if (pendingRange !== null && hoverHour !== null) {
@@ -492,11 +482,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
   const minVis = 50;
   const maxVis = 10000;
-  const clampedVis = Math.min(Math.max(visibility, minVis), maxVis);
-  const relativePos = ((clampedVis - minVis) / (maxVis - minVis)) * 100;
-
-  const currentType = "type" in change && change.type ? change.type : null;
-  const allTypes: ("TEMPO" | "BECMG" | "FM")[] = ["TEMPO", "BECMG", "FM"];
 
   function nextType(type: "TEMPO" | "BECMG" | "FM"): "TEMPO" | "BECMG" | "FM" {
     if (type === "TEMPO") return "BECMG";
@@ -954,10 +939,8 @@ export default function TafBuilder() {
   const [taf, setTaf] = useState<TAF>({
     station: "RCTP",
     issueTime: getCurrentIssueTimeUTC(),
-    validFrom: "1006",
-    validTo: "1106",
     base: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
-    changes: [],
+    changes: []
   });
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
