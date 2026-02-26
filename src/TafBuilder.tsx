@@ -522,7 +522,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       return (
         <button
-          className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass}`}
+          className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
           onClick={(e) => {
             e.stopPropagation();
             onChangeType(nextType(type));
@@ -556,7 +556,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         {showActionButtons && onDelete && (
           <div className="absolute right-0 inset-y-0 flex items-center justify-end">
             <button
-              className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs"
+              className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
@@ -742,7 +742,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="+"
                 type="button"
-                className="px-2 py-1 rounded-xl border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-blue-200 text-black cursor-pointer"
                 onClick={() => addWeather("+")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -753,7 +753,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="-"
                 type="button"
-                className="px-2 py-1 rounded-xl border bg-blue-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-blue-200 text-black cursor-pointer"
                 onClick={() => addWeather("-")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -764,7 +764,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="VC"
                 type="button"
-                className="px-2 py-1 rounded-xl border bg-purple-200 text-black"
+                className="px-2 py-1 rounded-xl border bg-purple-200 text-black cursor-pointer"
                 onClick={() => addWeather("VC")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -775,7 +775,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 key="space"
                 type="button"
-                className="px-2 py-1 rounded-xl border bg-white text-black font-mono"
+                className="px-2 py-1 rounded-xl border bg-white text-black font-mono cursor-pointer"
                 onClick={() => addWeather(" ")}
                 disabled={weatherDisabled}
                 tabIndex={0}
@@ -801,7 +801,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     <button
                       key={w}
                       type="button"
-                      className={`px-2 py-1 rounded-xl border ${bgClass} text-black`}
+                      className={`px-2 py-1 rounded-xl border ${bgClass} text-black cursor-pointer`}
                       onClick={() => addWeather(w)}
                       disabled={weatherDisabled}
                       tabIndex={0}
@@ -932,7 +932,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               <button
                 type="button"
                 onClick={() => removeCloud(idx)}
-                className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs"
+                className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
               >
                 X
               </button>
@@ -941,7 +941,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <button
             type="button"
             onClick={addCloud}
-            className="bg-blue-500 text-white px-2 py-1 rounded-xl text-xs"
+            className="bg-blue-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
           >
             Add Layer
           </button>
@@ -1137,7 +1137,7 @@ export default function TafBuilder() {
           <button
             type="button"
             onClick={handleCopyTAF}
-            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs"
+            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs cursor-pointer"
           >
             {copied ? "Copied" : "Copy"}
           </button>
