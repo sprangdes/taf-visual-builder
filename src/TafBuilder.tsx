@@ -1,5 +1,12 @@
-import { useState } from "react";
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+type WeatherTrendType = "FM" | "TEMPO" | "BECMG";
+type TimelineProps = Readonly<{
+  changes: TAFChange[];
+  onSelectRange: (start: number, end: number) => void;
+  onSelectChange: (index: number) => void;
+  startHour: number;
+}>;
 
 const weatherOptions = [
   { code: " ", color: "bg-white" },
@@ -45,7 +52,7 @@ interface WeatherState {
 }
 
 interface TAFChange {
-  type: "FM" | "TEMPO" | "BECMG";
+  type: WeatherTrendType;
   from: string;
   to: string;
   state: WeatherState;
@@ -69,7 +76,7 @@ interface ChangeEditorProps {
   onUpdate: (updated: TAFChange | BaseForecast) => void;
   showActionButtons?: boolean;
   onDelete?: () => void;
-  onChangeType?: (type: "BECMG" | "FM" | "TEMPO") => void;
+  onChangeType?: (type: WeatherTrendType) => void;
 }
 
 function getCurrentIssueTimeUTC(): string {
@@ -103,8 +110,12 @@ function emptyWeather({
 }
 
 function formatWind({ dir, speed, gust }: Wind) {
-  const normalizedDir = dir === 360 ? 360 : dir === 0 ? 0 : Math.round(dir / 10) * 10;
-  const d = normalizedDir === 0 ? "000" : normalizedDir === 360 ? "360" : String(normalizedDir).padStart(3, "0");
+  const normalizedDir = dir === 360 || dir === 0 ? dir : Math.round(dir / 10) * 10;
+  const d = (() => {
+    if (normalizedDir === 0) return "000";
+    if (normalizedDir === 360) return "360";
+    return String(normalizedDir).padStart(3, "0");
+  })();
   const s = String(Math.max(Math.round(speed), 0)).padStart(2, "0");
   let g = "";
   if (typeof gust === "number" && Math.round(gust) - Math.round(speed) >= 15) {
@@ -126,11 +137,15 @@ function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tc
 
 function formatWeatherState(state: WeatherState, isBase: boolean = false) {
   const wind = state.enabledBlocks?.wind ? formatWind(state.wind) : '';
-  const vis = state.enabledBlocks?.vis ? String(state.visibility >= 10000 ? 9999 : state.visibility).padStart(4, '0') : '';
+  const vis = (() => {
+    if (!state.enabledBlocks?.vis) return '';
+    const cappedVisibility = state.visibility >= 10000 ? 9999 : state.visibility;
+    return String(cappedVisibility).padStart(4, '0');
+  })();
   const weather = state.enabledBlocks?.vis ? (state.weather || []).join('') : '';
-  let cloudsStr = '';
+  let cloudsStr: string;
   if (isBase) {
-    let cloudsArr = state.clouds && state.clouds.length > 0 ? state.clouds : [{ amount: "FEW", height: 0 }];
+    const cloudsArr = state.clouds && state.clouds.length > 0 ? state.clouds : [{ amount: "FEW", height: 0 }];
     cloudsStr = formatClouds(cloudsArr);
   } else {
     cloudsStr = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : '';
@@ -159,19 +174,11 @@ function generateTAF(taf: TAF) {
   const nextHour = (baseHour + 1) % 24;
   const fromDay = baseHour === 23 ? baseDay + 1 : baseDay;
   const baseFrom = `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-
-  let toHour = nextHour;
-  let toDay = fromDay + 1;
+  const toHour = nextHour;
+  const toDay = fromDay + 1;
   const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
   const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
-  const baseLine = `${formatWeatherState(
-    {
-      ...taf.base,
-      enabledBlocks: { wind: true, vis: true, clouds: true },
-    },
-    true
-  )}`;
-
+  const baseLine = `${formatWeatherState({...taf.base, enabledBlocks: { wind: true, vis: true, clouds: true },}, true)}`;
   const changes = (taf.changes || [])
     .filter(c => {
       const eb = c.state.enabledBlocks;
@@ -179,7 +186,7 @@ function generateTAF(taf: TAF) {
     })
     .map((c) => {
       if (c.type === "FM") {
-        let h = typeof c.from === "string" ? Number(c.from) : c.from;
+        const h = Number(c.from);
         let day = Number(taf.issueTime.slice(0, 2));
         const baseHour = Number(taf.issueTime.slice(2, 4));
         if (h < baseHour) day += 1;
@@ -225,17 +232,7 @@ function useTimeRange() {
   return { pendingRange, selectHour, hoverHour, setHover, reset };
 }
 
-function Timeline({
-  changes,
-  onSelectRange,
-  onSelectChange,
-  startHour,
-}: {
-  changes: TAFChange[];
-  onSelectRange: (start: number, end: number) => void;
-  onSelectChange: (index: number) => void;
-  startHour: number;
-}) {
+function Timeline({ changes, onSelectRange, onSelectChange, startHour }: TimelineProps) {
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
   const hourIndexMap = new Map<number, number>();
   hours.forEach((h, idx) => hourIndexMap.set(h, idx));
@@ -249,6 +246,13 @@ function Timeline({
     return t >= s || t <= e;
   }
 
+  function isInHoverSelection(h: number) {
+    if (pendingRange !== null && hoverHour !== null) {
+      return isBetweenCircular(h, pendingRange, hoverHour);
+    }
+    return false;
+  }
+
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
   const getChangeAtHour = (h: number) =>
     (changes || []).findIndex((c) =>
@@ -258,22 +262,10 @@ function Timeline({
     (changes || []).find((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
     ) || null;
-
-  function isInHoverSelection(h: number) {
-    if (pendingRange !== null && hoverHour !== null) {
-      return isBetweenCircular(h, pendingRange, hoverHour);
-    }
-    return false;
-  }
-
-  function isPendingStart(h: number) {
-    return pendingRange !== null && h === pendingRange;
-  }
-
   return (
     <div
       className="flex border rounded-xl overflow-hidden select-none"
-      onMouseLeave={() => {
+      onPointerLeave={() => {
         if (pendingRange !== null) setHover(null);
       }}
     >
@@ -281,6 +273,7 @@ function Timeline({
         const changeIndex = getChangeAtHour(h);
         const changeObj = getChangeObjAtHour(h);
         let bgClass = "bg-white";
+
         if (pendingRange !== null && hoverHour !== null && isInHoverSelection(h)) {
           bgClass = "bg-blue-200";
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
@@ -294,9 +287,12 @@ function Timeline({
             bgClass = "bg-orange-300";
           }
         }
+
         return (
-          <div
+          <button
             key={h}
+            type="button"
+            aria-label={`Select ${String(h).padStart(2, "0")}Z`}
             onClick={() => {
               if (changeIndex !== -1) {
                 onSelectChange(changeIndex);
@@ -310,17 +306,17 @@ function Timeline({
                 reset();
               }
             }}
-            onMouseEnter={() => {
+            onPointerEnter={() => {
               if (pendingRange !== null) setHover(h);
             }}
-            onMouseLeave={() => {
+            onPointerLeave={() => {
               if (pendingRange !== null) setHover(null);
             }}
-            className={`flex-1 h-12 text-xs flex items-center justify-center cursor-pointer ${bgClass} hover:bg-blue-200 ${idx !== hours.length - 1 ? 'border-r' : ''}`}
+            className={`flex-1 h-12 text-xs flex items-center justify-center ${bgClass} hover:bg-blue-200 ${idx < hours.length - 1 ? "border-r" : ""} cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
             style={{ transition: "background 0.1s" }}
           >
             {String(h).padStart(2, "0")}Z
-          </div>
+          </button>
         );
       })}
     </div>
@@ -338,7 +334,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const [visEnabled, setVisEnabled] = useState(enabledBlocks.vis ?? isBase);
   const [cloudEnabled, setCloudEnabled] = useState(enabledBlocks.clouds ?? isBase);
   const [showDeleteChangeTooltip, setShowDeleteChangeTooltip] = useState(false);
-  let deleteChangeTooltipTimer: NodeJS.Timeout;
 
   const state = emptyWeather(change.state);
   const wind = state.wind;
