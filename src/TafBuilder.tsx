@@ -344,7 +344,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const wind = state.wind;
   const visibility = state.visibility;
   const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [{ amount: "FEW", height: 0 }];
-
   const weatherArr = state.weather || [];
 
   const addWeather = (w: string) => {
@@ -509,9 +508,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   };
 
   const weatherDisabled = false;
-
   const showError = visibility <= 5000 && (weatherArr.length === 0);
-
   const minVis = 50;
   const maxVis = 10000;
 
@@ -536,7 +533,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           : type === "BECMG"
           ? "bg-green-400 text-black"
           : "bg-orange-400 text-black";
-
       const tooltipText = `Switch to ${next}`;
 
       React.useEffect(() => {
@@ -626,8 +622,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           </div>
         )}
       </div>
-
-
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
         <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
@@ -647,7 +641,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   },
                 });
               }}
-              className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+              className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
             >
               X
@@ -735,7 +729,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   },
                 });
               }}
-              className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+              className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
             >
               X
@@ -818,7 +812,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               {weatherArr.map((w, idx) => {
                 const opt = weatherOptions.find(o => o.code === w);
                 const bgClass = opt ? opt.color : "bg-white";
-
                 return (
                   <span
                     key={idx + "-" + w + "-tag"}
@@ -864,7 +857,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 },
               });
             }}
-            className="absolute top-1 right-2 text-gray-400 text-xs transition-transform duration-150 hover:scale-125"
+            className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
             style={{ zIndex: 20 }}
           >
             X
@@ -954,214 +947,6 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
         )}
       </div>
-    </div>
-  );
-}
-
-export default function TafBuilder() {
-  const [taf, setTaf] = useState<TAF>({
-    station: "",
-    issueTime: getCurrentIssueTimeUTC(),
-    base: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
-    changes: []
-  });
-
-  const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  function getTimelineStartHour(issueTime: string): number {
-    const hour = Number(issueTime.slice(2, 4));
-    const minute = Number(issueTime.slice(4, 6));
-    if (isNaN(hour) || isNaN(minute)) return 0;
-    return (hour + (minute > 0 ? 1 : 0)) % 24;
-  }
-
-  const timelineStartHour = getTimelineStartHour(taf.issueTime);
-
-  function addTempo(taf: TAF, from: number, to: number) {
-    let defaultState: WeatherState = taf.base;
-    for (let i = taf.changes.length - 1; i >= 0; i--) {
-      if (taf.changes[i].type === "BECMG") {
-        defaultState = taf.changes[i].state;
-        break;
-      }
-    }
-    const deepCopyState: WeatherState = {
-      wind: { ...defaultState.wind },
-      visibility: defaultState.visibility,
-      weather: [...(defaultState.weather || [])],
-      clouds: (defaultState.clouds || []).map(cloud => ({ ...cloud })),
-      enabledBlocks: { wind: false, vis: false, clouds: false },
-    };
-    const newChange: TAFChange = {
-      type: "TEMPO",
-      from: String(from),
-      to: String(to),
-      state: deepCopyState,
-    };
-    const updatedChanges = [...taf.changes, newChange];
-    return { taf: { ...taf, changes: updatedChanges }, index: updatedChanges.length - 1 };
-  }
-
-  function handleSelectRange(from: number, to: number) {
-    const result = addTempo(taf, from, to);
-    setTaf(result.taf);
-    setSelectedChangeIndex(result.index);
-  }
-
-  function updateChange(index: number | null, updatedChange: TAFChange) {
-    if (index === null) return;
-    setTaf((prev) => {
-      const changes = [...prev.changes];
-      changes[index] = updatedChange;
-      return { ...prev, changes };
-    });
-  }
-
-
-  function handleDelete() {
-    if (selectedChangeIndex === null) return;
-    setTaf((prev) => {
-      const changes = [...prev.changes];
-      changes.splice(selectedChangeIndex, 1);
-      return { ...prev, changes };
-    });
-    setSelectedChangeIndex(null);
-  }
-
-  function handleChangeType(type: "BECMG" | "FM" | "TEMPO") {
-    if (selectedChangeIndex === null) return;
-    setTaf((prev) => {
-      const changes = [...prev.changes];
-      const change = changes[selectedChangeIndex];
-      changes[selectedChangeIndex] = { ...change, type };
-      return { ...prev, changes };
-    });
-  }
-
-  function handleCopyTAF() {
-    const text = generateTAF(taf);
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  }
-
-  return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">TAF Visual Builder</h1>
-
-      <section className="p-4 rounded-xl">
-        <h2 className="font-semibold">Header</h2>
-        <input
-          value={taf.station}
-          onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
-          className="border p-1 mr-2 rounded-xl w-30"
-          placeholder="ICAO Code"
-        />
-        <IssueTimeInput
-          value={taf.issueTime}
-          onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
-        />
-      </section>
-
-      <section className="p-4 rounded-xl">
-        <h2 className="font-semibold">Base Forecast</h2>
-        <ChangeEditor
-          change={{
-            from: (() => {
-              const day = Number(taf.issueTime.slice(0, 2));
-              const hour = Number(taf.issueTime.slice(2, 4));
-              const nextHour = (hour + 1) % 24;
-              const fromDay = hour === 23 ? day + 1 : day;
-              return `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-            })(),
-            to: (() => {
-              const day = Number(taf.issueTime.slice(0, 2));
-              const hour = Number(taf.issueTime.slice(2, 4));
-              const nextHour = (hour + 1) % 24;
-              const toHour = (nextHour + 24) % 24;
-              const toDay = hour >= 23 ? day + 1 : day + 1;
-              return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-            })(),
-            state: {
-              ...taf.base,
-              clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [{ amount: "FEW", height: 0 }],
-              enabledBlocks: { wind: true, vis: true, clouds: true }
-            },
-          }}
-          onUpdate={(updated) => setTaf((prev) => ({
-            ...prev,
-            base: {
-              ...updated.state,
-              clouds: (updated.state.clouds && updated.state.clouds.length > 0) ? updated.state.clouds : [{ amount: "FEW", height: 0 }],
-              enabledBlocks: undefined
-            }
-          }))}
-        />
-      </section>
-
-      <section className="p-4 rounded-xl">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="font-semibold mb-0">Timeline</h2>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-1">
-              <span className="w-4 h-4 bg-yellow-300 rounded-sm border border-black"></span>
-              <span className="text-xs">TEMPO</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-4 h-4 bg-green-300 rounded-sm border border-black"></span>
-              <span className="text-xs">BECMG</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-4 h-4 bg-orange-300 rounded-sm border border-black"></span>
-              <span className="text-xs">FM</span>
-            </div>
-          </div>
-        </div>
-        <Timeline
-          changes={taf.changes}
-          startHour={timelineStartHour}
-          onSelectRange={handleSelectRange}
-          onSelectChange={(index) => {
-            setSelectedChangeIndex((prev) =>
-              prev === index ? null : index
-            );
-          }}
-        />
-      </section>
-
-      {selectedChangeIndex !== null && (
-        <section className="p-4 rounded-xl">
-          <h2 className="font-semibold">Selected Change</h2>
-          <div>
-            <ChangeEditor
-              key={selectedChangeIndex}
-              change={taf.changes[selectedChangeIndex]}
-              onUpdate={(updated) => updateChange(selectedChangeIndex, updated as TAFChange)}
-              showActionButtons={true}
-              onDelete={handleDelete}
-              onChangeType={handleChangeType}
-            />
-          </div>
-        </section>
-      )}
-
-      <section className="p-4 rounded">
-        <h2 className="font-semibold">Generated TAF</h2>
-        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-xl">
-          {generateTAF(taf)}
-        </pre>
-        <div className="flex justify-end mt-2">
-          <button
-            type="button"
-            onClick={handleCopyTAF}
-            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs cursor-pointer"
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      </section>
     </div>
   );
 }
@@ -1373,5 +1158,213 @@ function IssueTimeInput({
         Z
       </span>
     </span>
+  );
+}
+
+export default function TafBuilder() {
+  const [taf, setTaf] = useState<TAF>({
+    station: "",
+    issueTime: getCurrentIssueTimeUTC(),
+    base: emptyWeather({ wind: { dir: 0, speed: 0, gust: 0 }, visibility: 10000 }),
+    changes: []
+  });
+
+  const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function getTimelineStartHour(issueTime: string): number {
+    const hour = Number(issueTime.slice(2, 4));
+    const minute = Number(issueTime.slice(4, 6));
+    if (isNaN(hour) || isNaN(minute)) return 0;
+    return (hour + (minute > 0 ? 1 : 0)) % 24;
+  }
+
+  const timelineStartHour = getTimelineStartHour(taf.issueTime);
+
+  function addTempo(taf: TAF, from: number, to: number) {
+    let defaultState: WeatherState = taf.base;
+    for (let i = taf.changes.length - 1; i >= 0; i--) {
+      if (taf.changes[i].type === "BECMG") {
+        defaultState = taf.changes[i].state;
+        break;
+      }
+    }
+    const deepCopyState: WeatherState = {
+      wind: { ...defaultState.wind },
+      visibility: defaultState.visibility,
+      weather: [...(defaultState.weather || [])],
+      clouds: (defaultState.clouds || []).map(cloud => ({ ...cloud })),
+      enabledBlocks: { wind: false, vis: false, clouds: false },
+    };
+    const newChange: TAFChange = {
+      type: "TEMPO",
+      from: String(from),
+      to: String(to),
+      state: deepCopyState,
+    };
+    const updatedChanges = [...taf.changes, newChange];
+    return { taf: { ...taf, changes: updatedChanges }, index: updatedChanges.length - 1 };
+  }
+
+  function handleSelectRange(from: number, to: number) {
+    const result = addTempo(taf, from, to);
+    setTaf(result.taf);
+    setSelectedChangeIndex(result.index);
+  }
+
+  function updateChange(index: number | null, updatedChange: TAFChange) {
+    if (index === null) return;
+    setTaf((prev) => {
+      const changes = [...prev.changes];
+      changes[index] = updatedChange;
+      return { ...prev, changes };
+    });
+  }
+
+
+  function handleDelete() {
+    if (selectedChangeIndex === null) return;
+    setTaf((prev) => {
+      const changes = [...prev.changes];
+      changes.splice(selectedChangeIndex, 1);
+      return { ...prev, changes };
+    });
+    setSelectedChangeIndex(null);
+  }
+
+  function handleChangeType(type: "BECMG" | "FM" | "TEMPO") {
+    if (selectedChangeIndex === null) return;
+    setTaf((prev) => {
+      const changes = [...prev.changes];
+      const change = changes[selectedChangeIndex];
+      changes[selectedChangeIndex] = { ...change, type };
+      return { ...prev, changes };
+    });
+  }
+
+  function handleCopyTAF() {
+    const text = generateTAF(taf);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <div className="p-6 space-y-4">
+      <h1 className="text-xl font-bold">TAF Visual Builder</h1>
+
+      <section className="p-4 rounded-xl">
+        <h2 className="font-semibold">Header</h2>
+        <input
+          value={taf.station}
+          onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
+          className="border p-1 mr-2 rounded-xl w-30"
+          placeholder="ICAO Code"
+        />
+        <IssueTimeInput
+          value={taf.issueTime}
+          onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
+        />
+      </section>
+
+      <section className="p-4 rounded-xl">
+        <h2 className="font-semibold">Base Forecast</h2>
+        <ChangeEditor
+          change={{
+            from: (() => {
+              const day = Number(taf.issueTime.slice(0, 2));
+              const hour = Number(taf.issueTime.slice(2, 4));
+              const nextHour = (hour + 1) % 24;
+              const fromDay = hour === 23 ? day + 1 : day;
+              return `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
+            })(),
+            to: (() => {
+              const day = Number(taf.issueTime.slice(0, 2));
+              const hour = Number(taf.issueTime.slice(2, 4));
+              const nextHour = (hour + 1) % 24;
+              const toHour = (nextHour + 24) % 24;
+              const toDay = hour >= 23 ? day + 1 : day + 1;
+              return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
+            })(),
+            state: {
+              ...taf.base,
+              clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [{ amount: "FEW", height: 0 }],
+              enabledBlocks: { wind: true, vis: true, clouds: true }
+            },
+          }}
+          onUpdate={(updated) => setTaf((prev) => ({
+            ...prev,
+            base: {
+              ...updated.state,
+              clouds: (updated.state.clouds && updated.state.clouds.length > 0) ? updated.state.clouds : [{ amount: "FEW", height: 0 }],
+              enabledBlocks: undefined
+            }
+          }))}
+        />
+      </section>
+
+      <section className="p-4 rounded-xl">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="font-semibold mb-0">Timeline</h2>
+          <div className="flex gap-2">
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-yellow-300 rounded-sm border border-black"></span>
+              <span className="text-xs">TEMPO</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-green-300 rounded-sm border border-black"></span>
+              <span className="text-xs">BECMG</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-orange-300 rounded-sm border border-black"></span>
+              <span className="text-xs">FM</span>
+            </div>
+          </div>
+        </div>
+        <Timeline
+          changes={taf.changes}
+          startHour={timelineStartHour}
+          onSelectRange={handleSelectRange}
+          onSelectChange={(index) => {
+            setSelectedChangeIndex((prev) =>
+              prev === index ? null : index
+            );
+          }}
+        />
+      </section>
+
+      {selectedChangeIndex !== null && (
+        <section className="p-4 rounded-xl">
+          <h2 className="font-semibold">Selected Change</h2>
+          <div>
+            <ChangeEditor
+              key={selectedChangeIndex}
+              change={taf.changes[selectedChangeIndex]}
+              onUpdate={(updated) => updateChange(selectedChangeIndex, updated as TAFChange)}
+              showActionButtons={true}
+              onDelete={handleDelete}
+              onChangeType={handleChangeType}
+            />
+          </div>
+        </section>
+      )}
+
+      <section className="p-4 rounded">
+        <h2 className="font-semibold">Generated TAF</h2>
+        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-xl">
+          {generateTAF(taf)}
+        </pre>
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={handleCopyTAF}
+            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs cursor-pointer"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
