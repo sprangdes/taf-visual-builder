@@ -907,7 +907,7 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
-  let tooltipTimer: NodeJS.Timeout;
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (showTooltip && btnRef.current) {
@@ -923,10 +923,11 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
         onClick={onClick}
         className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
         onMouseEnter={() => {
-          tooltipTimer = setTimeout(() => setShowTooltip(true), 500);
+          tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 500);
         }}
         onMouseLeave={() => {
-          clearTimeout(tooltipTimer);
+          if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+          tooltipTimerRef.current = null;
           setShowTooltip(false);
         }}
         style={{ zIndex: 10 }}
@@ -960,7 +961,7 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
 function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDeleteButtonProps) {
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
-  let tooltipTimer: NodeJS.Timeout;
+  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (showTooltip && btnRef.current) {
@@ -978,10 +979,11 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDele
           onClick();
         }}
         onMouseEnter={() => {
-          tooltipTimer = setTimeout(() => setShowTooltip(true), 500);
+          tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 500);
         }}
         onMouseLeave={() => {
-          clearTimeout(tooltipTimer);
+          if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+          tooltipTimerRef.current = null;
           setShowTooltip(false);
         }}
         style={{ zIndex: 10 }}
