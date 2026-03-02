@@ -511,7 +511,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       React.useEffect(() => {
         if (showTypeTooltip && btnRef.current) {
-          setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+          setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
         }
       }, [showTypeTooltip]);
 
@@ -911,7 +911,7 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
 
   useEffect(() => {
     if (showTooltip && btnRef.current) {
-      setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+      setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
     }
   }, [showTooltip]);
 
