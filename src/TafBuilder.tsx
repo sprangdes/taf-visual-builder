@@ -1,12 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-
-type WeatherTrendType = "FM" | "TEMPO" | "BECMG";
-type TimelineProps = Readonly<{
-  changes: TAFChange[];
-  onSelectRange: (start: number, end: number) => void;
-  onSelectChange: (index: number) => void;
-  startHour: number;
-}>;
+import React, {useEffect, useRef, useState} from "react";
 
 const weatherOptions = [
   { code: " ", color: "bg-white" },
@@ -22,6 +14,11 @@ const weatherOptions = [
   { code: "SN", color: "bg-yellow-100" },
   { code: "TS", color: "bg-red-100" },
 ];
+const colorByType: Record<WeatherTrendType, string> = {
+  TEMPO: "bg-yellow-400 text-black",
+  BECMG: "bg-green-400 text-black",
+  FM: "bg-orange-400 text-black",
+}
 const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 const visibilityOptions = [
   50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
@@ -39,8 +36,8 @@ interface WeatherState {
   wind: Wind;
   visibility: number;
   weather: string[];
-  clouds: { 
-    amount: string; 
+  clouds: {
+    amount: string;
     height: number; 
     cb?: boolean; 
     tcu?: boolean }[];
@@ -78,6 +75,15 @@ interface ChangeEditorProps {
   onDelete?: () => void;
   onChangeType?: (type: WeatherTrendType) => void;
 }
+
+type WeatherTrendType = "FM" | "TEMPO" | "BECMG";
+type TimelineProps = Readonly<{
+  changes: TAFChange[];
+  onSelectRange: (start: number, end: number) => void;
+  onSelectChange: (index: number) => void;
+  startHour: number;
+}>;
+type ReadonlyChangeEditorProps = Readonly<ChangeEditorProps>;
 
 function getCurrentIssueTimeUTC(): string {
   const now = new Date();
@@ -323,24 +329,27 @@ function Timeline({ changes, onSelectRange, onSelectChange, startHour }: Timelin
   );
 }
 
-function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ChangeEditorProps) {
+function nextType(type: WeatherTrendType): WeatherTrendType {
+  if (type === "TEMPO") return "BECMG";
+  if (type === "BECMG") return "FM";
+  return "TEMPO";
+}
+
+function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ReadonlyChangeEditorProps) {
   if (!change) return null;
 
   const isBase = !("type" in change);
-  const enabledBlocks =
-    (change.state.enabledBlocks) ||
-    { wind: false, vis: false, clouds: false };
+  const enabledBlocks = (change.state.enabledBlocks) || { wind: false, vis: false, clouds: false };
   const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
   const [visEnabled, setVisEnabled] = useState(enabledBlocks.vis ?? isBase);
   const [cloudEnabled, setCloudEnabled] = useState(enabledBlocks.clouds ?? isBase);
   const [showDeleteChangeTooltip, setShowDeleteChangeTooltip] = useState(false);
-
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
   const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [{ amount: "FEW", height: 0 }];
   const weatherArr = state.weather || [];
-
+  const prevEnabledBlocks = change.state.enabledBlocks ?? {};
   const addWeather = (w: string) => {
     const arr = [...(change.state.weather || []), w];
     onUpdate({
@@ -349,13 +358,11 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         ...change.state,
         weather: arr,
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
-          vis: change.state.enabledBlocks?.vis ?? visEnabled,
-        },
+          ...prevEnabledBlocks,
+          vis: change.state.enabledBlocks?.vis ?? visEnabled,},
       },
     });
   };
-
   const removeWeather = (idx: number) => {
     const arr = [...(change.state.weather || [])];
     arr.splice(idx, 1);
@@ -365,18 +372,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         ...change.state,
         weather: arr,
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           vis: change.state.enabledBlocks?.vis ?? visEnabled,
         },
       },
     });
   };
-
-  const nearestVisibility = (val: number) =>
-    visibilityOptions.reduce((prev, curr) =>
-      Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-    );
-
+  const nearestVisibility = (val: number) => visibilityOptions.reduce((prev, curr) => {return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;}, visibilityOptions[0]);
   const updateWind = (field: keyof Wind, value: number | string) => {
     const prevWind = change.state.wind || { dir: 0, speed: 0, gust: null };
     const newWind: Wind = { ...prevWind };
@@ -396,13 +398,12 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         weather: [...(change.state.weather || [])],
         clouds: [...(change.state.clouds || [])],
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           wind: change.state.enabledBlocks?.wind ?? windEnabled,
         },
       },
     });
   };
-
   const updateVisibility = (value: number) => {
     const vis = nearestVisibility(Number(value));
     onUpdate({
@@ -414,18 +415,13 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         weather: [...(change.state.weather || [])],
         clouds: [...(change.state.clouds || [])],
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           vis: change.state.enabledBlocks?.vis ?? visEnabled,
         },
       },
     });
   };
-
-  const updateCloud = (
-    index: number,
-    field: "amount" | "height" | "cb" | "tcu",
-    value: string | number | boolean
-  ) => {
+  const updateCloud = (index: number, field: "amount" | "height" | "cb" | "tcu", value: string | number | boolean) => {
     const prevClouds =
       change.state.clouds && change.state.clouds.length > 0
         ? [...change.state.clouds]
@@ -435,8 +431,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       target.amount = String(value);
     }
     if (field === "height") {
-      const h = Math.max(0, Math.round(Number(value)));
-      target.height = h;
+      target.height = Math.max(0, Math.round(Number(value)));
     }
     if (field === "cb") {
       target.cb = Boolean(value);
@@ -456,13 +451,12 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         weather: [...(change.state.weather || [])],
         clouds: prevClouds,
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
         },
       },
     });
   };
-
   const addCloud = () => {
     const prevClouds = [...(change.state.clouds || [])];
     const updatedClouds = [...prevClouds, { amount: "FEW", height: 0 }];
@@ -475,13 +469,12 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         weather: [...(change.state.weather || [])],
         clouds: updatedClouds,
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
         },
       },
     });
   };
-
   const removeCloud = (index: number) => {
     const prevClouds = [...(change.state.clouds || [])];
     if (prevClouds.length <= 1) return;
@@ -495,23 +488,16 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         weather: [...(change.state.weather || [])],
         clouds: prevClouds,
         enabledBlocks: {
-          ...(change.state.enabledBlocks || {}),
+          ...prevEnabledBlocks,
           clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
         },
       },
     });
   };
-
   const weatherDisabled = false;
   const showError = visibility <= 5000 && (weatherArr.length === 0);
   const minVis = 50;
   const maxVis = 10000;
-
-  function nextType(type: "TEMPO" | "BECMG" | "FM"): "TEMPO" | "BECMG" | "FM" {
-    if (type === "TEMPO") return "BECMG";
-    if (type === "BECMG") return "FM";
-    return "TEMPO";
-  }
 
   function renderTypeButton() {
     const [showTypeTooltip, setShowTypeTooltip] = useState(false);
@@ -522,12 +508,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
     if (showActionButtons && onChangeType && change && "type" in change) {
       const type = change.type as "TEMPO" | "BECMG" | "FM";
       const next = nextType(type);
-      let colorClass =
-        type === "TEMPO"
-          ? "bg-yellow-400 text-black"
-          : type === "BECMG"
-          ? "bg-green-400 text-black"
-          : "bg-orange-400 text-black";
+      const colorClass = colorByType[type];
       const tooltipText = `Switch to ${next}`;
 
       React.useEffect(() => {
@@ -538,57 +519,18 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
       return (
         <>
-          <button
-            ref={btnRef}
-            className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onChangeType(next);
-            }}
-            type="button"
-            tabIndex={0}
-            aria-label="Change type"
-            onMouseEnter={() => {
-              tooltipTimer = setTimeout(() => setShowTypeTooltip(true), 400);
-            }}
-            onMouseLeave={() => {
-              clearTimeout(tooltipTimer);
-              setShowTypeTooltip(false);
-            }}
-          >
-            {type}
-          </button>
+          <button ref={btnRef} className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`} onClick={(e) => {e.stopPropagation();onChangeType(next);}} type="button" tabIndex={0} aria-label="Change type" onMouseEnter={() => {tooltipTimer = setTimeout(() => setShowTypeTooltip(true), 400);}} onMouseLeave={() => {clearTimeout(tooltipTimer);setShowTypeTooltip(false);}}>{type}</button>
           {showTypeTooltip && (
-            <div
-              style={{
-                position: "fixed",
-                top: tooltipPos.top,
-                left: tooltipPos.left,
-                background: "rgba(0,0,0,0.7)",
-                color: "white",
-                fontSize: "0.75rem",
-                borderRadius: "0.375rem",
-                padding: "0.25rem 0.7rem",
-                zIndex: 9999,
-                whiteSpace: "nowrap",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                pointerEvents: "none"
-              }}
-            >
-              {tooltipText}
-            </div>
+            <div style={{position: "fixed", top: tooltipPos.top, left: tooltipPos.left, background: "rgba(0,0,0,0.7)", color: "white", fontSize: "0.75rem", borderRadius: "0.375rem", padding: "0.25rem 0.7rem", zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", pointerEvents: "none"}}>{tooltipText}</div>
           )}
         </>
       );
     }
 
     return (
-      <span className="inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 bg-gray-300 text-black">
-        BASE
-      </span>
+      <span className="inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 bg-gray-300 text-black">BASE</span>
     );
   }
-
   return (
     <div className="border p-4 rounded-xl bg-gray-100 space-y-2 relative">
       <div className="flex items-center relative">
@@ -619,8 +561,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
       </div>
       <div className="flex gap-4 mb-2">
         {/* Wind Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!windEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {isBase === false && windEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"}`}>
+          {!isBase && windEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -630,7 +572,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   state: {
                     ...change.state,
                     enabledBlocks: {
-                      ...(change.state?.enabledBlocks || {}),
+                      ...prevEnabledBlocks,
                       wind: false,
                     },
                   },
@@ -653,7 +595,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     state: {
                       ...change.state,
                       enabledBlocks: {
-                        ...(change.state?.enabledBlocks || {}),
+                        ...prevEnabledBlocks,
                         wind: true,
                       },
                     },
@@ -707,8 +649,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
           )}
         </div>
         {/* Visibility/Weather Section */}
-        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${!visEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-          {isBase === false && visEnabled && (
+        <div className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"}`}>
+          {!isBase && visEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -718,7 +660,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   state: {
                     ...change.state,
                     enabledBlocks: {
-                      ...(change.state?.enabledBlocks || {}),
+                      ...prevEnabledBlocks,
                       vis: false,
                     },
                   },
@@ -741,7 +683,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     state: {
                       ...change.state,
                       enabledBlocks: {
-                        ...(change.state?.enabledBlocks || {}),
+                        ...prevEnabledBlocks,
                         vis: true,
                       },
                     },
@@ -753,22 +695,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               </button>
             </div>
           )}
-          <label className="block text-sm">
+          <label htmlFor="visibility" className="block text-sm">
             <div className="flex items-center">
-              <span>Visibility</span>
-              <span
-                style={{
-                  marginLeft: '8px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: '#333'
-                }}
-              >
-                {visibility} m
-              </span>
+              <span id="visibility-label">Visibility</span>
+              <span style={{marginLeft: '8px', fontSize: '14px', fontWeight: 500, color: '#333'}}>{visibility} m</span>
             </div>
             <div className="w-full mt-2">
               <input
+                id="visibility"
+                aria-labelledby="visibility-label"
                 type="range"
                 min={minVis}
                 max={maxVis}
@@ -808,20 +743,15 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 const opt = weatherOptions.find(o => o.code === w);
                 const bgClass = opt ? opt.color : "bg-white";
                 return (
-                  <span
+                  <button
                     key={idx + "-" + w + "-tag"}
+                    type="button"
                     className={`inline-flex items-center ${bgClass} text-black px-2 py-0.5 rounded-xl border border-gray-300 ${w === " " ? "font-mono" : ""}`}
                     onClick={() => removeWeather(idx)}
-                    style={{ cursor: "pointer" }}
                     aria-label={`Remove ${w === " " ? "space" : w}`}
-                    tabIndex={0}
                   >
-                    {w === " " ? (
-                      <span className="font-mono" style={{ minWidth: "3em" }}>space</span>
-                    ) : (
-                      w
-                    )}
-                  </span>
+                    {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
+                  </button>
                 );
               })}
               {showError && (
@@ -835,8 +765,8 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
       </div>
       {/* Clouds Section */}
-      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${!cloudEnabled ? "opacity-60 bg-gray-300 pointer-events-none relative grayscale" : ""}`}>
-        {isBase === false && cloudEnabled && (
+      <div className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${cloudEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"}`}>
+        {!isBase && cloudEnabled && (
           <button
             type="button"
             onClick={() => {
@@ -846,7 +776,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 state: {
                   ...change.state,
                   enabledBlocks: {
-                    ...(change.state?.enabledBlocks || {}),
+                    ...prevEnabledBlocks,
                     clouds: false,
                   },
                 },
@@ -869,7 +799,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   state: {
                     ...change.state,
                     enabledBlocks: {
-                      ...(change.state?.enabledBlocks || {}),
+                      ...prevEnabledBlocks,
                       clouds: true,
                     },
                   },
@@ -886,11 +816,11 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
         </div>
         <div className="space-y-2 mt-2">
           {clouds.map((c, idx) => (
-            <div key={idx} className="flex items-center space-x-2">
+            <div key={idx} className="flex items-center gap-2">
               <select
                 value={c.amount}
                 onChange={(e) => updateCloud(idx, "amount", e.target.value)}
-                className="border p-1 mr-2 rounded-xl px-3 w-20"
+                className="border p-1 rounded-xl px-3 w-20"
               >
                 {cloudAmountOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -904,30 +834,26 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 min={0}
                 step={1}
                 onChange={(e) => updateCloud(idx, "height", e.target.value)}
-                className="border p-1 mr-2 rounded-xl px-3 w-20"
+                className="border p-1 rounded-xl px-3 w-20"
               />
               <span className="text-sm">(hundreds ft)</span>
-              <label className="flex items-center text-sm ml-2">
+              <label className="inline-flex items-center gap-1 text-sm">
                 <input
                   type="checkbox"
                   checked={!!c.cb}
                   onChange={(e) => updateCloud(idx, "cb", e.target.checked)}
-                  className="mr-1"
                 />
-                CB
+                <span>CB</span>
               </label>
-              <label className="flex items-center text-sm ml-2">
+              <label className="inline-flex items-center gap-1 text-sm">
                 <input
                   type="checkbox"
                   checked={!!c.tcu}
                   onChange={(e) => updateCloud(idx, "tcu", e.target.checked)}
-                  className="mr-1"
                 />
-                TCU
+                <span>TCU</span>
               </label>
-              {clouds.length > 1 && (
-                <CloudDeleteButton onClick={() => removeCloud(idx)} />
-              )}
+              {clouds.length > 1 && <CloudDeleteButton onClick={() => removeCloud(idx)} />}
             </div>
           ))}
           <button
@@ -948,13 +874,12 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
 
 function getTooltipPosition(
   btn: HTMLButtonElement | null,
-  preferred: "right-top" | "left-top" = "right-top",
   tooltipWidth = 120,
   tooltipHeight = 32
 ) {
   if (!btn) return { top: 0, left: 0 };
   const rect = btn.getBoundingClientRect();
-  let top = rect.top;
+  let top: number;
   let left = rect.right + 8;
   const willOverflowRight = (left + tooltipWidth > window.innerWidth);
   const willOverflowBottom = (rect.bottom + tooltipHeight > window.innerHeight);
@@ -1123,7 +1048,7 @@ function IssueTimeInput({
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/[^0-9]/g, "");
+    let val = e.target.value.replaceAll(/[^0-9]/g, "");
     if (val.length > 6) val = val.slice(0, 6);
     onChange(val);
   };
@@ -1278,7 +1203,6 @@ export default function TafBuilder() {
               const day = Number(taf.issueTime.slice(0, 2));
               const hour = Number(taf.issueTime.slice(2, 4));
               const nextHour = (hour + 1) % 24;
-              const toHour = (nextHour + 24) % 24;
               const toDay = hour >= 23 ? day + 1 : day + 1;
               return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
