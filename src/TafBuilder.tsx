@@ -84,6 +84,10 @@ type TimelineProps = Readonly<{
   startHour: number;
 }>;
 type ReadonlyChangeEditorProps = Readonly<ChangeEditorProps>;
+type IssueTimeInputProps = Readonly<{
+  value: string;
+  onChange: (value: string) => void;
+}>
 
 function getCurrentIssueTimeUTC(): string {
   const now = new Date();
@@ -872,53 +876,29 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   );
 }
 
-function getTooltipPosition(
-  btn: HTMLButtonElement | null,
-  tooltipWidth = 120,
-  tooltipHeight = 32
-) {
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getTooltipPosition(btn: HTMLButtonElement | null, tooltipWidth = 120, tooltipHeight = 32) {
+  const padding = 8;
+
   if (!btn) return { top: 0, left: 0 };
+
   const rect = btn.getBoundingClientRect();
-  let top: number;
-  let left = rect.right + 8;
-  const willOverflowRight = (left + tooltipWidth > window.innerWidth);
-  const willOverflowBottom = (rect.bottom + tooltipHeight > window.innerHeight);
+  const maxLeft = window.innerWidth - tooltipWidth - padding;
+  const maxTop = window.innerHeight - tooltipHeight - padding;
+  const rightLeft = rect.right + padding;
+  const rightTop = rect.top + rect.height / 2 - tooltipHeight / 2;
+  const overflowsRight = rightLeft + tooltipWidth > window.innerWidth - padding;
+  const overflowsBottom = rect.bottom + tooltipHeight > window.innerHeight - padding;
+  const centeredLeft = rect.left + rect.width / 2 - tooltipWidth / 2;
+  const aboveTop = rect.top - tooltipHeight;
+  const belowTop = rect.bottom + padding;
+  const rawLeft = overflowsRight || overflowsBottom ? centeredLeft : rightLeft;
+  const rawTop = overflowsRight || overflowsBottom ? (aboveTop < padding ? belowTop : aboveTop) : rightTop;
 
-  if (willOverflowRight || willOverflowBottom) {
-    left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    top = rect.top - tooltipHeight;
-
-    if (top < 0) {
-      top = rect.bottom + 8;
-    }
-
-    if (left < 8) left = 8;
-
-    if (left + tooltipWidth > window.innerWidth - 8) {
-      left = window.innerWidth - tooltipWidth - 8;
-    }
-
-    if (top + tooltipHeight > window.innerHeight - 8) {
-      top = window.innerHeight - tooltipHeight - 8;
-    }
-    if (top < 8) top = 8;
-    return { top, left };
-  }
-
-  top = rect.top - tooltipHeight / 2 + rect.height / 2;
-
-  if (top < 8) top = 8;
-
-  if (top + tooltipHeight > window.innerHeight - 8) {
-    top = window.innerHeight - tooltipHeight - 8;
-  }
-
-  if (left + tooltipWidth > window.innerWidth - 8) {
-    left = window.innerWidth - tooltipWidth - 8;
-  }
-
-  if (left < 8) left = 8;
-  return { top, left };
+  return {left: clamp(rawLeft, padding, maxLeft), top: clamp(rawTop, padding, maxTop)};
 }
 
 function CloudDeleteButton({ onClick }: { onClick: () => void }) {
@@ -1030,13 +1010,7 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: { onClick:
   );
 }
 
-function IssueTimeInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
   useEffect(() => {
     if (!value || value.length < 6) {
       const now = new Date();
@@ -1048,7 +1022,7 @@ function IssueTimeInput({
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replaceAll(/[^0-9]/g, "");
+    let val = e.target.value.replaceAll(/\D/g, "");
     if (val.length > 6) val = val.slice(0, 6);
     onChange(val);
   };
@@ -1065,20 +1039,18 @@ function IssueTimeInput({
         className="border-0 p-1 focus:outline-none w-24"
         style={{ borderRight: "none", borderRadius: "0.375rem 0 0 0.375rem" }}
         aria-label="Issue time (DDHHMM)"
-        placeholder={!value.slice(0, 6) ? "UTC Time" : undefined}
+        placeholder={value.slice(0, 6) ? undefined : "UTC Time"}
       />
-      <span
-        className="px-2"
-        style={{
-          height: "100%",
-          fontWeight: 500,
-          fontSize: "1rem"
-        }}
-      >
-        Z
-      </span>
+      <span className="px-2" style={{height: "100%", fontWeight: 500, fontSize: "1rem"}}>Z</span>
     </span>
   );
+}
+
+function getTimelineStartHour(issueTime: string): number {
+  const hour = Number(issueTime.slice(2, 4));
+  const minute = Number(issueTime.slice(4, 6));
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return 0;
+  return (hour + (minute > 0 ? 1 : 0)) % 24;
 }
 
 export default function TafBuilder() {
@@ -1091,14 +1063,6 @@ export default function TafBuilder() {
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-
-  function getTimelineStartHour(issueTime: string): number {
-    const hour = Number(issueTime.slice(2, 4));
-    const minute = Number(issueTime.slice(4, 6));
-    if (isNaN(hour) || isNaN(minute)) return 0;
-    return (hour + (minute > 0 ? 1 : 0)) % 24;
-  }
-
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
 
   function addTempo(taf: TAF, from: number, to: number) {
@@ -1203,7 +1167,7 @@ export default function TafBuilder() {
               const day = Number(taf.issueTime.slice(0, 2));
               const hour = Number(taf.issueTime.slice(2, 4));
               const nextHour = (hour + 1) % 24;
-              const toDay = hour >= 23 ? day + 1 : day + 1;
+              const toDay = hour >= 23 ? day + 1 : day;
               return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
             })(),
             state: {
