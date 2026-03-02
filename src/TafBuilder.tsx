@@ -32,6 +32,7 @@ interface WeatherState {
   visibility: number;
   weather: string[];
   clouds: {
+    id: string;
     amount: string;
     height: number; 
     cb?: boolean; 
@@ -85,23 +86,6 @@ function getCurrentIssueTimeUTC(): string {
   return `${day}${hour}${minute}`;
 }
 
-function emptyWeather({ wind = { dir: 0, speed: 0, gust: 0 }, visibility = 9999, weather = [], clouds = [] }: Partial<WeatherState> = {}): WeatherState {
-  let cloudsArr = clouds;
-  if (!cloudsArr || cloudsArr.length === 0) {
-    cloudsArr = [{ amount: "FEW", height: 0 }];
-  }
-  return {
-    wind: {
-      dir: wind?.dir ?? 0,
-      speed: wind?.speed ?? 0,
-      gust: wind?.gust ?? null,
-    },
-    visibility,
-    weather,
-    clouds: cloudsArr,
-  };
-}
-
 function formatWind({ dir, speed, gust }: Wind) {
   const normalizedDir = dir === 360 || dir === 0 ? dir : Math.round(dir / 10) * 10;
   const d = (() => {
@@ -117,7 +101,31 @@ function formatWind({ dir, speed, gust }: Wind) {
   return `${d}${s}${g}KT`;
 }
 
-function formatClouds(clouds: { amount: string; height: number; cb?: boolean; tcu?: boolean }[]) {
+function createCloudLayer(partial?: Partial<WeatherState["clouds"][number]>) {
+  const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return {id, amount: partial?.amount ?? "FEW", height: partial?.height ?? 0, cb: partial?.cb, tcu: partial?.tcu};
+}
+
+function emptyWeather({ wind = { dir: 0, speed: 0, gust: 0 }, visibility = 9999, weather = [], clouds = [] }: Partial<WeatherState> = {}): WeatherState {
+  let cloudArr = clouds;
+  if (!cloudArr || cloudArr.length === 0) {
+    cloudArr = [createCloudLayer({ amount: "FEW", height: 0 })];
+  } else {
+    cloudArr = cloudArr.map((c) => (c.id ? c : createCloudLayer(c)));
+  }
+  return {
+    wind: {
+      dir: wind?.dir ?? 0,
+      speed: wind?.speed ?? 0,
+      gust: wind?.gust ?? null
+    },
+    visibility,
+    weather,
+    clouds: cloudArr
+  };
+}
+
+function formatClouds(clouds: { id: string, amount: string; height: number; cb?: boolean; tcu?: boolean }[]) {
   return (clouds || [])
     .map((c) => {
       let suffix = "";
@@ -138,7 +146,7 @@ function formatWeatherState(state: WeatherState, isBase: boolean = false) {
   const weather = state.enabledBlocks?.vis ? (state.weather || []).join('') : '';
   let cloudsStr: string;
   if (isBase) {
-    const cloudsArr = state.clouds && state.clouds.length > 0 ? state.clouds : [{ amount: "FEW", height: 0 }];
+    const cloudsArr = state.clouds && state.clouds.length > 0 ? state.clouds : [createCloudLayer({ amount: "FEW", height: 0 })];
     cloudsStr = formatClouds(cloudsArr);
   } else {
     cloudsStr = state.enabledBlocks?.clouds ? formatClouds(state.clouds) : '';
@@ -337,7 +345,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
   const state = emptyWeather(change.state);
   const wind = state.wind;
   const visibility = state.visibility;
-  const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [{ amount: "FEW", height: 0 }];
+  const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [createCloudLayer({ amount: "FEW", height: 0 })];
   const weatherArr = state.weather || [];
   const prevEnabledBlocks = change.state.enabledBlocks ?? {};
   const addWeather = (w: string) => {
@@ -411,27 +419,28 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
       },
     });
   };
-  const updateCloud = (index: number, field: "amount" | "height" | "cb" | "tcu", value: string | number | boolean) => {
+  const updateCloud = (id: string, field: "amount" | "height" | "cb" | "tcu", value: string | number | boolean) => {
     const prevClouds =
       change.state.clouds && change.state.clouds.length > 0
-        ? [...change.state.clouds]
-        : [{ amount: "FEW", height: 0 }];
-    const target = { ...prevClouds[index] };
-    if (field === "amount") {
-      target.amount = String(value);
-    }
-    if (field === "height") {
-      target.height = Math.max(0, Math.round(Number(value)));
-    }
-    if (field === "cb") {
-      target.cb = Boolean(value);
-      if (target.cb) target.tcu = false;
-    }
-    if (field === "tcu") {
-      target.tcu = Boolean(value);
-      if (target.tcu) target.cb = false;
-    }
-    prevClouds[index] = target;
+        ? change.state.clouds.map((c) => (c.id ? c : createCloudLayer(c)))
+        : [createCloudLayer({ amount: "FEW", height: 0 })];
+    const nextClouds = prevClouds.map((c) => {
+      if (c.id !== id) return c;
+
+      const target = { ...c };
+      if (field === "amount") target.amount = String(value);
+      if (field === "height") target.height = Math.max(0, Math.round(Number(value)));
+      if (field === "cb") {
+        target.cb = Boolean(value);
+        if (target.cb) target.tcu = false;
+      }
+      if (field === "tcu") {
+        target.tcu = Boolean(value);
+        if (target.tcu) target.cb = false;
+      }
+      return target;
+    });
+
     onUpdate({
       ...change,
       state: {
@@ -439,7 +448,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
         wind: change.state.wind,
         visibility: change.state.visibility,
         weather: [...(change.state.weather || [])],
-        clouds: prevClouds,
+        clouds: nextClouds,
         enabledBlocks: {
           ...prevEnabledBlocks,
           clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
@@ -448,8 +457,8 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
     });
   };
   const addCloud = () => {
-    const prevClouds = [...(change.state.clouds || [])];
-    const updatedClouds = [...prevClouds, { amount: "FEW", height: 0 }];
+    const prevClouds = (change.state.clouds || []).map((c) => (c.id ? c : createCloudLayer(c)));
+    const updatedClouds = [...prevClouds, createCloudLayer({ amount: "FEW", height: 0 })];
     onUpdate({
       ...change,
       state: {
@@ -465,10 +474,11 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
       },
     });
   };
-  const removeCloud = (index: number) => {
-    const prevClouds = [...(change.state.clouds || [])];
+  const removeCloud = (id: string) => {
+    const prevClouds = (change.state.clouds || []).map((c) => (c.id ? c : createCloudLayer(c)));
     if (prevClouds.length <= 1) return;
-    prevClouds.splice(index, 1);
+
+    const updatedClouds = prevClouds.filter((c) => c.id !== id);
     onUpdate({
       ...change,
       state: {
@@ -476,7 +486,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
         wind: change.state.wind,
         visibility: change.state.visibility,
         weather: [...(change.state.weather || [])],
-        clouds: prevClouds,
+        clouds: updatedClouds,
         enabledBlocks: {
           ...prevEnabledBlocks,
           clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
@@ -749,11 +759,11 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
           <span>Clouds</span>
         </div>
         <div className="space-y-2 mt-2">
-          {clouds.map((c, idx) => (
-            <div key={idx} className="flex items-center gap-2">
+          {clouds.map((c) => (
+            <div key={c.id} className="flex items-center gap-2">
               <select
                 value={c.amount}
-                onChange={(e) => updateCloud(idx, "amount", e.target.value)}
+                onChange={(e) => updateCloud(c.id, "amount", e.target.value)}
                 className="border p-1 rounded-xl px-3 w-20"
               >{cloudAmountOptions.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}</select>
               <input
@@ -761,7 +771,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
                 value={c.height}
                 min={0}
                 step={1}
-                onChange={(e) => updateCloud(idx, "height", e.target.value)}
+                onChange={(e) => updateCloud(c.id, "height", e.target.value)}
                 className="border p-1 rounded-xl px-3 w-20"
               />
               <span className="text-sm">(hundreds ft)</span>
@@ -769,7 +779,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
                 <input
                   type="checkbox"
                   checked={!!c.cb}
-                  onChange={(e) => updateCloud(idx, "cb", e.target.checked)}
+                  onChange={(e) => updateCloud(c.id, "cb", e.target.checked)}
                 />
                 <span>CB</span>
               </label>
@@ -777,11 +787,11 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
                 <input
                   type="checkbox"
                   checked={!!c.tcu}
-                  onChange={(e) => updateCloud(idx, "tcu", e.target.checked)}
+                  onChange={(e) => updateCloud(c.id, "tcu", e.target.checked)}
                 />
                 <span>TCU</span>
               </label>
-              {clouds.length > 1 && <CloudDeleteButton onClick={() => removeCloud(idx)} />}
+              {clouds.length > 1 && <CloudDeleteButton onClick={() => removeCloud(c.id)} />}
             </div>
           ))}
           <button
@@ -1178,7 +1188,7 @@ export default function TafBuilder() {
             })(),
             state: {
               ...taf.base,
-              clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [{ amount: "FEW", height: 0 }],
+              clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [createCloudLayer({ amount: "FEW", height: 0 })],
               enabledBlocks: { wind: true, vis: true, clouds: true }
             },
           }}
@@ -1186,7 +1196,7 @@ export default function TafBuilder() {
             ...prev,
             base: {
               ...updated.state,
-              clouds: (updated.state.clouds && updated.state.clouds.length > 0) ? updated.state.clouds : [{ amount: "FEW", height: 0 }],
+              clouds: (updated.state.clouds && updated.state.clouds.length > 0) ? updated.state.clouds : [createCloudLayer({ amount: "FEW", height: 0 })],
               enabledBlocks: undefined
             }
           }))}
