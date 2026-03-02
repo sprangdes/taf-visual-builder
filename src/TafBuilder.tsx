@@ -82,6 +82,8 @@ type ReadonlyChangeEditorProps = Readonly<ChangeEditorProps>;
 type IssueTimeInputProps = Readonly<{ value: string; onChange: (value: string) => void; }>;
 type CloudDeleteButtonProps = Readonly<{ onClick: () => void; }>;
 type ChangeDeleteButtonProps = Readonly<{ onClick: () => void; setShowTooltip: (v: boolean) => void; showTooltip: boolean; }>;
+type TooltipPos = { top: number; left: number };
+type TypeButtonProps = Readonly<{ showActionButtons: boolean; onChangeType?: (type: WeatherTrendType) => void; change: TAFChange | BaseForecast; }>;
 
 function getCurrentIssueTimeUTC(): string {
   const now = new Date();
@@ -91,12 +93,7 @@ function getCurrentIssueTimeUTC(): string {
   return `${day}${hour}${minute}`;
 }
 
-function emptyWeather({
-  wind = { dir: 0, speed: 0, gust: 0 },
-  visibility = 9999,
-  weather = [],
-  clouds = [],
-}: Partial<WeatherState> = {}): WeatherState {
+function emptyWeather({wind = { dir: 0, speed: 0, gust: 0 }, visibility = 9999, weather = [], clouds = [],}: Partial<WeatherState> = {}): WeatherState {
   let cloudsArr = clouds;
   if (!cloudsArr || cloudsArr.length === 0) {
     cloudsArr = [{ amount: "FEW", height: 0 }];
@@ -497,52 +494,18 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
   const minVis = 50;
   const maxVis = 10000;
 
-  function renderTypeButton() {
-    const [showTypeTooltip, setShowTypeTooltip] = useState(false);
-    const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-    const btnRef = useRef<HTMLButtonElement>(null);
-    let tooltipTimer: NodeJS.Timeout;
-
-    if (showActionButtons && onChangeType && change && "type" in change) {
-      const type = change.type as "TEMPO" | "BECMG" | "FM";
-      const next = nextType(type);
-      const colorClass = colorByType[type];
-      const tooltipText = `Switch to ${next}`;
-
-      React.useEffect(() => {
-        if (showTypeTooltip && btnRef.current) {
-          setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
-        }
-      }, [showTypeTooltip]);
-
-      return (
-        <>
-          <button ref={btnRef} className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`} onClick={(e) => {e.stopPropagation();onChangeType(next);}} type="button" tabIndex={0} aria-label="Change type" onMouseEnter={() => {tooltipTimer = setTimeout(() => setShowTypeTooltip(true), 400);}} onMouseLeave={() => {clearTimeout(tooltipTimer);setShowTypeTooltip(false);}}>{type}</button>
-          {showTypeTooltip && (
-            <div style={{position: "fixed", top: tooltipPos.top, left: tooltipPos.left, background: "rgba(0,0,0,0.7)", color: "white", fontSize: "0.75rem", borderRadius: "0.375rem", padding: "0.25rem 0.7rem", zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", pointerEvents: "none"}}>{tooltipText}</div>
-          )}
-        </>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 bg-gray-300 text-black">BASE</span>
-    );
-  }
   return (
     <div className="border p-4 rounded-xl bg-gray-100 space-y-2 relative">
       <div className="flex items-center relative">
         <h3 className="font-semibold flex items-center m-0 p-0">
           Edit{" "}
           <span className="ml-2">
-            {renderTypeButton()}
+            <TypeButton showActionButtons={showActionButtons} onChangeType={onChangeType} change={change} />
           </span>
           {isBase ? (
             <>{String(Number(change.from.slice(-2))).padStart(2, "0")}Z</>
           ) : (
-            <>
-              {String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z
-            </>
+            <>{String(Number(change.from.slice(-2))).padStart(2, "0")}Z–{String(Number(change.to.slice(-2))).padStart(2, "0")}Z</>
           )}
         </h3>
         {showActionButtons && onDelete && (
@@ -578,9 +541,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               }}
               className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
-            >
-              X
-            </button>
+            >X</button>
           )}
           {!windEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
@@ -600,9 +561,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   });
                 }}
                 className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
-              >
-                Active Wind to Edit
-              </button>
+              >Active Wind to Edit</button>
             </div>
           )}
           <label className="text-sm">
@@ -666,9 +625,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
               }}
               className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
-            >
-              X
-            </button>
+            >X</button>
           )}
           {!visEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
@@ -688,9 +645,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   });
                 }}
                 className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
-              >
-                Active Visibility/Weather to Edit
-              </button>
+              >Active Visibility/Weather to Edit</button>
             </div>
           )}
           <label htmlFor="visibility" className="block text-sm">
@@ -725,15 +680,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                   disabled={weatherDisabled}
                   tabIndex={0}
                   aria-label={`Add ${opt.code === " " ? "space" : opt.code}`}
-                >
-                  {opt.code === " " ? (
-                    <span className="inline-block" style={{ minWidth: "3em" }}>
-                      space
-                    </span>
-                  ) : (
-                    opt.code
-                  )}
-                </button>
+                >{opt.code === " " ? (<span className="inline-block" style={{ minWidth: "3em" }}>space</span>) : (opt.code)}</button>
               ))}
             </div>
             <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
@@ -747,9 +694,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                     className={`inline-flex items-center ${bgClass} text-black px-2 py-0.5 rounded-xl border border-gray-300 ${w === " " ? "font-mono" : ""}`}
                     onClick={() => removeWeather(idx)}
                     aria-label={`Remove ${w === " " ? "space" : w}`}
-                  >
-                    {w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}
-                  </button>
+                  >{w === " " ? <span className="font-mono" style={{ minWidth: "3em" }}>space</span> : w}</button>
                 );
               })}
               {showError && (
@@ -782,9 +727,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             }}
             className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
             style={{ zIndex: 20 }}
-          >
-            X
-          </button>
+          >X</button>
         )}
         {!cloudEnabled && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
@@ -804,9 +747,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 });
               }}
               className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
-            >
-              Active Clouds to Edit
-            </button>
+            >Active Clouds to Edit</button>
           </div>
         )}
         <div className="flex items-center space-x-2">
@@ -819,13 +760,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
                 value={c.amount}
                 onChange={(e) => updateCloud(idx, "amount", e.target.value)}
                 className="border p-1 rounded-xl px-3 w-20"
-              >
-                {cloudAmountOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
+              >{cloudAmountOptions.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}</select>
               <input
                 type="number"
                 value={c.height}
@@ -858,9 +793,7 @@ function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, o
             type="button"
             onClick={addCloud}
             className="bg-blue-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
-          >
-            Add Layer
-          </button>
+          >Add Layer</button>
         </div>
         {!cloudEnabled && (
           <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl"></div>
@@ -900,20 +833,44 @@ function getTooltipPosition(btn: HTMLButtonElement | null, tooltipWidth = 120, t
     rawTop = rightTop;
   }
 
-  return {left: clamp(rawLeft, padding, maxLeft), top: clamp(rawTop, padding, maxTop)};
+  return { left: clamp(rawLeft, padding, maxLeft), top: clamp(rawTop, padding, maxTop) };
 }
 
-function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
+function useHoverTooltip(options?: Readonly<{ delayMs?: number; width?: number; height?: number }>) {
+  const delayMs = options?.delayMs ?? 500;
+  const width = options?.width ?? 120;
+  const height = options?.height ?? 32;
   const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [tooltipPos, setTooltipPos] = useState<TooltipPos>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
-  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (showTooltip && btnRef.current) {
-      setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
+      setTooltipPos(getTooltipPosition(btnRef.current, width, height));
     }
-  }, [showTooltip]);
+  }, [showTooltip, width, height]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const onMouseEnter = () => {
+    timerRef.current = setTimeout(() => setShowTooltip(true), delayMs);
+  };
+  const onMouseLeave = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    setShowTooltip(false);
+  };
+
+  return { btnRef, showTooltip, tooltipPos, onMouseEnter, onMouseLeave, setShowTooltip };
+}
+
+function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
+  const { btnRef, showTooltip, tooltipPos, onMouseEnter, onMouseLeave } = useHoverTooltip({ delayMs: 500 });
 
   return (
     <div>
@@ -922,18 +879,10 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
         type="button"
         onClick={onClick}
         className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
-        onMouseEnter={() => {
-          tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 500);
-        }}
-        onMouseLeave={() => {
-          if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
-          tooltipTimerRef.current = null;
-          setShowTooltip(false);
-        }}
+        onMouseEnter={ onMouseEnter }
+        onMouseLeave={ onMouseLeave }
         style={{ zIndex: 10 }}
-      >
-        X
-      </button>
+      >X</button>
       {showTooltip && (
         <div
           style={{
@@ -950,24 +899,23 @@ function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
             pointerEvents: "none"
           }}
-        >
-          Delete Layer
-        </div>
+        >Delete Layer</div>
       )}
     </div>
   );
 }
 
 function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDeleteButtonProps) {
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { btnRef, tooltipPos, onMouseEnter, onMouseLeave, setShowTooltip: setLocalShowTooltip } = useHoverTooltip({ delayMs: 500 });
 
   useEffect(() => {
-    if (showTooltip && btnRef.current) {
-      setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
-    }
-  }, [showTooltip]);
+    setLocalShowTooltip(showTooltip);
+  }, [setLocalShowTooltip, showTooltip]);
+
+  useEffect(() => {
+    if (showTooltip) onMouseEnter();
+    else onMouseLeave();
+  }, [onMouseEnter, onMouseLeave, showTooltip]);
 
   return (
     <>
@@ -979,17 +927,16 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDele
           onClick();
         }}
         onMouseEnter={() => {
-          tooltipTimerRef.current = setTimeout(() => setShowTooltip(true), 500);
+          onMouseEnter();
+          setShowTooltip(true);
         }}
         onMouseLeave={() => {
-          if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
-          tooltipTimerRef.current = null;
+          onMouseLeave();
           setShowTooltip(false);
         }}
         style={{ zIndex: 10 }}
-      >
-        X
-      </button>
+        type="button"
+      >X</button>
       {showTooltip && (
         <div
           style={{
@@ -1006,9 +953,67 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDele
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
             pointerEvents: "none"
           }}
-        >
-          Delete Change
-        </div>
+        >Delete Change</div>
+      )}
+    </>
+  );
+}
+
+function TypeButton({ showActionButtons, onChangeType, change }: TypeButtonProps) {
+  const { btnRef, showTooltip, tooltipPos, onMouseEnter, onMouseLeave } = useHoverTooltip({ delayMs: 500, width: 120, height: 32 });
+  const isBase = !("type" in change);
+
+  if (isBase) {
+    return (
+        <span className="inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 bg-gray-300 text-black">BASE</span>
+    );
+  }
+
+  if (!showActionButtons || !onChangeType) {
+    return (
+        <span
+          className={`inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 ${
+            colorByType[change.type]
+          }`}
+        >{change.type}</span>
+    );
+  }
+  const type = change.type;
+  const next = nextType(type);
+  const colorClass = colorByType[type];
+  const tooltipText = `Switch to ${next}`;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChangeType(next);
+        }}
+        type="button"
+        aria-label="Change type"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >{type}</button>
+      {showTooltip && (
+        <div
+          style={{
+            position: "fixed",
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            background: "rgba(0,0,0,0.7)",
+            color: "white",
+            fontSize: "0.75rem",
+            borderRadius: "0.375rem",
+            padding: "0.25rem 0.7rem",
+            zIndex: 9999,
+            whiteSpace: "nowrap",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            pointerEvents: "none"
+          }}
+        >{tooltipText}</div>
       )}
     </>
   );
