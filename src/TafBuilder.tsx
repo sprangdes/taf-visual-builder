@@ -20,18 +20,13 @@ const colorByType: Record<WeatherTrendType, string> = {
   FM: "bg-orange-400 text-black",
 }
 const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
-const visibilityOptions = [
-  50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200,
-  1400, 1600, 2000, 2400, 2800, 3000, 3200, 4000, 4800, 5000,
-  6000, 7000, 8000, 9000, 10000,
-];
+const visibilityOptions = [50, 60, 80, 100, 200, 240, 300, 400, 480, 600, 800, 1000, 1200, 1400, 1600, 2000, 2400, 2800, 3000, 3200, 4000, 4800, 5000, 6000, 7000, 8000, 9000, 10000];
 
 interface Wind {
   dir: number;
   speed: number;
   gust: number | null;
 }
-
 interface WeatherState {
   wind: Wind;
   visibility: number;
@@ -47,27 +42,23 @@ interface WeatherState {
     clouds?: boolean;
   };
 }
-
 interface TAFChange {
   type: WeatherTrendType;
   from: string;
   to: string;
   state: WeatherState;
 }
-
 interface BaseForecast {
   state: WeatherState;
   from: string;
   to: string;
 }
-
 interface TAF {
   station: string;
   issueTime: string;
   base: WeatherState;
   changes: TAFChange[];
 }
-
 interface ChangeEditorProps {
   change: TAFChange | BaseForecast | null;
   onUpdate: (updated: TAFChange | BaseForecast) => void;
@@ -94,7 +85,7 @@ function getCurrentIssueTimeUTC(): string {
   return `${day}${hour}${minute}`;
 }
 
-function emptyWeather({wind = { dir: 0, speed: 0, gust: 0 }, visibility = 9999, weather = [], clouds = [],}: Partial<WeatherState> = {}): WeatherState {
+function emptyWeather({ wind = { dir: 0, speed: 0, gust: 0 }, visibility = 9999, weather = [], clouds = [] }: Partial<WeatherState> = {}): WeatherState {
   let cloudsArr = clouds;
   if (!cloudsArr || cloudsArr.length === 0) {
     cloudsArr = [{ amount: "FEW", height: 0 }];
@@ -1023,7 +1014,7 @@ function TypeButton({ showActionButtons, onChangeType, change }: TypeButtonProps
   );
 }
 
-function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
+function IssueTimeInput({ value, onChange }: IssueTimeInputProps ) {
   const didInitRef = useRef(false);
   useEffect(() => {
     if (didInitRef.current) return;
