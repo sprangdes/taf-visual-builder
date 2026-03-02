@@ -88,7 +88,7 @@ function getCurrentIssueTimeUTC(): string {
   const day = String(now.getUTCDate()).padStart(2, "0");
   const hour = String(now.getUTCHours()).padStart(2, "0");
   const minute = String(now.getUTCMinutes()).padStart(2, "0");
-  return `${day}${hour}${minute}Z`;
+  return `${day}${hour}${minute}`;
 }
 
 function emptyWeather({
@@ -181,7 +181,7 @@ function generateTAF(taf: TAF) {
   const toHour = nextHour;
   const toDay = fromDay + 1;
   const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
-  const header = `TAF ${taf.station} ${taf.issueTime} ${baseFrom}/${baseTo}`;
+  const header = `TAF ${taf.station} ${taf.issueTime}Z ${baseFrom}/${baseTo}`;
   const baseLine = `${formatWeatherState({...taf.base, enabledBlocks: { wind: true, vis: true, clouds: true },}, true)}`;
   const changes = (taf.changes || [])
     .filter(c => {
@@ -1046,7 +1046,6 @@ function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
         aria-label="Issue time (DDHHMM)"
         placeholder={value.slice(0, 6) ? undefined : "UTC Time"}
       />
-      {/* TODO: 修改header時間後Z會消失*/}
       <span className="px-2" style={{height: "100%", fontWeight: 500, fontSize: "1rem"}}>Z</span>
     </span>
   );
@@ -1110,7 +1109,6 @@ export default function TafBuilder() {
       return { ...prev, changes };
     });
   }
-
 
   function handleDelete() {
     if (selectedChangeIndex === null) return;
