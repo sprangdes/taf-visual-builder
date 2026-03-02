@@ -79,6 +79,7 @@ interface ChangeEditorProps {
 type WeatherTrendType = "FM" | "TEMPO" | "BECMG";
 type TimelineProps = Readonly<{ changes: TAFChange[]; onSelectRange: (start: number, end: number) => void; onSelectChange: (index: number) => void; startHour: number; }>;
 type ReadonlyChangeEditorProps = Readonly<ChangeEditorProps>;
+type ChangeEditorInnerProps = Readonly<Omit<ChangeEditorProps, "change"> & { change: TAFChange | BaseForecast; }>;
 type IssueTimeInputProps = Readonly<{ value: string; onChange: (value: string) => void; }>;
 type CloudDeleteButtonProps = Readonly<{ onClick: () => void; }>;
 type ChangeDeleteButtonProps = Readonly<{ onClick: () => void; setShowTooltip: (v: boolean) => void; showTooltip: boolean; }>;
@@ -330,9 +331,12 @@ function nextType(type: WeatherTrendType): WeatherTrendType {
   return "TEMPO";
 }
 
-function ChangeEditor({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ReadonlyChangeEditorProps) {
-  if (!change) return null;
+function ChangeEditor(props: ReadonlyChangeEditorProps) {
+  if (!props.change) return null;
+  return <ChangeEditorInner {...props} change={props.change} />;
+}
 
+function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDelete, onChangeType }: ChangeEditorInnerProps) {
   const isBase = !("type" in change);
   const enabledBlocks = (change.state.enabledBlocks) || { wind: false, vis: false, clouds: false };
   const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
