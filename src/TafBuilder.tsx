@@ -77,17 +77,11 @@ interface ChangeEditorProps {
 }
 
 type WeatherTrendType = "FM" | "TEMPO" | "BECMG";
-type TimelineProps = Readonly<{
-  changes: TAFChange[];
-  onSelectRange: (start: number, end: number) => void;
-  onSelectChange: (index: number) => void;
-  startHour: number;
-}>;
+type TimelineProps = Readonly<{ changes: TAFChange[]; onSelectRange: (start: number, end: number) => void; onSelectChange: (index: number) => void; startHour: number; }>;
 type ReadonlyChangeEditorProps = Readonly<ChangeEditorProps>;
-type IssueTimeInputProps = Readonly<{
-  value: string;
-  onChange: (value: string) => void;
-}>
+type IssueTimeInputProps = Readonly<{ value: string; onChange: (value: string) => void; }>;
+type CloudDeleteButtonProps = Readonly<{ onClick: () => void; }>;
+type ChangeDeleteButtonProps = Readonly<{ onClick: () => void; setShowTooltip: (v: boolean) => void; showTooltip: boolean; }>;
 
 function getCurrentIssueTimeUTC(): string {
   const now = new Date();
@@ -895,13 +889,21 @@ function getTooltipPosition(btn: HTMLButtonElement | null, tooltipWidth = 120, t
   const centeredLeft = rect.left + rect.width / 2 - tooltipWidth / 2;
   const aboveTop = rect.top - tooltipHeight;
   const belowTop = rect.bottom + padding;
-  const rawLeft = overflowsRight || overflowsBottom ? centeredLeft : rightLeft;
-  const rawTop = overflowsRight || overflowsBottom ? (aboveTop < padding ? belowTop : aboveTop) : rightTop;
+  let rawLeft: number ;
+  let rawTop: number;
+
+  if (overflowsRight || overflowsBottom) {
+    rawLeft = centeredLeft;
+    rawTop = aboveTop < padding ? belowTop : aboveTop;
+  } else {
+    rawLeft = rightLeft;
+    rawTop = rightTop;
+  }
 
   return {left: clamp(rawLeft, padding, maxLeft), top: clamp(rawTop, padding, maxTop)};
 }
 
-function CloudDeleteButton({ onClick }: { onClick: () => void }) {
+function CloudDeleteButton({ onClick }: CloudDeleteButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -955,14 +957,14 @@ function CloudDeleteButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: { onClick: () => void, setShowTooltip: (v: boolean) => void, showTooltip: boolean }) {
+function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: ChangeDeleteButtonProps) {
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   let tooltipTimer: NodeJS.Timeout;
 
   useEffect(() => {
     if (showTooltip && btnRef.current) {
-      setTooltipPos(getTooltipPosition(btnRef.current, "right-top", 120, 32));
+      setTooltipPos(getTooltipPosition(btnRef.current, 120, 32));
     }
   }, [showTooltip]);
 
@@ -1011,7 +1013,9 @@ function ChangeDeleteButton({ onClick, setShowTooltip, showTooltip }: { onClick:
 }
 
 function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
     if (!value || value.length < 6) {
       const now = new Date();
       const day = String(now.getUTCDate()).padStart(2, "0");
@@ -1019,7 +1023,8 @@ function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
       const minute = String(now.getUTCMinutes()).padStart(2, "0");
       onChange(`${day}${hour}${minute}`);
     }
-  }, []);
+    didInitRef.current = true;
+  }, [onChange, value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replaceAll(/\D/g, "");
@@ -1041,6 +1046,7 @@ function IssueTimeInput({value, onChange }: IssueTimeInputProps ) {
         aria-label="Issue time (DDHHMM)"
         placeholder={value.slice(0, 6) ? undefined : "UTC Time"}
       />
+      {/* TODO: 修改header時間後Z會消失*/}
       <span className="px-2" style={{height: "100%", fontWeight: 500, fontSize: "1rem"}}>Z</span>
     </span>
   );
