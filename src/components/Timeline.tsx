@@ -62,13 +62,13 @@ export default function Timeline({ changes, onSelectRange, onSelectChange, start
         let bgClass = "bg-white";
 
         if (pendingRange !== null && hoverHour !== null && isInHoverSelection(h)) {
-          bgClass = "bg-blue-200";
+          bgClass = "bg-gray-200";
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
-          bgClass = "bg-blue-200";
+          bgClass = "bg-gray-200";
         } else if (changeIndex !== -1 && hoveredChangeIndex === changeIndex) {
           bgClass = timelineHoverColorByType[changes[changeIndex].type];
         } else if (changeIndex === -1 && hoveredFreeHour === h) {
-          bgClass = "bg-blue-200";
+          bgClass = "bg-gray-200";
         } else if (changeObj) {
           bgClass = timelineColorByType[changeObj.type];
         }
