@@ -16,9 +16,9 @@ export const weatherOptions = [
 ];
 
 export const colorByType: Record<WeatherTrendType, string> = {
-  TEMPO: "bg-yellow-400 text-black",
-  BECMG: "bg-green-400 text-black",
-  FM: "bg-orange-400 text-black",
+  TEMPO: "bg-yellow-300 text-black",
+  BECMG: "bg-green-300 text-black",
+  FM: "bg-orange-300 text-black",
 };
 
 export const timelineColorByType: Record<WeatherTrendType, string> = {
