@@ -1,4 +1,5 @@
 import { cloudAmountOptions } from "../constants/weather";
+import { weatherButtonClass } from "../constants/ui";
 import type { CloudLayer } from "../types/taf";
 import CloudDeleteButton from "./buttons/CloudDeleteButton";
 
@@ -103,7 +104,7 @@ export default function CloudSection({
         <button
           type="button"
           onClick={onAddCloud}
-          className="bg-blue-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+          className={`${weatherButtonClass} text-xs`}
         >
           Add Layer
         </button>

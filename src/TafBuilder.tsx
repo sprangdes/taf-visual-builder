@@ -2,6 +2,7 @@ import { useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import IssueTimeInput from "./components/IssueTimeInput";
 import Timeline from "./components/Timeline";
+import { weatherButtonClass } from "./constants/ui";
 import type { TAF, TAFChange } from "./types/taf";
 import { addTempo, generateTAF } from "./utils/taf";
 import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } from "./utils/time";
@@ -167,7 +168,7 @@ export default function TafBuilder() {
           <button
             type="button"
             onClick={handleCopyTAF}
-            className="bg-blue-500 text-white px-3 py-1 rounded-xl text-xs cursor-pointer"
+            className={`${weatherButtonClass} text-xs`}
           >
             {copied ? "Copied" : "Copy"}
           </button>
