@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { TAFChange, TimelineProps } from "../types/taf";
 import { timelineColorByType } from "../constants/weather";
 import { useTimeRange } from "../hooks/useTimeRange";
@@ -33,6 +34,13 @@ export default function Timeline({ changes, onSelectRange, onSelectChange, start
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
   const hourIndexMap = createHourIndexMap(hours);
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
+  const [hoveredChangeIndex, setHoveredChangeIndex] = useState<number | null>(null);
+  const [hoveredFreeHour, setHoveredFreeHour] = useState<number | null>(null);
+  const timelineHoverColorByType = {
+    TEMPO: "bg-yellow-400",
+    BECMG: "bg-green-400",
+    FM: "bg-orange-400",
+  } as const;
 
   const isInHoverSelection = (h: number): boolean => {
     if (pendingRange !== null && hoverHour !== null) {
@@ -57,6 +65,10 @@ export default function Timeline({ changes, onSelectRange, onSelectChange, start
           bgClass = "bg-blue-200";
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
           bgClass = "bg-blue-200";
+        } else if (changeIndex !== -1 && hoveredChangeIndex === changeIndex) {
+          bgClass = timelineHoverColorByType[changes[changeIndex].type];
+        } else if (changeIndex === -1 && hoveredFreeHour === h) {
+          bgClass = "bg-blue-200";
         } else if (changeObj) {
           bgClass = timelineColorByType[changeObj.type];
         }
@@ -80,12 +92,21 @@ export default function Timeline({ changes, onSelectRange, onSelectChange, start
               }
             }}
             onPointerEnter={() => {
+              if (changeIndex !== -1) {
+                setHoveredChangeIndex(changeIndex);
+                setHoveredFreeHour(null);
+              } else {
+                setHoveredChangeIndex(null);
+                setHoveredFreeHour(h);
+              }
               if (pendingRange !== null) setHover(h);
             }}
             onPointerLeave={() => {
+              setHoveredChangeIndex(null);
+              setHoveredFreeHour(null);
               if (pendingRange !== null) setHover(null);
             }}
-            className={`relative flex-1 h-12 text-xs flex items-center justify-center ${bgClass} hover:bg-blue-200 cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
+            className={`relative flex-1 h-12 text-xs flex items-center justify-center ${bgClass} cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
             style={{ transition: "background 0.1s" }}
           >
             <span className="relative z-20">{String(h).padStart(2, "0")}Z</span>
