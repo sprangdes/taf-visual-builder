@@ -50,7 +50,7 @@ export default function VisibilitySection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
+            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm cursor-pointer"
           >
             Active Visibility/Weather to Edit
           </button>
