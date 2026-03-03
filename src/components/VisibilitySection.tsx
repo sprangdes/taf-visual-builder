@@ -71,7 +71,7 @@ export default function VisibilitySection({
             min={minVis}
             max={maxVis}
             step={50}
-            className="w-full"
+            className="w-full accent-gray-400"
             value={visibility}
             onChange={(e) => onUpdateVisibility(Number(e.target.value))}
             style={{ zIndex: 1 }}
