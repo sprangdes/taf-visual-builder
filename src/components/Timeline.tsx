@@ -1,0 +1,99 @@
+import type { TAFChange, TimelineProps } from "../types/taf";
+import { timelineColorByType } from "../constants/weather";
+import { useTimeRange } from "../hooks/useTimeRange";
+
+function createHourIndexMap(hours: number[]): Map<number, number> {
+  const hourIndexMap = new Map<number, number>();
+  hours.forEach((h, idx) => hourIndexMap.set(h, idx));
+  return hourIndexMap;
+}
+
+function isBetweenCircular(target: number, start: number, end: number, hourIndexMap: Map<number, number>): boolean {
+  const t = hourIndexMap.get(target);
+  const s = hourIndexMap.get(start);
+  const e = hourIndexMap.get(end);
+
+  if (t === undefined || s === undefined || e === undefined) return false;
+  if (s <= e) return t >= s && t <= e;
+  return t >= s || t <= e;
+}
+
+function getChangeAtHour(changes: TAFChange[], h: number, hourIndexMap: Map<number, number>): number {
+  return (changes || []).findIndex((c) => isBetweenCircular(h, Number(c.from), Number(c.to), hourIndexMap));
+}
+
+function getChangeObjAtHour(changes: TAFChange[], h: number, hourIndexMap: Map<number, number>): TAFChange | null {
+  return (
+    (changes || []).find((c) => isBetweenCircular(h, Number(c.from), Number(c.to), hourIndexMap)) ||
+    null
+  );
+}
+
+export default function Timeline({ changes, onSelectRange, onSelectChange, startHour }: Readonly<TimelineProps>) {
+  const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
+  const hourIndexMap = createHourIndexMap(hours);
+  const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
+
+  const isInHoverSelection = (h: number): boolean => {
+    if (pendingRange !== null && hoverHour !== null) {
+      return isBetweenCircular(h, pendingRange, hoverHour, hourIndexMap);
+    }
+    return false;
+  };
+
+  return (
+    <div
+      className="flex border rounded-xl overflow-hidden select-none"
+      onPointerLeave={() => {
+        if (pendingRange !== null) setHover(null);
+      }}
+    >
+      {hours.map((h, idx) => {
+        const changeIndex = getChangeAtHour(changes, h, hourIndexMap);
+        const changeObj = getChangeObjAtHour(changes, h, hourIndexMap);
+        let bgClass = "bg-white";
+
+        if (pendingRange !== null && hoverHour !== null && isInHoverSelection(h)) {
+          bgClass = "bg-blue-200";
+        } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
+          bgClass = "bg-blue-200";
+        } else if (changeObj) {
+          bgClass = timelineColorByType[changeObj.type];
+        }
+
+        return (
+          <button
+            key={h}
+            type="button"
+            aria-label={`Select ${String(h).padStart(2, "0")}Z`}
+            onClick={() => {
+              if (changeIndex !== -1) {
+                onSelectChange(changeIndex);
+                return;
+              }
+
+              if (pendingRange === null) {
+                selectHour(h, onSelectRange);
+              } else {
+                onSelectRange(pendingRange, h);
+                reset();
+              }
+            }}
+            onPointerEnter={() => {
+              if (pendingRange !== null) setHover(h);
+            }}
+            onPointerLeave={() => {
+              if (pendingRange !== null) setHover(null);
+            }}
+            className={`flex-1 h-12 text-xs flex items-center justify-center ${bgClass} hover:bg-blue-200 ${
+              idx < hours.length - 1 ? "border-r" : ""
+            } cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
+            style={{ transition: "background 0.1s" }}
+          >
+            {String(h).padStart(2, "0")}Z
+          </button>
+        );
+      })}
+    </div>
+  );
+}
