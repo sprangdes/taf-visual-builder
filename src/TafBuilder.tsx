@@ -77,6 +77,7 @@ type CloudDeleteButtonProps = Readonly<{ onClick: () => void; }>;
 type ChangeDeleteButtonProps = Readonly<{ onClick: () => void; setShowTooltip: (v: boolean) => void; showTooltip: boolean; }>;
 type TooltipPos = { top: number; left: number };
 type TypeButtonProps = Readonly<{ showActionButtons: boolean; onChangeType?: (type: WeatherTrendType) => void; change: TAFChange | BaseForecast; }>;
+type EditableBlockKey = "wind" | "vis" | "clouds";
 
 function getCurrentIssueTimeUTC(): string {
   const now = new Date();
@@ -84,6 +85,18 @@ function getCurrentIssueTimeUTC(): string {
   const hour = String(now.getUTCHours()).padStart(2, "0");
   const minute = String(now.getUTCMinutes()).padStart(2, "0");
   return `${day}${hour}${minute}`;
+}
+
+function getBaseForecastPeriod(issueTime: string): { from: string; to: string } {
+  const day = Number(issueTime.slice(0, 2));
+  const hour = Number(issueTime.slice(2, 4));
+  const nextHour = (hour + 1) % 24;
+  const fromDay = hour === 23 ? day + 1 : day;
+  const toDay = fromDay + 1;
+  return {
+    from: `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`,
+    to: `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`,
+  };
 }
 
 function formatWind({ dir, speed, gust }: Wind) {
@@ -170,14 +183,7 @@ function generateTAF(taf: TAF) {
     return `${String(day).padStart(2, "0")}${String(h).padStart(2, "0")}`;
   }
 
-  const baseHour = Number(taf.issueTime.slice(2, 4));
-  const baseDay = Number(taf.issueTime.slice(0, 2));
-  const nextHour = (baseHour + 1) % 24;
-  const fromDay = baseHour === 23 ? baseDay + 1 : baseDay;
-  const baseFrom = `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-  const toHour = nextHour;
-  const toDay = fromDay + 1;
-  const baseTo = `${String(toDay).padStart(2, "0")}${String(toHour).padStart(2, "0")}`;
+  const { from: baseFrom, to: baseTo } = getBaseForecastPeriod(taf.issueTime);
   const header = `TAF ${taf.station} ${taf.issueTime}Z ${baseFrom}/${baseTo}`;
   const baseLine = `${formatWeatherState({...taf.base, enabledBlocks: { wind: true, vis: true, clouds: true },}, true)}`;
   const changes = (taf.changes || [])
@@ -255,6 +261,11 @@ function Timeline({ changes, onSelectRange, onSelectChange, startHour }: Timelin
   }
 
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
+  const timelineColorByType: Record<WeatherTrendType, string> = {
+    TEMPO: "bg-yellow-300",
+    BECMG: "bg-green-300",
+    FM: "bg-orange-300",
+  };
   const getChangeAtHour = (h: number) =>
     (changes || []).findIndex((c) =>
       isBetweenCircular(h, Number(c.from), Number(c.to))
@@ -280,13 +291,7 @@ function Timeline({ changes, onSelectRange, onSelectChange, startHour }: Timelin
         } else if (pendingRange !== null && hoverHour === null && h === pendingRange) {
           bgClass = "bg-blue-200";
         } else if (changeObj) {
-          if (changeObj.type === "TEMPO") {
-            bgClass = "bg-yellow-300";
-          } else if (changeObj.type === "BECMG") {
-            bgClass = "bg-green-300";
-          } else if (changeObj.type === "FM") {
-            bgClass = "bg-orange-300";
-          }
+          bgClass = timelineColorByType[changeObj.type];
         }
 
         return (
@@ -348,31 +353,44 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
   const clouds = (state.clouds && state.clouds.length > 0) ? state.clouds : [createCloudLayer({ amount: "FEW", height: 0 })];
   const weatherArr = state.weather || [];
   const prevEnabledBlocks = change.state.enabledBlocks ?? {};
-  const addWeather = (w: string) => {
-    const arr = [...(change.state.weather || []), w];
+  const updateChangeState = (patch: Partial<WeatherState>) => {
     onUpdate({
       ...change,
       state: {
         ...change.state,
-        weather: arr,
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          vis: change.state.enabledBlocks?.vis ?? visEnabled,},
+        ...patch,
+      },
+    });
+  };
+  const setBlockEnabled = (block: EditableBlockKey, enabled: boolean) => {
+    if (block === "wind") setWindEnabled(enabled);
+    if (block === "vis") setVisEnabled(enabled);
+    if (block === "clouds") setCloudEnabled(enabled);
+    updateChangeState({
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        [block]: enabled,
+      },
+    });
+  };
+  const addWeather = (w: string) => {
+    const arr = [...(change.state.weather || []), w];
+    updateChangeState({
+      weather: arr,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        vis: change.state.enabledBlocks?.vis ?? visEnabled,
       },
     });
   };
   const removeWeather = (idx: number) => {
     const arr = [...(change.state.weather || [])];
     arr.splice(idx, 1);
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        weather: arr,
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          vis: change.state.enabledBlocks?.vis ?? visEnabled,
-        },
+    updateChangeState({
+      weather: arr,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        vis: change.state.enabledBlocks?.vis ?? visEnabled,
       },
     });
   };
@@ -387,35 +405,21 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
     }
     if (field === "speed") newWind.speed = Math.max(0, Math.round(Number(value)));
     if (field === "gust") newWind.gust = value ? Math.round(Number(value)) : null;
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        wind: newWind,
-        visibility: change.state.visibility,
-        weather: [...(change.state.weather || [])],
-        clouds: [...(change.state.clouds || [])],
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          wind: change.state.enabledBlocks?.wind ?? windEnabled,
-        },
+    updateChangeState({
+      wind: newWind,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        wind: change.state.enabledBlocks?.wind ?? windEnabled,
       },
     });
   };
   const updateVisibility = (value: number) => {
     const vis = nearestVisibility(Number(value));
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        wind: change.state.wind,
-        visibility: vis,
-        weather: [...(change.state.weather || [])],
-        clouds: [...(change.state.clouds || [])],
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          vis: change.state.enabledBlocks?.vis ?? visEnabled,
-        },
+    updateChangeState({
+      visibility: vis,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        vis: change.state.enabledBlocks?.vis ?? visEnabled,
       },
     });
   };
@@ -441,36 +445,22 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
       return target;
     });
 
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        wind: change.state.wind,
-        visibility: change.state.visibility,
-        weather: [...(change.state.weather || [])],
-        clouds: nextClouds,
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
-        },
+    updateChangeState({
+      clouds: nextClouds,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
       },
     });
   };
   const addCloud = () => {
     const prevClouds = (change.state.clouds || []).map((c) => (c.id ? c : createCloudLayer(c)));
     const updatedClouds = [...prevClouds, createCloudLayer({ amount: "FEW", height: 0 })];
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        wind: change.state.wind,
-        visibility: change.state.visibility,
-        weather: [...(change.state.weather || [])],
-        clouds: updatedClouds,
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
-        },
+    updateChangeState({
+      clouds: updatedClouds,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
       },
     });
   };
@@ -479,18 +469,11 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
     if (prevClouds.length <= 1) return;
 
     const updatedClouds = prevClouds.filter((c) => c.id !== id);
-    onUpdate({
-      ...change,
-      state: {
-        ...change.state,
-        wind: change.state.wind,
-        visibility: change.state.visibility,
-        weather: [...(change.state.weather || [])],
-        clouds: updatedClouds,
-        enabledBlocks: {
-          ...prevEnabledBlocks,
-          clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
-        },
+    updateChangeState({
+      clouds: updatedClouds,
+      enabledBlocks: {
+        ...prevEnabledBlocks,
+        clouds: change.state.enabledBlocks?.clouds ?? cloudEnabled,
       },
     });
   };
@@ -532,17 +515,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
             <button
               type="button"
               onClick={() => {
-                setWindEnabled(false);
-                onUpdate({
-                  ...change,
-                  state: {
-                    ...change.state,
-                    enabledBlocks: {
-                      ...prevEnabledBlocks,
-                      wind: false,
-                    },
-                  },
-                });
+                setBlockEnabled("wind", false);
               }}
               className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
@@ -551,19 +524,9 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
           {!windEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
-                type="button"
-                onClick={() => {
-                  setWindEnabled(true);
-                  onUpdate({
-                    ...change,
-                    state: {
-                      ...change.state,
-                      enabledBlocks: {
-                        ...prevEnabledBlocks,
-                        wind: true,
-                      },
-                    },
-                  });
+              type="button"
+              onClick={() => {
+                  setBlockEnabled("wind", true);
                 }}
                 className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
               >Active Wind to Edit</button>
@@ -616,17 +579,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
             <button
               type="button"
               onClick={() => {
-                setVisEnabled(false);
-                onUpdate({
-                  ...change,
-                  state: {
-                    ...change.state,
-                    enabledBlocks: {
-                      ...prevEnabledBlocks,
-                      vis: false,
-                    },
-                  },
-                });
+                setBlockEnabled("vis", false);
               }}
               className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
               style={{ zIndex: 20 }}
@@ -635,19 +588,9 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
           {!visEnabled && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
               <button
-                type="button"
-                onClick={() => {
-                  setVisEnabled(true);
-                  onUpdate({
-                    ...change,
-                    state: {
-                      ...change.state,
-                      enabledBlocks: {
-                        ...prevEnabledBlocks,
-                        vis: true,
-                      },
-                    },
-                  });
+              type="button"
+              onClick={() => {
+                  setBlockEnabled("vis", true);
                 }}
                 className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
               >Active Visibility/Weather to Edit</button>
@@ -718,17 +661,7 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
           <button
             type="button"
             onClick={() => {
-              setCloudEnabled(false);
-              onUpdate({
-                ...change,
-                state: {
-                  ...change.state,
-                  enabledBlocks: {
-                    ...prevEnabledBlocks,
-                    clouds: false,
-                  },
-                },
-              });
+              setBlockEnabled("clouds", false);
             }}
             className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
             style={{ zIndex: 20 }}
@@ -737,19 +670,9 @@ function ChangeEditorInner({ change, onUpdate, showActionButtons = false, onDele
         {!cloudEnabled && (
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
             <button
-              type="button"
-              onClick={() => {
-                setCloudEnabled(true);
-                onUpdate({
-                  ...change,
-                  state: {
-                    ...change.state,
-                    enabledBlocks: {
-                      ...prevEnabledBlocks,
-                      clouds: true,
-                    },
-                  },
-                });
+            type="button"
+            onClick={() => {
+                setBlockEnabled("clouds", true);
               }}
               className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm"
             >Active Clouds to Edit</button>
@@ -1029,11 +952,7 @@ function IssueTimeInput({ value, onChange }: IssueTimeInputProps ) {
   useEffect(() => {
     if (didInitRef.current) return;
     if (!value || value.length < 6) {
-      const now = new Date();
-      const day = String(now.getUTCDate()).padStart(2, "0");
-      const hour = String(now.getUTCHours()).padStart(2, "0");
-      const minute = String(now.getUTCMinutes()).padStart(2, "0");
-      onChange(`${day}${hour}${minute}`);
+      onChange(getCurrentIssueTimeUTC());
     }
     didInitRef.current = true;
   }, [onChange, value]);
@@ -1081,6 +1000,7 @@ export default function TafBuilder() {
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
+  const basePeriod = getBaseForecastPeriod(taf.issueTime);
 
   function addTempo(taf: TAF, from: number, to: number) {
     let defaultState: WeatherState = taf.base;
@@ -1172,20 +1092,8 @@ export default function TafBuilder() {
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
-            from: (() => {
-              const day = Number(taf.issueTime.slice(0, 2));
-              const hour = Number(taf.issueTime.slice(2, 4));
-              const nextHour = (hour + 1) % 24;
-              const fromDay = hour === 23 ? day + 1 : day;
-              return `${String(fromDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-            })(),
-            to: (() => {
-              const day = Number(taf.issueTime.slice(0, 2));
-              const hour = Number(taf.issueTime.slice(2, 4));
-              const nextHour = (hour + 1) % 24;
-              const toDay = hour >= 23 ? day + 1 : day;
-              return `${String(toDay).padStart(2, "0")}${String(nextHour).padStart(2, "0")}`;
-            })(),
+            from: basePeriod.from,
+            to: basePeriod.to,
             state: {
               ...taf.base,
               clouds: (taf.base.clouds && taf.base.clouds.length > 0) ? taf.base.clouds : [createCloudLayer({ amount: "FEW", height: 0 })],
