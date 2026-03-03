@@ -85,12 +85,16 @@ export default function Timeline({ changes, onSelectRange, onSelectChange, start
             onPointerLeave={() => {
               if (pendingRange !== null) setHover(null);
             }}
-            className={`flex-1 h-12 text-xs flex items-center justify-center ${bgClass} hover:bg-blue-200 ${
-              idx < hours.length - 1 ? "border-r" : ""
-            } cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
+            className={`relative flex-1 h-12 text-xs flex items-center justify-center ${bgClass} hover:bg-blue-200 cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
             style={{ transition: "background 0.1s" }}
           >
-            {String(h).padStart(2, "0")}Z
+            <span className="relative z-20">{String(h).padStart(2, "0")}Z</span>
+            {idx < hours.length - 1 && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-0 z-30 h-full w-px bg-white/90 shadow-[1px_0_0_0_rgba(31,41,55,0.35)]"
+              />
+            )}
           </button>
         );
       })}
