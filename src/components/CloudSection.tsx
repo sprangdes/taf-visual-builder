@@ -1,9 +1,8 @@
-import type { KeyboardEventHandler } from "react";
 import { cloudAmountOptions } from "../constants/weather";
 import { weatherButtonClass } from "../constants/ui";
 import type { CloudLayer } from "../types/taf";
-import { sanitizeNumericInput } from "../utils/number";
 import CloudDeleteButton from "./buttons/CloudDeleteButton";
+import NumericControl from "./inputs/NumericControl";
 
 interface CloudSectionProps {
   isBase: boolean;
@@ -28,12 +27,6 @@ export default function CloudSection({
   onAddCloud,
   onRemoveCloud,
 }: Readonly<CloudSectionProps>) {
-  const onNumericKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
-
   return (
     <div
       className={`block text-sm mt-2 border p-2 rounded-xl bg-white relative ${
@@ -80,16 +73,13 @@ export default function CloudSection({
                 </option>
               ))}
             </select>
-            <input
-              type="number"
-              inputMode="numeric"
+            <NumericControl
               value={c.height}
               min={0}
               max={999}
               step={1}
-              onKeyDown={onNumericKeyDown}
-              onChange={(e) => onUpdateCloud(c.id, "height", sanitizeNumericInput(e.target.value))}
-              className="border p-1 rounded-xl px-3 w-20"
+              formatValue={(v) => String(v).padStart(3, "0")}
+              onChange={(value) => onUpdateCloud(c.id, "height", value)}
             />
             <span className="text-sm">(hundreds ft)</span>
             <label className="inline-flex items-center gap-1 text-sm">

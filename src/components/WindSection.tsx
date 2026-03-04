@@ -1,6 +1,5 @@
-import type { KeyboardEventHandler } from "react";
 import type { Wind } from "../types/taf";
-import { sanitizeNumericInput } from "../utils/number";
+import NumericControl from "./inputs/NumericControl";
 
 interface WindSectionProps {
   isBase: boolean;
@@ -17,12 +16,6 @@ export default function WindSection({
   onSetEnabled,
   onUpdateWind,
 }: Readonly<WindSectionProps>) {
-  const onNumericKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
-
   return (
     <div
       className={`min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
@@ -52,46 +45,36 @@ export default function WindSection({
       )}
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="inline-block w-24 sm:w-28">Wind Direction</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
+        <NumericControl
           value={wind.dir}
-          step={10}
           min={0}
           max={360}
-          onKeyDown={onNumericKeyDown}
-          onChange={(e) => onUpdateWind("dir", sanitizeNumericInput(e.target.value))}
+          step={10}
+          onChange={(value) => onUpdateWind("dir", value)}
         />
         <span className="text-sm">°</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="inline-block w-24 sm:w-28">Wind Speed</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
+        <NumericControl
           value={wind.speed}
           min={0}
           max={99}
           step={1}
-          onKeyDown={onNumericKeyDown}
-          onChange={(e) => onUpdateWind("speed", sanitizeNumericInput(e.target.value))}
+          formatValue={(v) => String(v).padStart(2, "0")}
+          onChange={(value) => onUpdateWind("speed", value)}
         />
         <span className="text-sm">KT</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="inline-block w-24 sm:w-28">Wind Gust</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
-          value={wind.gust ?? ""}
+        <NumericControl
+          value={wind.gust ?? 0}
           min={0}
           max={99}
           step={1}
-          onKeyDown={onNumericKeyDown}
-          onChange={(e) => onUpdateWind("gust", sanitizeNumericInput(e.target.value))}
+          formatValue={(v) => String(v).padStart(2, "0")}
+          onChange={(value) => onUpdateWind("gust", value)}
         />
         <span className="text-sm">KT</span>
       </label>
