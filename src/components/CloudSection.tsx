@@ -62,17 +62,16 @@ export default function CloudSection({
         <div className="space-y-2 mt-2">
         {clouds.map((c) => (
           <div key={c.id} className="flex flex-wrap items-center gap-2">
-            <select
-              value={c.amount}
-              onChange={(e) => onUpdateCloud(c.id, "amount", e.target.value)}
-              className="border p-1 rounded-xl px-3 w-20"
-            >
-              {cloudAmountOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            <NumericControl
+              value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
+              min={0}
+              max={cloudAmountOptions.length - 1}
+              step={1}
+              formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
+              onChange={(value) =>
+                onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
+              }
+            />
             <NumericControl
               value={c.height}
               min={0}
