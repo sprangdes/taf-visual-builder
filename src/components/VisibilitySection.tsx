@@ -103,7 +103,7 @@ export default function VisibilitySection({
           ))}
         </div>
 
-        <div className="selected-weather-box border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
+        <div className="selected-weather-box border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center content-start mt-2 min-h-11">
           {weatherArr.map((w, idx) => {
             const opt = weatherOptions.find((o) => o.code === w);
             const bgClass = opt ? opt.color : "bg-white";
@@ -111,7 +111,7 @@ export default function VisibilitySection({
               <button
                 key={`${idx}-${w}-tag`}
                 type="button"
-                className={`inline-flex items-center ${bgClass} text-black px-2 py-0.5 rounded-xl border border-gray-300 ${
+                className={`inline-flex items-center justify-center h-6 leading-none ${bgClass} text-black px-2 py-0 rounded-xl border border-gray-300 ${
                   w === " " ? "font-mono" : ""
                 }`}
                 onClick={() => onRemoveWeather(idx)}
