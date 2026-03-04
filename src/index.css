@@ -1,1 +1,116 @@
 @import "tailwindcss";
+
+body {
+  background: #f8fafc;
+  color: #111827;
+}
+
+body.taf-dark-page {
+  background: #0b1220;
+  color: #e5e7eb;
+}
+
+.taf-app {
+  min-height: 100vh;
+  background: transparent;
+  color: #111827;
+}
+
+.taf-app .theme-toggle {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.taf-app .taf-panel {
+  background: #ffffff;
+}
+
+.taf-app .taf-code {
+  background: #f3f4f6;
+  color: #1f2937;
+  border-color: #d1d5db;
+}
+
+.taf-app.taf-dark {
+  background: #0b1220;
+  color: #e5e7eb;
+}
+
+.taf-app.taf-dark .theme-toggle {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+.taf-app.taf-dark .taf-panel {
+  background: #111827;
+  border-color: #374151;
+}
+
+.taf-app.taf-dark .taf-code {
+  background: #020617;
+  color: #86efac;
+  border-color: #374151;
+}
+
+.taf-app.taf-dark .taf-editor {
+  background: #1f2937;
+  border-color: #4b5563;
+}
+
+.taf-app.taf-dark .taf-block {
+  background: #111827;
+  border-color: #4b5563;
+}
+
+.taf-app.taf-dark .visibility-value {
+  color: #d1d5db;
+}
+
+.taf-app.taf-dark .selected-weather-box {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+.taf-app.taf-dark .type-chip-TEMPO {
+  background: #a16207;
+  color: #fef3c7;
+}
+
+.taf-app.taf-dark .type-chip-BECMG {
+  background: #166534;
+  color: #dcfce7;
+}
+
+.taf-app.taf-dark .type-chip-FM {
+  background: #9a3412;
+  color: #ffedd5;
+}
+
+.taf-app.taf-dark input[type="text"],
+.taf-app.taf-dark input[type="number"],
+.taf-app.taf-dark select {
+  background: #0f172a;
+  color: #f3f4f6;
+  border-color: #475569;
+}
+
+.taf-app.taf-dark .numeric-control {
+  border-color: #64748b;
+}
+
+.taf-app.taf-dark .numeric-control-btn {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: #64748b;
+}
+
+.taf-app.taf-dark .numeric-control-btn:hover {
+  background: #374151;
+}
+
+.taf-app.taf-dark .numeric-control-display {
+  background: #0f172a;
+  color: #f3f4f6;
+}

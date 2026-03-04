@@ -31,7 +31,9 @@ export default function TypeButton({
 
   if (!showActionButtons || !onChangeType) {
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 ${colorByType[change.type]}`}>
+      <span
+        className={`type-chip type-chip-${change.type} inline-flex items-center px-3 py-1 rounded-xl font-semibold mr-1 ${colorByType[change.type]}`}
+      >
         {change.type}
       </span>
     );
@@ -46,7 +48,7 @@ export default function TypeButton({
     <>
       <button
         ref={btnRef}
-        className={`px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
+        className={`type-chip type-chip-${type} px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
         onClick={(e) => {
           e.stopPropagation();
           onChangeType(next);

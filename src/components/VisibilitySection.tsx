@@ -31,7 +31,7 @@ export default function VisibilitySection({
 }: Readonly<VisibilitySectionProps>) {
   return (
     <div
-      className={`min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+      className={`taf-block min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
         visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -59,7 +59,7 @@ export default function VisibilitySection({
       <label htmlFor="visibility" className="block text-sm">
         <div className="flex flex-wrap items-center gap-1">
           <span id="visibility-label">Visibility</span>
-          <span style={{ marginLeft: "8px", fontSize: "14px", fontWeight: 500, color: "#333" }}>
+          <span className="visibility-value ml-2 text-[14px] font-medium text-gray-800">
             {visibility} m
           </span>
         </div>
@@ -103,7 +103,7 @@ export default function VisibilitySection({
           ))}
         </div>
 
-        <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 min-h-10">
+        <div className="selected-weather-box border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
           {weatherArr.map((w, idx) => {
             const opt = weatherOptions.find((o) => o.code === w);
             const bgClass = opt ? opt.color : "bg-white";

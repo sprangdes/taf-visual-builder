@@ -21,7 +21,7 @@ export default function IssueTimeInput({ value, onChange }: Readonly<IssueTimeIn
   };
 
   return (
-    <span className="inline-flex items-center border rounded-xl w-full">
+    <span className="inline-flex items-center border rounded-xl w-full overflow-hidden">
       <input
         type="text"
         inputMode="numeric"
@@ -29,8 +29,7 @@ export default function IssueTimeInput({ value, onChange }: Readonly<IssueTimeIn
         maxLength={6}
         value={value.slice(0, 6)}
         onChange={handleChange}
-        className="border-0 p-1 focus:outline-none w-full min-w-0"
-        style={{ borderRight: "none", borderRadius: "0.375rem 0 0 0.375rem" }}
+        className="border-0 border-r-0 p-1 focus:outline-none w-full min-w-0 rounded-l-xl"
         aria-label="Issue time (DDHHMM)"
         placeholder={value.slice(0, 6) ? undefined : "UTC Time"}
       />

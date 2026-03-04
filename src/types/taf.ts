@@ -59,6 +59,7 @@ export interface TimelineProps {
   onSelectRange: (start: number, end: number) => void;
   onSelectChange: (index: number) => void;
   startHour: number;
+  isDark?: boolean;
 }
 
 export interface IssueTimeInputProps {

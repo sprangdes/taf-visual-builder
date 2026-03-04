@@ -193,7 +193,7 @@ function ChangeEditorInner({
   const maxVis = 10000;
 
   return (
-    <div className="border p-3 sm:p-4 rounded-xl bg-gray-100 space-y-3 relative">
+    <div className="taf-editor border p-3 sm:p-4 rounded-xl bg-gray-100 space-y-3 relative">
       <div className="flex items-center relative pr-9">
         <h3 className="font-semibold text-sm sm:text-base flex flex-wrap items-center gap-y-1 m-0 p-0">
           Edit{" "}

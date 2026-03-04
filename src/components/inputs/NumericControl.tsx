@@ -63,7 +63,7 @@ export default function NumericControl({
 
   return (
     <div
-      className="inline-flex items-center border rounded-xl overflow-hidden h-8 focus-within:ring-2 focus-within:ring-blue-400"
+      className="numeric-control inline-flex items-center border rounded-xl overflow-hidden h-8 focus-within:ring-2 focus-within:ring-blue-400"
       tabIndex={0}
       role="spinbutton"
       aria-valuemin={min}
@@ -82,7 +82,7 @@ export default function NumericControl({
     >
       <button
         type="button"
-        className="w-7 h-8 text-sm border-r bg-gray-100 hover:bg-gray-200"
+        className="numeric-control-btn w-7 h-8 text-sm border-r bg-gray-100 hover:bg-gray-200"
         onPointerDown={(e) => {
           e.preventDefault();
           startHold(-step);
@@ -95,10 +95,10 @@ export default function NumericControl({
       >
         -
       </button>
-      <div className="w-14 text-center text-sm tabular-nums select-none">{display}</div>
+      <div className="numeric-control-display w-14 text-center text-sm tabular-nums select-none">{display}</div>
       <button
         type="button"
-        className="w-7 h-8 text-sm border-l bg-gray-100 hover:bg-gray-200"
+        className="numeric-control-btn w-7 h-8 text-sm border-l bg-gray-100 hover:bg-gray-200"
         onPointerDown={(e) => {
           e.preventDefault();
           startHold(step);
