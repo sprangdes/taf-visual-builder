@@ -8,6 +8,7 @@ import type {
   WeatherState,
   Wind,
 } from "../types/taf";
+import { toBoundedNonNegativeInt, toWindDirection } from "../utils/number";
 import { createCloudLayer, emptyWeather } from "../utils/weather";
 import ChangeDeleteButton from "./buttons/ChangeDeleteButton";
 import TypeButton from "./buttons/TypeButton";
@@ -100,14 +101,9 @@ function ChangeEditorInner({
     const prevWind = change.state.wind || { dir: 0, speed: 0, gust: null };
     const newWind: Wind = { ...prevWind };
 
-    if (field === "dir") {
-      let dirVal = Number(value);
-      dirVal = Math.max(0, Math.min(360, Math.round(dirVal / 10) * 10));
-      newWind.dir = dirVal;
-    }
-
-    if (field === "speed") newWind.speed = Math.max(0, Math.round(Number(value)));
-    if (field === "gust") newWind.gust = value ? Math.round(Number(value)) : null;
+    if (field === "dir") newWind.dir = toWindDirection(value);
+    if (field === "speed") newWind.speed = toBoundedNonNegativeInt(value, 99);
+    if (field === "gust") newWind.gust = value === "" ? null : toBoundedNonNegativeInt(value, 99);
 
     updateChangeState({
       wind: newWind,
@@ -144,7 +140,7 @@ function ChangeEditorInner({
 
       const target = { ...c };
       if (field === "amount") target.amount = String(value);
-      if (field === "height") target.height = Math.max(0, Math.round(Number(value)));
+      if (field === "height") target.height = toBoundedNonNegativeInt(value as string | number, 999);
       if (field === "cb") {
         target.cb = Boolean(value);
         if (target.cb) target.tcu = false;
