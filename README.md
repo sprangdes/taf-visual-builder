@@ -13,6 +13,7 @@ A web-based visual editor for composing TAF (Terminal Aerodrome Forecast) messag
 - [Project Structure](#project-structure)
 - [Development Notes](#development-notes)
 - [Build & Preview](#build--preview)
+- [Automation](#automation)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -136,6 +137,31 @@ End-user steps:
 1. Unzip `taf-visual-builder.zip`.
 2. Double-click `index.html` in the unzipped folder.
 3. Use the app directly in the browser without running any command.
+
+## Automation
+
+This repository uses GitHub Actions for two delivery paths:
+
+- GitHub Pages preview deploy:
+  - Workflow: `.github/workflows/deploy-pages.yml`
+  - Trigger tag: `deploy*` (example: `deploy-v1.2.0`)
+  - Rule: tag must point to a commit on `main`
+- Release package publishing:
+  - Workflow: `.github/workflows/release.yml`
+  - Trigger tag: `release*` (example: `release-v1.2.0`)
+  - Output asset: `taf-visual-builder.zip`
+  - Rule: tag must point to a commit on `main`
+
+Example release flow:
+
+```bash
+git checkout main
+git pull
+git tag deploy-v1.2.0
+git push origin deploy-v1.2.0
+git tag release-v1.2.0
+git push origin release-v1.2.0
+```
 
 ## Troubleshooting
 
