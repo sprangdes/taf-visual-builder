@@ -19,7 +19,7 @@ A web-based visual editor for composing TAF (Terminal Aerodrome Forecast) messag
 
 ## Overview
 
-TAF Visual Builder helps users create and edit TAF forecasts through an interactive timeline and structured weather input sections (wind, visibility/weather, clouds). The app generates TAF text in real time and supports one-click copy.
+TAF Visual Builder helps users create and edit TAF forecasts through an interactive timeline and structured weather input sections (wind, visibility/weather, clouds). The app generates TAF text in real time.
 
 ## Key Features
 
@@ -30,7 +30,6 @@ TAF Visual Builder helps users create and edit TAF forecasts through an interact
   - Cloud layers
 - Change type switching (`TEMPO`, `BECMG`, `FM`).
 - Real-time TAF text generation.
-- Clipboard copy for generated TAF.
 
 ## Tech Stack
 
@@ -67,6 +66,7 @@ npm run dev
 - `npm run build`: run TypeScript type check (`--noEmit`) and production build.
 - `npm run preview`: preview production build locally.
 - `npm run lint`: run ESLint.
+- `npm run release:zip`: create release zip (`taf-visual-builder.zip`) for end users.
 
 ## Project Structure
 
@@ -118,6 +118,24 @@ Preview production build:
 ```bash
 npm run preview
 ```
+
+## Release Package (Double-Click `index.html`)
+
+Create a distributable zip for end users:
+
+```bash
+npm run release:zip
+```
+
+The command generates:
+
+- `taf-visual-builder.zip`
+
+End-user steps:
+
+1. Unzip `taf-visual-builder.zip`.
+2. Double-click `index.html` in the unzipped folder.
+3. Use the app directly in the browser without running any command.
 
 ## Troubleshooting
 
