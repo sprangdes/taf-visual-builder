@@ -55,24 +55,28 @@ export default function TafBuilder() {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">TAF Visual Builder</h1>
+    <div className="mx-auto max-w-6xl lg:min-w-[1040px] p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5">
+      <h1 className="text-lg sm:text-xl font-bold">TAF Visual Builder</h1>
 
-      <section className="p-4 rounded-xl">
+      <section className="p-3 sm:p-4 rounded-xl">
         <h2 className="font-semibold">Header</h2>
-        <input
-          value={taf.station}
-          onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
-          className="border p-1 mr-2 rounded-xl w-30"
-          placeholder="ICAO Code"
-        />
-        <IssueTimeInput
-          value={taf.issueTime}
-          onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
-        />
+        <div className="mt-2 flex flex-col items-start md:flex-row md:items-center gap-2">
+          <input
+            value={taf.station}
+            onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
+            className="border p-1 rounded-xl w-36 md:w-40"
+            placeholder="ICAO Code"
+          />
+          <div className="w-36 md:w-40">
+            <IssueTimeInput
+              value={taf.issueTime}
+              onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
+            />
+          </div>
+        </div>
       </section>
 
-      <section className="p-4 rounded-xl">
+      <section className="p-3 sm:p-4 rounded-xl">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
@@ -103,10 +107,10 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section className="p-4 rounded-xl">
-        <div className="flex justify-between items-center mb-2">
+      <section className="p-3 sm:p-4 rounded-xl">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
           <h2 className="font-semibold mb-0">Timeline</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
             <div className="flex items-center gap-1">
               <span className="w-4 h-4 bg-yellow-300 rounded-sm border border-black" />
               <span className="text-xs">TEMPO</span>
@@ -133,7 +137,7 @@ export default function TafBuilder() {
       </section>
 
       {selectedChangeIndex !== null && (
-        <section className="p-4 rounded-xl">
+        <section className="p-3 sm:p-4 rounded-xl">
           <h2 className="font-semibold">Selected Change</h2>
           <div>
             <ChangeEditor
@@ -148,9 +152,9 @@ export default function TafBuilder() {
         </section>
       )}
 
-      <section className="p-4 rounded">
+      <section className="p-3 sm:p-4 rounded">
         <h2 className="font-semibold">Generated TAF</h2>
-        <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-xl">
+        <pre className="whitespace-pre-wrap overflow-x-auto text-xs sm:text-sm bg-black text-green-400 p-3 rounded-xl">
           {generateTAF(taf)}
         </pre>
       </section>

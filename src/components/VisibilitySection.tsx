@@ -31,7 +31,7 @@ export default function VisibilitySection({
 }: Readonly<VisibilitySectionProps>) {
   return (
     <div
-      className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+      className={`min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
         visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -50,14 +50,14 @@ export default function VisibilitySection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
           >
             Active Visibility/Weather to Edit
           </button>
         </div>
       )}
       <label htmlFor="visibility" className="block text-sm">
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center gap-1">
           <span id="visibility-label">Visibility</span>
           <span style={{ marginLeft: "8px", fontSize: "14px", fontWeight: 500, color: "#333" }}>
             {visibility} m
@@ -103,7 +103,7 @@ export default function VisibilitySection({
           ))}
         </div>
 
-        <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 h-10">
+        <div className="border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center mt-2 min-h-10">
           {weatherArr.map((w, idx) => {
             const opt = weatherOptions.find((o) => o.code === w);
             const bgClass = opt ? opt.color : "bg-white";
@@ -128,7 +128,9 @@ export default function VisibilitySection({
             );
           })}
           {showError && (
-            <span className="text-red-500 text-sm ml-2">Visibility 5000m Or Below, Weather Must Be Selected</span>
+            <span className="text-red-500 text-sm w-full sm:w-auto sm:ml-2">
+              Visibility 5000m Or Below, Weather Must Be Selected
+            </span>
           )}
         </div>
       </div>

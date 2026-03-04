@@ -47,7 +47,7 @@ export default function CloudSection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
           >
             Active Clouds to Edit
           </button>
@@ -58,9 +58,9 @@ export default function CloudSection({
         <span>Clouds</span>
       </div>
 
-      <div className="space-y-2 mt-2">
+        <div className="space-y-2 mt-2">
         {clouds.map((c) => (
-          <div key={c.id} className="flex items-center gap-2">
+          <div key={c.id} className="flex flex-wrap items-center gap-2">
             <select
               value={c.amount}
               onChange={(e) => onUpdateCloud(c.id, "amount", e.target.value)}

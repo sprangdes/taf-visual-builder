@@ -17,7 +17,7 @@ export default function WindSection({
 }: Readonly<WindSectionProps>) {
   return (
     <div
-      className={`flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+      className={`min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
         windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -36,48 +36,48 @@ export default function WindSection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
           >
             Active Wind to Edit
           </button>
         </div>
       )}
-      <label className="text-sm">
-        <span className="inline-block w-28">Wind Direction</span>
+      <label className="text-sm flex flex-wrap items-center gap-2">
+        <span className="inline-block w-24 sm:w-28">Wind Direction</span>
         <input
           type="number"
-          className="border p-1 mr-2 rounded-xl px-3 w-20"
+          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
           value={wind.dir}
           step={10}
           min={0}
           max={360}
           onChange={(e) => onUpdateWind("dir", e.target.value)}
         />
-        <span className="ml-1 text-sm">°</span>
+        <span className="text-sm">°</span>
       </label>
-      <label className="text-sm">
-        <span className="inline-block w-28">Wind Speed</span>
+      <label className="text-sm flex flex-wrap items-center gap-2">
+        <span className="inline-block w-24 sm:w-28">Wind Speed</span>
         <input
           type="number"
-          className="border p-1 mr-2 rounded-xl px-3 w-20"
+          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
           value={wind.speed}
           min={0}
           step={1}
           onChange={(e) => onUpdateWind("speed", e.target.value)}
         />
-        <span className="ml-1 text-sm">KT</span>
+        <span className="text-sm">KT</span>
       </label>
-      <label className="text-sm">
-        <span className="inline-block w-28">Wind Gust</span>
+      <label className="text-sm flex flex-wrap items-center gap-2">
+        <span className="inline-block w-24 sm:w-28">Wind Gust</span>
         <input
           type="number"
-          className="border p-1 mr-2 rounded-xl px-3 w-20"
+          className="border p-1 rounded-xl px-3 w-16 sm:w-20"
           value={wind.gust ?? ""}
           min={0}
           step={1}
           onChange={(e) => onUpdateWind("gust", e.target.value)}
         />
-        <span className="ml-1 text-sm">KT</span>
+        <span className="text-sm">KT</span>
       </label>
       {!windEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl" />}
     </div>

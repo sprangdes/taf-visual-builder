@@ -197,9 +197,9 @@ function ChangeEditorInner({
   const maxVis = 10000;
 
   return (
-    <div className="border p-4 rounded-xl bg-gray-100 space-y-2 relative">
-      <div className="flex items-center relative">
-        <h3 className="font-semibold flex items-center m-0 p-0">
+    <div className="border p-3 sm:p-4 rounded-xl bg-gray-100 space-y-3 relative">
+      <div className="flex items-center relative pr-9">
+        <h3 className="font-semibold text-sm sm:text-base flex flex-wrap items-center gap-y-1 m-0 p-0">
           Edit{" "}
           <span className="ml-2">
             <TypeButton showActionButtons={showActionButtons} onChangeType={onChangeType} change={change} />
@@ -228,7 +228,7 @@ function ChangeEditorInner({
         )}
       </div>
 
-      <div className="flex gap-4 mb-2">
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-2">
         <WindSection
           isBase={isBase}
           windEnabled={windEnabled}
