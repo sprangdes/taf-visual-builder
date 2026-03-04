@@ -59,9 +59,27 @@ export default function NumericControl({
   };
 
   const display = formatValue ? formatValue(value) : String(value);
+  const valueText = formatValue ? formatValue(value) : String(value);
 
   return (
-    <div className="inline-flex items-center border rounded-xl overflow-hidden h-8">
+    <div
+      className="inline-flex items-center border rounded-xl overflow-hidden h-8 focus-within:ring-2 focus-within:ring-blue-400"
+      tabIndex={0}
+      role="spinbutton"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      aria-valuetext={valueText}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          applyDelta(step);
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          applyDelta(-step);
+        }
+      }}
+    >
       <button
         type="button"
         className="w-7 h-8 text-sm border-r bg-gray-100 hover:bg-gray-200"
