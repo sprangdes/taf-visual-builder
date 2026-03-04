@@ -2,7 +2,6 @@ import { useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import IssueTimeInput from "./components/IssueTimeInput";
 import Timeline from "./components/Timeline";
-import { weatherButtonClass } from "./constants/ui";
 import type { TAF, TAFChange } from "./types/taf";
 import { addTempo, generateTAF } from "./utils/taf";
 import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } from "./utils/time";
@@ -17,8 +16,6 @@ export default function TafBuilder() {
   });
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
-
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
   const basePeriod = getBaseForecastPeriod(taf.issueTime);
 
@@ -54,14 +51,6 @@ export default function TafBuilder() {
       const change = changes[selectedChangeIndex];
       changes[selectedChangeIndex] = { ...change, type };
       return { ...prev, changes };
-    });
-  }
-
-  function handleCopyTAF() {
-    const text = generateTAF(taf);
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
     });
   }
 
@@ -164,15 +153,6 @@ export default function TafBuilder() {
         <pre className="whitespace-pre-wrap text-sm bg-black text-green-400 p-3 rounded-xl">
           {generateTAF(taf)}
         </pre>
-        <div className="flex justify-end mt-2">
-          <button
-            type="button"
-            onClick={handleCopyTAF}
-            className={`${weatherButtonClass} text-xs`}
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
       </section>
     </div>
   );
