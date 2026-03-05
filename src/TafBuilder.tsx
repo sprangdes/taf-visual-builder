@@ -17,15 +17,15 @@ export default function TafBuilder() {
 
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
   const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("taf-dark-mode") === "1";
+    if (globalThis.window === undefined) return false;
+    return globalThis.localStorage.getItem("taf-dark-mode") === "1";
   });
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
   const basePeriod = getBaseForecastPeriod(taf.issueTime);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("taf-dark-mode", isDark ? "1" : "0");
+    if (globalThis.window === undefined) return;
+    globalThis.localStorage.setItem("taf-dark-mode", isDark ? "1" : "0");
     document.body.classList.toggle("taf-dark-page", isDark);
     return () => {
       document.body.classList.remove("taf-dark-page");
@@ -69,7 +69,7 @@ export default function TafBuilder() {
 
   return (
     <div
-      className={`taf-app mx-auto max-w-6xl lg:min-w-[1040px] p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5 ${
+      className={`taf-app mx-auto max-w-6xl lg:min-w-260 p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5 ${
         isDark ? "taf-dark" : ""
       }`}
     >

@@ -123,12 +123,12 @@ export default function Timeline({
                 }
               }}
               onPointerEnter={() => {
-                if (changeIndex !== -1) {
-                  setHoveredChangeIndex(changeIndex);
-                  setHoveredFreeHour(null);
+                if (changeIndex === -1) {
+                    setHoveredChangeIndex(null);
+                    setHoveredFreeHour(h);
                 } else {
-                  setHoveredChangeIndex(null);
-                  setHoveredFreeHour(h);
+                    setHoveredChangeIndex(changeIndex);
+                    setHoveredFreeHour(null);
                 }
                 if (pendingRange !== null) setHover(h);
               }}
