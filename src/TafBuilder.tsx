@@ -196,7 +196,7 @@ export default function TafBuilder() {
         </section>
       )}
 
-      <section className="taf-panel border border-gray-200 p-3 sm:p-4 rounded">
+      <section className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
         <h2 className="font-semibold">Generated TAF</h2>
         <pre className="taf-code whitespace-pre-wrap overflow-x-auto text-xs sm:text-sm p-3 rounded-xl border">
           {generateTAF(taf)}
