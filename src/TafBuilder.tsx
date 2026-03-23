@@ -149,43 +149,43 @@ export default function TafBuilder() {
     const steps = [
       {
         element: "#tour-header",
-        intro: "Start here: enter ICAO code and issue time.",
+        intro: "Start Here: Enter ICAO Code And Issue Time.",
       },
       {
         element: "#tour-base-forecast",
-        intro: "Base forecast: set wind, visibility/weather, and cloud layers.",
+        intro: "Base Forecast: Set Wind, Visibility/Weather, and Cloud Layers.",
       },
       {
         element: "#tour-wind",
-        intro: "Wind: use +/- to set direction (10° steps), speed, and gust.",
+        intro: "Wind: Use +/- to Set Direction (10° Steps), Speed, and Gust.",
       },
       {
         element: "#tour-visibility",
-        intro: "Visibility/Weather: adjust visibility and add weather phenomena.",
+        intro: "Visibility/Weather: Adjust Visibility and Add Weather Phenomena.",
       },
       {
         element: "#tour-clouds",
-        intro: "Clouds: choose amount (FEW/SCT/BKN/OVC) and height in x100 ft.",
+        intro: "Clouds: Choose Amount (FEW/SCT/BKN/OVC) and Height in x100 ft.",
       },
       {
         element: "#tour-timeline",
-        intro: "Timeline: select a time range to create a change block.",
+        intro: "Timeline: Select a Time Range to Create a Change Block.",
       },
       {
         element: "#tour-timeline",
-        intro: "Click an existing block to select it.",
+        intro: "Click an Existing Block to Select It.",
       },
       {
         element: "#tour-selected-change",
-        intro: "Change settings: fine‑tune details for the chosen time block.",
+        intro: "Change Settings: Fine‑Tune Details For The Chosen Time Block.",
       },
       {
         element: "#tour-change-header-selected",
-        intro: "Use the colored type button to switch TEMPO/BECMG/FM.",
+        intro: "Use The Colored Type Button to Switch TEMPO/BECMG/FM.",
       },
       {
         element: "#tour-generated-taf",
-        intro: "Generated TAF: the final output updates live as you edit.",
+        intro: "Generated TAF: The Final Output Updates Live As You Edit.",
       },
     ];
     const defaultIssueTime = getCurrentIssueTimeUTC();
