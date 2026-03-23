@@ -114,3 +114,16 @@ body.taf-dark-page {
   background: #0f172a;
   color: #f3f4f6;
 }
+
+.introjs-multi-highlight {
+  position: relative;
+  z-index: 999999;
+  background: rgba(15, 23, 42, 0.04);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.18), 0 12px 24px rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+}
+
+.taf-app.taf-dark .introjs-multi-highlight {
+  background: rgba(248, 250, 252, 0.05);
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35), 0 12px 24px rgba(15, 23, 42, 0.4);
+}

@@ -52,6 +52,7 @@ export interface ChangeEditorProps {
   showActionButtons?: boolean;
   onDelete?: () => void;
   onChangeType?: (type: WeatherTrendType) => void;
+  headerId?: string;
 }
 
 export interface TimelineProps {

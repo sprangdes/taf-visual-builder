@@ -33,6 +33,7 @@ function ChangeEditorInner({
   showActionButtons = false,
   onDelete,
   onChangeType,
+  headerId,
 }: Readonly<ChangeEditorInnerProps>) {
   const isBase = !("type" in change);
   const enabledBlocks = change.state.enabledBlocks || { wind: false, vis: false, clouds: false };
@@ -194,7 +195,7 @@ function ChangeEditorInner({
 
   return (
     <div className="taf-editor border p-3 sm:p-4 rounded-xl bg-gray-100 space-y-3 relative">
-      <div className="flex items-center relative pr-9">
+      <div id={headerId} className="flex items-center relative pr-9">
         <h3 className="font-semibold text-sm sm:text-base flex flex-wrap items-center gap-y-1 m-0 p-0">
           Edit{" "}
           <span className="ml-2">

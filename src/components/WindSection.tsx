@@ -18,6 +18,7 @@ export default function WindSection({
 }: Readonly<WindSectionProps>) {
   return (
     <div
+      id="tour-wind"
       className={`taf-block min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
         windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}

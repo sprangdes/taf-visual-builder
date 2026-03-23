@@ -31,6 +31,7 @@ export default function VisibilitySection({
 }: Readonly<VisibilitySectionProps>) {
   return (
     <div
+      id="tour-visibility"
       className={`taf-block min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
         visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
