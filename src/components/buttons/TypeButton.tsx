@@ -48,6 +48,7 @@ export default function TypeButton({
     <>
       <button
         ref={btnRef}
+        id="tour-change-type"
         className={`type-chip type-chip-${type} px-3 py-1 rounded-xl font-semibold mr-1 ${colorClass} cursor-pointer`}
         onClick={(e) => {
           e.stopPropagation();

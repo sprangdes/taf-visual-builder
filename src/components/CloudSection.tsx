@@ -29,6 +29,7 @@ export default function CloudSection({
 }: Readonly<CloudSectionProps>) {
   return (
     <div
+      id="tour-clouds"
       className={`taf-block block text-sm mt-2 border p-2 rounded-xl bg-white relative ${
         cloudEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
