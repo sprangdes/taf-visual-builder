@@ -81,25 +81,33 @@ export default function TafBuilder() {
     const { default: introJs } = await import("intro.js");
     const intro = introJs();
     let cloudObserver: MutationObserver | null = null;
-    const multiHighlightClass = "introjs-multi-highlight";
+    let refreshTimer: number | null = null;
     const stopCloudObserver = () => {
       if (cloudObserver) {
         cloudObserver.disconnect();
         cloudObserver = null;
       }
     };
-    const clearMultiHighlight = () => {
-      document.querySelectorAll(`.${multiHighlightClass}`).forEach((node) => {
-        node.classList.remove(multiHighlightClass);
-      });
+    const scheduleRefresh = (delay = 120) => {
+      if (refreshTimer !== null) {
+        window.clearTimeout(refreshTimer);
+      }
+      refreshTimer = window.setTimeout(() => {
+        intro.refresh();
+        forceShowTooltip();
+        scrollTooltipIntoViewIfNeeded();
+        refreshTimer = null;
+      }, delay);
     };
-    const setMultiHighlightTargets = (selectors: string[]) => {
-      clearMultiHighlight();
-      selectors.forEach((selector) => {
-        const target = document.querySelector(selector);
-        if (target instanceof HTMLElement) {
-          target.classList.add(multiHighlightClass);
-        }
+    const forceShowTooltip = () => {
+      const tooltipLayer = document.querySelector(".introjs-tooltipReferenceLayer") as HTMLElement | null;
+      const tooltip = document.querySelector(".introjs-tooltip") as HTMLElement | null;
+      [tooltipLayer, tooltip].forEach((node) => {
+        if (!node) return;
+        node.classList.remove("introjs-hidden");
+        node.style.visibility = "visible";
+        node.style.opacity = "1";
+        node.style.display = "block";
       });
     };
     const scrollTooltipIntoViewIfNeeded = () => {
@@ -248,16 +256,20 @@ export default function TafBuilder() {
       })
       .onafterchange(async (targetElement) => {
         stopCloudObserver();
-        clearMultiHighlight();
         const currentStepIndex = (intro as unknown as { _currentStep?: number })._currentStep ?? 0;
-        const currentStep = steps[currentStepIndex] as
-          | { multiHighlightTarget?: string; multiHighlightTargets?: string[] }
-          | undefined;
+        const currentStep = steps[currentStepIndex] as { element?: string } | undefined;
         const stepElement =
           currentStep && "element" in currentStep ? (currentStep as { element?: string }).element : undefined;
+        if (typeof stepElement === "string") {
+          const elementNode = document.querySelector(stepElement);
+          const introItems = (intro as unknown as { _introItems?: Array<{ element?: Element }> })._introItems;
+          if (elementNode && introItems && introItems[currentStepIndex]) {
+            introItems[currentStepIndex].element = elementNode;
+          }
+        }
         let resolvedTarget =
-          (typeof stepElement === "string" ? document.querySelector(stepElement) : null) ??
-          (targetElement instanceof HTMLElement ? targetElement : null);
+            (typeof stepElement === "string" ? document.querySelector(stepElement) : null) ??
+            (targetElement instanceof HTMLElement ? targetElement : null);
         if (typeof stepElement === "string") {
           const waited = await waitForVisibleElement(stepElement);
           if (waited) {
@@ -267,39 +279,48 @@ export default function TafBuilder() {
         if (resolvedTarget instanceof HTMLElement) {
           const rect = resolvedTarget.getBoundingClientRect();
           const needsScroll =
-            rect.top < 0 ||
-            rect.left < 0 ||
-            rect.bottom > window.innerHeight ||
-            rect.right > window.innerWidth;
+              rect.top < 0 ||
+              rect.left < 0 ||
+              rect.bottom > window.innerHeight ||
+              rect.right > window.innerWidth;
           if (needsScroll) {
-            resolvedTarget.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+            resolvedTarget.scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"});
           }
         }
         intro.refresh();
         const id = (resolvedTarget as HTMLElement | null)?.id ?? "";
-        if (currentStep?.multiHighlightTargets) {
-          setMultiHighlightTargets(currentStep.multiHighlightTargets);
-        } else if (currentStep?.multiHighlightTarget) {
-          setMultiHighlightTargets([currentStep.multiHighlightTarget]);
-        }
         if (id === "tour-clouds") {
           const cloudRoot = document.querySelector("#tour-clouds");
           if (cloudRoot) {
-            cloudObserver = new MutationObserver(() => intro.refresh());
-            cloudObserver.observe(cloudRoot, { childList: true, subtree: true, attributes: true });
+            cloudObserver = new MutationObserver(() => scheduleRefresh(0));
+            cloudObserver.observe(cloudRoot, {childList: true, subtree: true, attributes: true});
           }
         }
-        setTimeout(() => {
-          intro.refresh();
-          scrollTooltipIntoViewIfNeeded();
-        }, 120);
-        setTimeout(() => scrollTooltipIntoViewIfNeeded(), 220);
-        setTimeout(() => scrollTooltipIntoViewIfNeeded(), 360);
-        setTimeout(() => scrollTooltipIntoViewIfNeeded(), 520);
+        scheduleRefresh(120);
+        scheduleRefresh(220);
+        scheduleRefresh(360);
+        scheduleRefresh(520);
+        if (currentStepIndex === 1) {
+          setTimeout(() => {
+            intro.refresh();
+            forceShowTooltip();
+          }, 50);
+          setTimeout(() => {
+            intro.refresh();
+            forceShowTooltip();
+          }, 180);
+          setTimeout(() => {
+            intro.refresh();
+            forceShowTooltip();
+          }, 320);
+        }
       })
       .onexit(() => {
+        if (refreshTimer !== null) {
+          window.clearTimeout(refreshTimer);
+          refreshTimer = null;
+        }
         stopCloudObserver();
-        clearMultiHighlight();
         setTaf({
           station: "",
           issueTime: getCurrentIssueTimeUTC(),
@@ -309,8 +330,11 @@ export default function TafBuilder() {
         setSelectedChangeIndex(null);
       })
       .oncomplete(() => {
+        if (refreshTimer !== null) {
+          window.clearTimeout(refreshTimer);
+          refreshTimer = null;
+        }
         stopCloudObserver();
-        clearMultiHighlight();
         setTaf({
           station: "",
           issueTime: getCurrentIssueTimeUTC(),
@@ -318,18 +342,17 @@ export default function TafBuilder() {
           changes: [],
         });
         setSelectedChangeIndex(null);
-      })
-      ;
+      });
 
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-    await waitForElements(["#tour-selected-change", "#tour-change-header-selected"]);
+    await waitForElements(["#tour-header", "#tour-base-forecast"]);
     intro.start();
-    setTimeout(() => intro.refresh(), 0);
+    scheduleRefresh(0);
   }
 
   return (
     <div
-      className={`taf-app mx-auto max-w-6xl lg:min-w-[1040px] p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5 ${
+      className={`taf-app mx-auto max-w-6xl lg:min-w-260 p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5 ${
         isDark ? "taf-dark" : ""
       }`}
     >

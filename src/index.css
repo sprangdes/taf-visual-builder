@@ -115,18 +115,6 @@ body.taf-dark-page {
   color: #f3f4f6;
 }
 
-.introjs-multi-highlight {
-  position: relative;
-  z-index: 999999;
-  background: rgba(15, 23, 42, 0.04);
-  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.18), 0 12px 24px rgba(15, 23, 42, 0.12);
-  border-radius: 14px;
-}
-
-.taf-app.taf-dark .introjs-multi-highlight {
-  background: rgba(248, 250, 252, 0.05);
-  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35), 0 12px 24px rgba(15, 23, 42, 0.4);
-}
 
 .taf-dark-page .introjs-overlay {
   background: rgba(2, 6, 23, 0.62) !important;
@@ -136,6 +124,36 @@ body.taf-dark-page {
 .taf-dark-page .introjs-helperLayer {
   box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.62) !important;
 }
+
+.introjs-overlay,
+.introjs-helperLayer {
+  z-index: 2147483000 !important;
+  pointer-events: none !important;
+}
+
+.introjs-tooltipReferenceLayer,
+.introjs-tooltip,
+.introjs-floating {
+  z-index: 2147483640 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.introjs-tooltip {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+
+.introjs-tooltipReferenceLayer {
+  pointer-events: none !important;
+}
+
+.introjs-disableInteraction {
+  pointer-events: auto !important;
+}
+
+
 
 .taf-dark-page .introjs-tooltip {
   background: #0f172a;
