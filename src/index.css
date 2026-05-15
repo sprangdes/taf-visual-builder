@@ -117,12 +117,18 @@ body.taf-dark-page {
 
 
 .taf-dark-page .introjs-overlay {
-  background: rgba(2, 6, 23, 0.62) !important;
-  opacity: 1 !important;
+  background: transparent !important;
+  opacity: 0 !important;
 }
 
 .taf-dark-page .introjs-helperLayer {
-  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.62) !important;
+  background: transparent !important;
+  border: 2px solid #38bdf8 !important;
+  box-shadow:
+    0 0 0 9999px rgba(2, 6, 23, 0.74),
+    0 0 0 1px rgba(125, 211, 252, 0.85),
+    0 0 24px rgba(56, 189, 248, 0.5) !important;
+  border-radius: 14px !important;
 }
 
 .introjs-overlay,
