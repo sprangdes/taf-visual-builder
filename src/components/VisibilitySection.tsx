@@ -32,7 +32,7 @@ export default function VisibilitySection({
   return (
     <div
       id="tour-visibility"
-      className={`taf-block min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+      className={`taf-block min-w-0 flex-1 p-2 rounded-lg flex flex-col gap-2 bg-white relative ${
         visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -51,7 +51,7 @@ export default function VisibilitySection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs sm:text-sm cursor-pointer"
           >
             Active Visibility/Weather to Edit
           </button>
@@ -87,7 +87,7 @@ export default function VisibilitySection({
             <button
               key={opt.code === " " ? "space" : opt.code}
               type="button"
-              className={`px-2 py-1 rounded-xl border ${opt.color} text-black cursor-pointer`}
+              className={`px-2 py-1 rounded-lg border border-slate-200 ${opt.color} text-black cursor-pointer`}
               onClick={() => onAddWeather(opt.code)}
               disabled={weatherDisabled}
               tabIndex={0}
@@ -104,7 +104,7 @@ export default function VisibilitySection({
           ))}
         </div>
 
-        <div className="selected-weather-box border p-2 rounded-xl bg-white flex flex-wrap gap-2 items-center content-start mt-2 min-h-11">
+        <div className="selected-weather-box p-2 rounded-lg bg-slate-50 flex flex-wrap gap-2 items-center content-start mt-2 min-h-11">
           {weatherArr.map((w, idx) => {
             const opt = weatherOptions.find((o) => o.code === w);
             const bgClass = opt ? opt.color : "bg-white";
@@ -112,7 +112,7 @@ export default function VisibilitySection({
               <button
                 key={`${idx}-${w}-tag`}
                 type="button"
-                className={`inline-flex items-center justify-center h-6 leading-none ${bgClass} text-black px-2 py-0 rounded-xl border border-gray-300 ${
+                className={`inline-flex items-center justify-center h-6 leading-none ${bgClass} text-black px-2 py-0 rounded-lg border border-slate-200 ${
                   w === " " ? "font-mono" : ""
                 }`}
                 onClick={() => onRemoveWeather(idx)}
@@ -135,7 +135,7 @@ export default function VisibilitySection({
           )}
         </div>
       </div>
-      {!visEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl" />}
+      {!visEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-lg" />}
     </div>
   );
 }

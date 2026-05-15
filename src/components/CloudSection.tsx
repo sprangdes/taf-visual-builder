@@ -30,7 +30,7 @@ export default function CloudSection({
   return (
     <div
       id="tour-clouds"
-      className={`taf-block block text-sm mt-2 border p-2 rounded-xl bg-white relative ${
+      className={`taf-block block text-sm mt-2 p-2 rounded-lg bg-white relative ${
         cloudEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -49,7 +49,7 @@ export default function CloudSection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs sm:text-sm cursor-pointer"
           >
             Active Clouds to Edit
           </button>
@@ -111,7 +111,7 @@ export default function CloudSection({
         </button>
       </div>
 
-      {!cloudEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl" />}
+      {!cloudEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-lg" />}
     </div>
   );
 }

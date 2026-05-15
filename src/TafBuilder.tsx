@@ -391,7 +391,7 @@ export default function TafBuilder() {
         </div>
       </div>
 
-      <section id="tour-header" className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
+      <section id="tour-header" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
         <h2 className="font-semibold">Header</h2>
         <div className="mt-2 flex flex-col items-start md:flex-row md:items-center gap-2">
           <input
@@ -409,7 +409,7 @@ export default function TafBuilder() {
         </div>
       </section>
 
-      <section id="tour-base-forecast" className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
+      <section id="tour-base-forecast" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
         <h2 className="font-semibold">Base Forecast</h2>
         <ChangeEditor
           change={{
@@ -440,7 +440,7 @@ export default function TafBuilder() {
         />
       </section>
 
-      <section id="tour-timeline" className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
+      <section id="tour-timeline" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
           <h2 className="font-semibold mb-0">Timeline</h2>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -477,7 +477,7 @@ export default function TafBuilder() {
       </section>
 
       {selectedChangeIndex !== null && (
-        <section id="tour-selected-change" className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
+        <section id="tour-selected-change" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
           <h2 className="font-semibold">Selected Change</h2>
           <div id="tour-selected-change-settings">
             <ChangeEditor
@@ -493,7 +493,7 @@ export default function TafBuilder() {
         </section>
       )}
 
-      <section id="tour-generated-taf" className="taf-panel border border-gray-200 p-3 sm:p-4 rounded-xl">
+      <section id="tour-generated-taf" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
         <h2 className="font-semibold">Generated TAF</h2>
         <pre className="taf-code whitespace-pre-wrap overflow-x-auto text-xs sm:text-sm p-3 rounded-xl border">
           {generateTAF(taf)}

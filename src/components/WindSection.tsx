@@ -19,7 +19,7 @@ export default function WindSection({
   return (
     <div
       id="tour-wind"
-      className={`taf-block min-w-0 flex-1 border p-2 rounded-xl flex flex-col gap-2 bg-white relative ${
+      className={`taf-block min-w-0 flex-1 p-2 rounded-lg flex flex-col gap-2 bg-white relative ${
         windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
@@ -38,7 +38,7 @@ export default function WindSection({
           <button
             type="button"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-xl text-xs sm:text-sm cursor-pointer"
+            className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs sm:text-sm cursor-pointer"
           >
             Active Wind to Edit
           </button>
@@ -79,7 +79,7 @@ export default function WindSection({
         />
         <span className="text-sm">KT</span>
       </label>
-      {!windEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-xl" />}
+      {!windEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-lg" />}
     </div>
   );
 }
