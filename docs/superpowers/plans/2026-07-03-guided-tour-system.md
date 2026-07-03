@@ -387,10 +387,270 @@ git add src/index.css
 git commit -m "refactor: remove intro.js tour styles"
 ```
 
+### Task 9: Highlight controls required by an interactive task
+
+> **Superseded:** Do not execute this task. The approved product direction changed to the fully passive behavior in Task 10.
+
+**Files:**
+- Modify: `src/features/tour/TourContext.ts`
+- Modify: `src/features/tour/TourProvider.tsx`
+- Modify: `src/features/tour/TourProvider.test.tsx`
+- Modify: `src/TafBuilder.tsx`
+- Modify: `src/TafBuilder.test.tsx`
+- Modify: `src/components/Timeline.tsx`
+- Modify: `src/types/taf.ts`
+- Modify: `src/index.css`
+
+- [ ] **Step 1: Write the failing provider lifecycle test**
+
+Extend the provider harness to display `task-active` only while the current Joyride tooltip is the incomplete desktop timeline task:
+
+```tsx
+<span>{tour.isTaskActive("timeline-range-created") ? "task-active" : "task-inactive"}</span>
+```
+
+Drive the mocked Joyride lifecycle and assert activation and cleanup:
+
+```tsx
+act(() => joyride.props?.onEvent?.({
+  type: "tooltip",
+  step: { id: "create-change", data: { taskEvent: "timeline-range-created" } },
+} as EventData, {} as never));
+expect(screen.getByText("task-active")).toBeVisible();
+
+fireEvent.click(screen.getByRole("button", { name: "Complete timeline" }));
+expect(screen.getByText("task-inactive")).toBeVisible();
+```
+
+- [ ] **Step 2: Verify the provider test fails**
+
+Run: `npm test -- src/features/tour/TourProvider.test.tsx`
+
+Expected: FAIL because `TourContextValue` does not expose `isTaskActive`.
+
+- [ ] **Step 3: Implement active task lifecycle state**
+
+Add this contract to `TourContextValue`:
+
+```ts
+isTaskActive: (event: TourTaskEvent) => boolean;
+```
+
+In `TourProvider`, store `activeTaskEvent: TourTaskEvent | null`. On `EVENTS.TOOLTIP`, read `event.step.data.taskEvent` and activate it only on desktop. Clear it on `EVENTS.STEP_AFTER`, completion, Close, Skip, error, and the shared finish path. Implement the context function as:
+
+```ts
+isTaskActive: (event) =>
+  activeTaskEvent === event && !isMobile && !completedTasks.has(event),
+```
+
+- [ ] **Step 4: Verify provider tests pass**
+
+Run: `npm test -- src/features/tour/TourProvider.test.tsx`
+
+Expected: PASS.
+
+- [ ] **Step 5: Write the failing timeline focus integration test**
+
+Extend `keeps the timeline task locked until a complete range is created` to assert:
+
+```tsx
+expect(document.querySelector('[data-tour-id="timeline"] .tour-task-actionable')).toBeInTheDocument();
+expect(screen.getByRole("status")).toHaveTextContent("Select a start and end time here.");
+
+fireEvent.click(screen.getByLabelText("Select 12Z"));
+expect(screen.getByRole("status")).toHaveTextContent("Start selected. Choose an end time.");
+
+fireEvent.click(screen.getByLabelText("Select 14Z"));
+await waitFor(() => expect(document.querySelector('[data-tour-id="timeline"] .tour-task-actionable')).not.toBeInTheDocument());
+expect(screen.queryByRole("status")).not.toBeInTheDocument();
+```
+
+- [ ] **Step 6: Verify the integration test fails**
+
+Run: `npm test -- src/TafBuilder.test.tsx -t "keeps the timeline task locked"`
+
+Expected: FAIL because the task-focus class and contextual status do not exist.
+
+- [ ] **Step 7: Expose pending range state from Timeline**
+
+Add this optional callback to `TimelineProps`:
+
+```ts
+onPendingRangeChange?: (start: number | null) => void;
+```
+
+In `Timeline`, call `onPendingRangeChange?.(h)` when the first free hour is selected and `onPendingRangeChange?.(null)` immediately after a complete range is submitted. This is an observation callback only; it must not change current selection behavior.
+
+- [ ] **Step 8: Render the task focus treatment**
+
+In `GuidedTimeline`, keep `pendingStart` state and derive:
+
+```tsx
+const taskActive = tour.isTaskActive("timeline-range-created");
+```
+
+Pass `onPendingRangeChange={setPendingStart}` to `Timeline`. Wrap the timeline controls in `tour-task-actionable` while `taskActive` is true and render this status above the timeline:
+
+```tsx
+{taskActive && (
+  <p className="tour-task-instruction" role="status">
+    {pendingStart === null
+      ? "Select a start and end time here."
+      : "Start selected. Choose an end time."}
+  </p>
+)}
+```
+
+Use `section[data-tour-id="timeline"]:has(.tour-task-actionable)` to apply the containing feature-area treatment without imperative DOM mutation.
+
+- [ ] **Step 9: Add accessible motion-aware styling**
+
+Add a high-contrast blue outline and glow to `section[data-tour-id="timeline"]:has(.tour-task-actionable)`, a restrained pulse and cursor emphasis to `.tour-task-actionable .timeline-hour`, a compact instruction badge, brighter cyan dark-mode variants, and a `prefers-reduced-motion` override that removes animation while preserving outlines.
+
+- [ ] **Step 10: Verify focused and full quality gates**
+
+Run: `npm test -- src/TafBuilder.test.tsx src/features/tour/TourProvider.test.tsx`
+
+Expected: PASS.
+
+Run: `npm test && npm run lint && npm run build`
+
+Expected: all tests pass, lint exits 0, and the production build exits 0.
+
+- [ ] **Step 11: Verify in the browser**
+
+At desktop width, start Quick Start and advance to Timeline. Confirm the panel outline, actionable-hour pulse, initial instruction, start-selected instruction, removal after completion, dark-mode contrast, and reduced-motion static fallback. At mobile width, confirm no task-focus treatment appears.
+
+- [ ] **Step 12: Commit**
+
+```bash
+git add src/features/tour/TourContext.ts src/features/tour/TourProvider.tsx src/features/tour/TourProvider.test.tsx src/TafBuilder.tsx src/TafBuilder.test.tsx src/components/Timeline.tsx src/types/taf.ts src/index.css
+git commit -m "feat: highlight guided tour task controls"
+```
+
 ## Self-Review Result
 
-- Every acceptance criterion in the approved spec maps to Tasks 2–8.
+- Every acceptance criterion in the approved spec maps to Tasks 2–8 and Task 10. Task 9 is retained only as superseded decision history.
 - Package API usage follows the current named-export React Joyride documentation.
-- Tour state and editor state communicate only through the declared adapter and task event.
+- Tour state and editor state communicate only through the declared adapter and task events.
+- Task focus is React-driven and does not mutate Joyride-owned DOM.
+- Desktop, mobile, dark-mode, and reduced-motion task-focus behavior are explicitly tested.
 - The plan contains no automatic tour trigger, analytics, server persistence, or authoring CMS.
 - Existing unrelated worktree changes must be preserved; stage only the files and hunks belonging to each task.
+
+### Task 10: Make every tour step passive
+
+**Files:**
+- Modify: `src/features/tour/types.ts`
+- Modify: `src/features/tour/tourDefinitions.tsx`
+- Modify: `src/features/tour/tourDefinitions.test.tsx`
+- Modify: `src/features/tour/TourContext.ts`
+- Modify: `src/features/tour/TourProvider.tsx`
+- Modify: `src/features/tour/TourProvider.test.tsx`
+- Modify: `src/features/tour/FlightStripTooltip.tsx`
+- Modify: `src/features/tour/FlightStripTooltip.test.tsx`
+- Modify: `src/TafBuilder.tsx`
+- Modify: `src/TafBuilder.test.tsx`
+- Modify: `src/components/Timeline.tsx`
+- Modify: `src/types/taf.ts`
+- Modify: `src/index.css`
+
+- [ ] **Step 1: Write failing passive-definition tests**
+
+Replace the task conversion test with an assertion that desktop and mobile definitions contain no completion events:
+
+```tsx
+it("keeps every desktop and mobile step passive", () => {
+  for (const tour of tourCatalog) {
+    expect(getTourSteps(tour.id, false).every((step) => !("taskEvent" in step))).toBe(true);
+    expect(getTourSteps(tour.id, true).every((step) => !("taskEvent" in step))).toBe(true);
+  }
+});
+```
+
+- [ ] **Step 2: Write failing tooltip and integration tests**
+
+Update `FlightStripTooltip.test.tsx` to render without `TourContext` and assert Next is enabled and no task instruction exists:
+
+```tsx
+expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+expect(screen.queryByText("Complete the highlighted action to continue.")).not.toBeInTheDocument();
+```
+
+Replace the task-locking integration test with direct navigation through every quick-start step:
+
+```tsx
+it("advances through quick start without editor interaction", async () => {
+  render(<TafBuilder />);
+  fireEvent.click(screen.getByRole("button", { name: "Open guided tours" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: /Quick Start/ }));
+
+  for (const title of [
+    "Base forecast", "Wind", "Visibility & weather", "Cloud layers",
+    "Create a change period", "Selected change", "Change type", "Generated TAF",
+  ]) {
+    const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
+    expect(next).toBeEnabled();
+    fireEvent.click(next!);
+    await waitFor(() => expect(document.querySelector(".tour-flight-strip h2")).toHaveTextContent(title));
+  }
+
+  expect(document.querySelector(".tour-task-actionable")).not.toBeInTheDocument();
+});
+```
+
+- [ ] **Step 3: Run tests and verify RED**
+
+Run: `npm test -- src/features/tour/tourDefinitions.test.tsx src/features/tour/FlightStripTooltip.test.tsx src/TafBuilder.test.tsx`
+
+Expected: FAIL because the timeline step still declares a task, Next is disabled, and task-focus markup remains.
+
+- [ ] **Step 4: Remove task contracts and state**
+
+Delete `TourTaskEvent`, `GuidedTourStep.taskEvent`, and every task API from `TourContextValue`. Remove completed-task and active-task state from `TourProvider`, remove task handling from `onEvent`, and stop placing task data in Joyride steps.
+
+Keep this context contract:
+
+```ts
+export interface TourContextValue {
+  startTour: (id: TourId) => void;
+  isRunning: boolean;
+}
+```
+
+- [ ] **Step 5: Make definitions and tooltip passive**
+
+Remove `taskEvent` from `create-change`. Simplify `getTourSteps` to substitute mobile copy without adding or removing task data. In `FlightStripTooltip`, remove `useTour`, task-state text, and the `disabled` override from the primary button:
+
+```tsx
+<button type="button" className="tour-flight-next" {...primaryProps}>
+  {isLastStep ? "Done" : "Next"}
+</button>
+```
+
+- [ ] **Step 6: Remove Timeline task plumbing and presentation**
+
+Render `Timeline` directly from `TafBuilder`. Delete `GuidedTimeline`, `onPendingRangeChange`, `tour-task-candidate`, the task instruction markup, and all `.tour-task-*` styles and keyframes. Preserve ordinary timeline selection behavior.
+
+- [ ] **Step 7: Run focused tests and verify GREEN**
+
+Run: `npm test -- src/features/tour/tourDefinitions.test.tsx src/features/tour/FlightStripTooltip.test.tsx src/features/tour/TourProvider.test.tsx src/TafBuilder.test.tsx`
+
+Expected: PASS.
+
+- [ ] **Step 8: Run all quality gates**
+
+Run: `npm test && npm run lint && npm run build`
+
+Expected: all tests pass, lint exits 0, and the production build exits 0.
+
+- [ ] **Step 9: Verify responsive behavior in the browser**
+
+At desktop and 390px mobile widths, advance through Quick Start without clicking editor controls. Confirm Next remains enabled, the Flight Strip and target spotlight remain visible, no task instructions or task-focus effects render, and the console has no warnings or errors.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add src/features/tour/types.ts src/features/tour/tourDefinitions.tsx src/features/tour/tourDefinitions.test.tsx src/features/tour/TourContext.ts src/features/tour/TourProvider.tsx src/features/tour/TourProvider.test.tsx src/features/tour/FlightStripTooltip.tsx src/features/tour/FlightStripTooltip.test.tsx src/TafBuilder.tsx src/TafBuilder.test.tsx src/components/Timeline.tsx src/types/taf.ts src/index.css
+git commit -m "refactor: make guided tours fully passive"
+```

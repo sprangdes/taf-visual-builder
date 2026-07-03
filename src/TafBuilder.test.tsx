@@ -121,23 +121,26 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByLabelText("ICAO station code")).toHaveValue("RCSS");
   });
 
-  it("keeps the timeline task locked until a complete range is created", async () => {
+  it("advances through quick start without editor interaction", async () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Open guided tours" }));
     fireEvent.click(screen.getByRole("menuitem", { name: /Quick Start/ }));
 
-    for (const title of ["Base forecast", "Wind", "Visibility & weather", "Cloud layers", "Create a change period"]) {
+    for (const title of [
+      "Base forecast",
+      "Wind",
+      "Visibility & weather",
+      "Cloud layers",
+      "Create a change period",
+      "Selected change",
+      "Change type",
+      "Generated TAF",
+    ]) {
       const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
-      expect(next).not.toBeNull();
+      expect(next).toBeEnabled();
       fireEvent.click(next!);
       await waitFor(() => expect(document.querySelector(".tour-flight-strip h2")).toHaveTextContent(title));
     }
-
-    const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
-    expect(next).toBeDisabled();
-    fireEvent.click(screen.getByLabelText("Select 12Z"));
-    expect(document.querySelector<HTMLButtonElement>(".tour-flight-next")).toBeDisabled();
-    fireEvent.click(screen.getByLabelText("Select 14Z"));
-    await waitFor(() => expect(document.querySelector<HTMLButtonElement>(".tour-flight-next")).toBeEnabled());
+    expect(document.querySelector(".tour-task-actionable")).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import GeneratedTafOutput from "./components/GeneratedTafOutput";
 import IssueTimeInput from "./components/IssueTimeInput";
@@ -25,19 +25,6 @@ function createEmptyTaf(): TAF {
 function TourLauncher() {
   const tour = useTour();
   return <TourMenu onStart={tour.startTour} />;
-}
-
-function GuidedTimeline({ onSelectRange, ...props }: Readonly<ComponentProps<typeof Timeline>>) {
-  const tour = useTour();
-  return (
-    <Timeline
-      {...props}
-      onSelectRange={(from, to) => {
-        onSelectRange(from, to);
-        tour.notifyTask("timeline-range-created");
-      }}
-    />
-  );
 }
 
 export default function TafBuilder() {
@@ -198,7 +185,7 @@ export default function TafBuilder() {
                 <section data-tour-id="timeline" className="taf-panel workbench-panel">
                   <SectionHeader step="03" title="Forecast timeline" description="Select a start and end hour to create a change block." aside={changeLegend} />
                   <div className="workbench-panel-body">
-                    <GuidedTimeline
+                    <Timeline
                       changes={taf.changes}
                       startHour={timelineStartHour}
                       isDark={isDark}

@@ -1,4 +1,4 @@
-import type { GuidedTourStep, TourDefinition, TourId, TourTaskEvent } from "./types";
+import type { GuidedTourStep, TourDefinition, TourId } from "./types";
 
 const quickStartSteps: GuidedTourStep[] = [
   { id: "forecast-context", target: '[data-tour-id="context"]', title: "Forecast context", content: "Enter the ICAO station and issue time." },
@@ -10,9 +10,8 @@ const quickStartSteps: GuidedTourStep[] = [
     id: "create-change",
     target: '[data-tour-id="timeline"]',
     title: "Create a change period",
-    content: "Select a start and end hour on the timeline to continue.",
+    content: "Use the timeline to create and review change periods.",
     mobileContent: "Use the timeline to create and review change periods.",
-    taskEvent: "timeline-range-created",
   },
   { id: "selected-change", target: '[data-tour-id="selected-change"]', title: "Selected change", content: "Fine-tune only the conditions that change in this period." },
   { id: "change-type", target: '[data-tour-id="change-type"]', title: "Change type", content: "Switch between TEMPO, BECMG, and FM." },
@@ -32,11 +31,8 @@ export function getTourSteps(id: TourId, isMobile: boolean): GuidedTourStep[] {
   return definition.steps.map((step) => ({
     ...step,
     content: isMobile && step.mobileContent ? step.mobileContent : step.content,
-    taskEvent: isMobile ? undefined : step.taskEvent,
   }));
 }
-
-const knownTaskEvents = new Set<TourTaskEvent>(["timeline-range-created"]);
 
 export function validateTourCatalog(catalog: TourDefinition[]): string[] {
   const errors: string[] = [];
@@ -47,7 +43,6 @@ export function validateTourCatalog(catalog: TourDefinition[]): string[] {
       if (ids.has(qualifiedId)) errors.push(`Duplicate step ID: ${qualifiedId}`);
       ids.add(qualifiedId);
       if (!step.target.startsWith('[data-tour-id="')) errors.push(`Invalid target: ${qualifiedId}`);
-      if (step.taskEvent && !knownTaskEvents.has(step.taskEvent)) errors.push(`Unknown task event: ${qualifiedId}`);
     }
   }
   return errors;

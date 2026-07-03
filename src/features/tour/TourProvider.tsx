@@ -5,7 +5,7 @@ import { getTourSteps } from "./tourDefinitions";
 import { cloneTourSnapshot } from "./tourDemo";
 import { TourExitDialog } from "./TourMenu";
 import { TourContext, type TourContextValue } from "./TourContext";
-import type { TourEditorAdapter, TourEditorSnapshot, TourId, TourTaskEvent } from "./types";
+import type { TourEditorAdapter, TourEditorSnapshot, TourId } from "./types";
 
 function getMobileQuery(): MediaQueryList | null {
   return typeof window === "undefined" || !window.matchMedia ? null : window.matchMedia("(max-width: 639px)");
@@ -18,7 +18,6 @@ interface TourProviderProps {
 
 export function TourProvider({ children, editor }: Readonly<TourProviderProps>) {
   const [activeTour, setActiveTour] = useState<TourId | null>(null);
-  const [completedTasks, setCompletedTasks] = useState<Set<TourTaskEvent>>(() => new Set());
   const [snapshot, setSnapshot] = useState<TourEditorSnapshot | null>(null);
   const [exitPending, setExitPending] = useState(false);
   const [isMobile, setIsMobile] = useState(() => getMobileQuery()?.matches ?? false);
@@ -35,7 +34,6 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const startTour = useCallback((id: TourId) => {
     finishingRef.current = false;
     setExitPending(false);
-    setCompletedTasks(new Set());
     if (id === "quick-start") {
       setSnapshot(cloneTourSnapshot(editor.capture()));
       editor.loadDemo();
@@ -45,20 +43,10 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
     setActiveTour(id);
   }, [editor]);
 
-  const notifyTask = useCallback((event: TourTaskEvent) => {
-    setCompletedTasks((current) => {
-      if (current.has(event)) return current;
-      const next = new Set(current);
-      next.add(event);
-      return next;
-    });
-  }, []);
-
   const finishTour = useCallback(() => {
     if (finishingRef.current) return;
     finishingRef.current = true;
     setActiveTour(null);
-    setCompletedTasks(new Set());
     if (snapshot) setExitPending(true);
   }, [snapshot]);
 
@@ -78,7 +66,6 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
       data: {
         id: step.id,
         isMobile,
-        taskEvent: step.taskEvent,
       },
       id: step.id,
       isFixed: true,
@@ -91,10 +78,8 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
 
   const contextValue = useMemo<TourContextValue>(() => ({
     startTour,
-    notifyTask,
-    isTaskComplete: (event) => completedTasks.has(event),
     isRunning: activeTour !== null,
-  }), [activeTour, completedTasks, notifyTask, startTour]);
+  }), [activeTour, startTour]);
 
   const resolveExit = (decision: "keep" | "restore") => {
     if (decision === "restore" && snapshot) editor.restore(snapshot);

@@ -6,12 +6,11 @@ describe("tour definitions", () => {
     expect(validateTourCatalog(tourCatalog)).toEqual([]);
   });
 
-  it("turns desktop tasks into passive mobile steps", () => {
-    const desktop = getTourSteps("quick-start", false);
-    const mobile = getTourSteps("quick-start", true);
-
-    expect(desktop.find((step) => step.id === "create-change")?.taskEvent).toBe("timeline-range-created");
-    expect(mobile.find((step) => step.id === "create-change")?.taskEvent).toBeUndefined();
+  it("keeps every desktop and mobile step passive", () => {
+    for (const tour of tourCatalog) {
+      expect(getTourSteps(tour.id, false).every((step) => !("taskEvent" in step))).toBe(true);
+      expect(getTourSteps(tour.id, true).every((step) => !("taskEvent" in step))).toBe(true);
+    }
   });
 
   it("offers all three entry-point groups", () => {

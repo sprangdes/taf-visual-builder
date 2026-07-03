@@ -3,7 +3,6 @@ import type { TAF } from "../../types/taf";
 
 export type TourId = "quick-start" | "new-features" | "topic-timeline" | "topic-output";
 export type TourGroup = "quick-start" | "new-features" | "topic-help";
-export type TourTaskEvent = "timeline-range-created";
 
 export interface GuidedTourStep {
   id: string;
@@ -11,7 +10,6 @@ export interface GuidedTourStep {
   title: string;
   content: ReactNode;
   mobileContent?: ReactNode;
-  taskEvent?: TourTaskEvent;
 }
 
 export interface TourDefinition {
@@ -32,4 +30,3 @@ export interface TourEditorAdapter {
   loadDemo(): void;
   restore(snapshot: TourEditorSnapshot): void;
 }
-

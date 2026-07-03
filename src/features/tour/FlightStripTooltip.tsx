@@ -1,11 +1,4 @@
 import type { TooltipRenderProps } from "react-joyride";
-import { useTour } from "./TourContext";
-import type { TourTaskEvent } from "./types";
-
-interface FlightStripData {
-  isMobile?: boolean;
-  taskEvent?: TourTaskEvent;
-}
 
 export default function FlightStripTooltip({
   backProps,
@@ -19,10 +12,6 @@ export default function FlightStripTooltip({
   step,
   tooltipProps,
 }: Readonly<TooltipRenderProps>) {
-  const data = (step.data ?? {}) as FlightStripData;
-  const tour = useTour();
-  const taskLocked = Boolean(data.taskEvent && !data.isMobile && !tour.isTaskComplete(data.taskEvent));
-
   return (
     <div className="tour-flight-strip" {...tooltipProps}>
       <div className="tour-flight-strip-inner">
@@ -33,7 +22,6 @@ export default function FlightStripTooltip({
           </div>
           {step.title && <h2>{step.title}</h2>}
           <div className="tour-flight-description">{step.content}</div>
-          {taskLocked && <p className="tour-flight-task">Complete the highlighted action to continue.</p>}
         </div>
 
         <div className="tour-flight-actions">
@@ -51,7 +39,6 @@ export default function FlightStripTooltip({
                 type="button"
                 className="tour-flight-next"
                 {...primaryProps}
-                disabled={taskLocked}
               >
                 {isLastStep ? "Done" : "Next"}
               </button>

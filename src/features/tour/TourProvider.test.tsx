@@ -24,8 +24,6 @@ function Harness() {
     <div>
       <button onClick={() => tour.startTour("quick-start")}>Start quick</button>
       <button onClick={() => tour.startTour("topic-output")}>Start topic</button>
-      <button onClick={() => tour.notifyTask("timeline-range-created")}>Complete timeline</button>
-      <span>{tour.isTaskComplete("timeline-range-created") ? "task-complete" : "task-incomplete"}</span>
       <span>{tour.isRunning ? "running" : "idle"}</span>
     </div>
   );
@@ -43,7 +41,7 @@ function adapter(): TourEditorAdapter {
 }
 
 describe("TourProvider", () => {
-  it("loads demo data and unlocks the timeline task", () => {
+  it("loads demo data with passive steps", () => {
     const editor = adapter();
     render(<TourProvider editor={editor}><Harness /></TourProvider>);
 
@@ -52,11 +50,10 @@ describe("TourProvider", () => {
     expect(editor.loadDemo).toHaveBeenCalledOnce();
     expect(screen.getByText("running")).toBeVisible();
     expect(joyride.props?.options?.overlayClickAction).toBe(false);
-    expect(joyride.props?.steps.find((step) => step.id === "create-change")?.data.taskEvent).toBe("timeline-range-created");
-    expect(screen.getByText("task-incomplete")).toBeVisible();
-
-    fireEvent.click(screen.getByRole("button", { name: "Complete timeline" }));
-    expect(screen.getByText("task-complete")).toBeVisible();
+    expect(joyride.props?.steps.find((step) => step.id === "create-change")?.data).toEqual({
+      id: "create-change",
+      isMobile: false,
+    });
   });
 
   it("asks whether to restore the snapshot after quick start", () => {

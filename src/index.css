@@ -549,7 +549,6 @@ body.taf-dark-page {
 }
 .tour-flight-strip h2 { margin: 7px 0 4px; color: inherit; font-size: 1.15rem; }
 .tour-flight-description { color: #4f6876; font-size: 0.86rem; line-height: 1.55; }
-.tour-flight-task { margin: 7px 0 0; color: #8b5d13; font-size: 0.78rem; font-weight: 700; }
 .tour-flight-actions { display: grid; grid-template-columns: auto auto; gap: 14px 18px; align-items: center; }
 .tour-flight-close { justify-self: end; border: 0; background: transparent; color: #607783; cursor: pointer; }
 .tour-flight-progress { display: flex; width: 220px; gap: 5px; }
@@ -602,7 +601,6 @@ body.taf-dark-page {
   box-shadow: 0 -16px 40px rgba(0, 8, 14, 0.5);
 }
 .taf-dark-page .tour-flight-description { color: #afc5d0; }
-.taf-dark-page .tour-flight-task { color: #f2c879; }
 .taf-dark-page .tour-flight-back { border-color: #4c6878; background: #15364a; color: #e2eef3; }
 .taf-dark-page .tour-flight-progress i { background: #365364; }
 .taf-dark-page .tour-flight-progress i.is-complete { background: #62b7d9; }
@@ -610,6 +608,7 @@ body.taf-dark-page {
 .taf-dark .tour-menu > button { color: #e3f0f5; }
 .taf-dark .tour-menu > button:hover { background: #173b51; }
 .taf-dark .tour-menu > button span { color: #aec2cc; }
+
 
 @media (max-width: 639px) {
   .tour-flight-strip { border-radius: 16px 16px 0 0; }

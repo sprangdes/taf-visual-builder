@@ -1,10 +1,8 @@
 import { createContext, useContext } from "react";
-import type { TourId, TourTaskEvent } from "./types";
+import type { TourId } from "./types";
 
 export interface TourContextValue {
   startTour: (id: TourId) => void;
-  notifyTask: (event: TourTaskEvent) => void;
-  isTaskComplete: (event: TourTaskEvent) => boolean;
   isRunning: boolean;
 }
 
