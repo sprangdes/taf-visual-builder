@@ -6,6 +6,7 @@ import { cloneTourSnapshot } from "./tourDemo";
 import { TourExitDialog } from "./TourMenu";
 import { TourContext, type TourContextValue } from "./TourContext";
 import type { TourEditorAdapter, TourEditorSnapshot, TourId } from "./types";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function getMobileQuery(): MediaQueryList | null {
   return typeof window === "undefined" || !window.matchMedia ? null : window.matchMedia("(max-width: 639px)");
@@ -17,6 +18,7 @@ interface TourProviderProps {
 }
 
 export function TourProvider({ children, editor }: Readonly<TourProviderProps>) {
+  const { text } = useLanguage();
   const [activeTour, setActiveTour] = useState<TourId | null>(null);
   const [snapshot, setSnapshot] = useState<TourEditorSnapshot | null>(null);
   const [exitPending, setExitPending] = useState(false);
@@ -61,7 +63,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
 
   const steps = useMemo<Step[]>(() => {
     if (!activeTour) return [];
-    return getTourSteps(activeTour, isMobile).map((step) => ({
+    return getTourSteps(activeTour, isMobile, text.tour).map((step) => ({
       content: step.content,
       data: {
         id: step.id,
@@ -74,7 +76,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
       target: step.target,
       title: step.title,
     }));
-  }, [activeTour, isMobile]);
+  }, [activeTour, isMobile, text.tour]);
 
   const contextValue = useMemo<TourContextValue>(() => ({
     startTour,
@@ -93,7 +95,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
       {children}
       <Joyride
         continuous
-        locale={{ back: "Back", close: "Close", last: "Done", next: "Next", open: "Open guided step", skip: "Skip" }}
+        locale={{ back: text.tour.controls.back, close: text.tour.controls.close, last: text.tour.controls.done, next: text.tour.controls.next, open: text.tour.controls.open, skip: text.tour.controls.skip }}
         onEvent={onEvent}
         options={{
           blockTargetInteraction: false,

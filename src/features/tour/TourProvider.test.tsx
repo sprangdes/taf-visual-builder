@@ -1,9 +1,14 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { EventData, Props as JoyrideProps } from "react-joyride";
 import { describe, expect, it, vi } from "vitest";
 import type { TourEditorAdapter } from "./types";
 import { useTour } from "./TourContext";
 import { TourProvider } from "./TourProvider";
+import { LanguageProvider } from "../i18n/LanguageProvider";
+
+function render(node: React.ReactNode) {
+  return rtlRender(<LanguageProvider>{node}</LanguageProvider>);
+}
 
 const joyride = vi.hoisted(() => ({ props: null as JoyrideProps | null }));
 

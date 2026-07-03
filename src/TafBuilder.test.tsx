@@ -1,6 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TafBuilder from "./TafBuilder";
+import { LanguageProvider } from "./features/i18n/LanguageProvider";
+
+function render(node: React.ReactNode) {
+  return rtlRender(<LanguageProvider>{node}</LanguageProvider>);
+}
 
 vi.mock("./utils/time", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./utils/time")>();
@@ -45,6 +50,23 @@ describe("TafBuilder aviation workbench", () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
     expect(localStorage.getItem("taf-dark-mode")).toBe("1");
+  });
+
+  it("switches the workbench to Traditional Chinese without clearing editor data", () => {
+    render(<TafBuilder />);
+    fireEvent.change(screen.getByLabelText("ICAO station code"), { target: { value: "RCTP" } });
+    fireEvent.click(screen.getByRole("button", { name: "Choose language" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "繁體中文" }));
+
+    expect(screen.getByRole("heading", { name: "建立機場終端預報" })).toBeVisible();
+    expect(screen.getByLabelText("ICAO 機場代碼")).toHaveValue("RCTP");
+    expect(screen.getByRole("heading", { name: "基本預報" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "風" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "能見度與天氣現象" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "雲層" })).toBeVisible();
+    expect(screen.getByText("已設定")).toBeVisible();
+    expect(screen.getByRole("button", { name: "切換至深色模式" })).toBeVisible();
+    expect(screen.getByTestId("generated-taf")).toHaveTextContent("TAF RCTP");
   });
 
   it("matches the approved workbench hierarchy", () => {

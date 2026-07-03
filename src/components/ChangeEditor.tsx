@@ -15,6 +15,7 @@ import TypeButton from "./buttons/TypeButton";
 import CloudSection from "./CloudSection";
 import VisibilitySection from "./VisibilitySection";
 import WindSection from "./WindSection";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 interface ChangeEditorInnerProps extends Omit<ChangeEditorProps, "change"> {
   change: TAFChange | BaseForecast;
@@ -35,6 +36,7 @@ function ChangeEditorInner({
   onChangeType,
   headerId,
 }: Readonly<ChangeEditorInnerProps>) {
+  const { text } = useLanguage();
   const isBase = !("type" in change);
   const enabledBlocks = change.state.enabledBlocks || { wind: false, vis: false, clouds: false };
   const [windEnabled, setWindEnabled] = useState(enabledBlocks.wind ?? isBase);
@@ -197,7 +199,7 @@ function ChangeEditorInner({
     <div className="taf-editor">
       <div id={headerId} className="flex items-center relative pr-9">
         <h3 className="font-semibold text-sm sm:text-base flex flex-wrap items-center gap-y-1 m-0 p-0">
-          Edit{" "}
+          {text.conditions.edit}{" "}
           <span className="ml-2">
             <TypeButton showActionButtons={showActionButtons} onChangeType={onChangeType} change={change} />
           </span>

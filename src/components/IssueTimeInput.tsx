@@ -2,8 +2,10 @@ import { useEffect, useRef } from "react";
 import type React from "react";
 import type { IssueTimeInputProps } from "../types/taf";
 import { getCurrentIssueTimeUTC } from "../utils/time";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 export default function IssueTimeInput({ id, value, onChange }: Readonly<IssueTimeInputProps>) {
+  const { text } = useLanguage();
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function IssueTimeInput({ id, value, onChange }: Readonly<IssueTi
         value={value.slice(0, 6)}
         onChange={handleChange}
         className="border-0 border-r-0 p-1 focus:outline-none w-full min-w-0 rounded-l-xl"
-        aria-label="Issue time (DDHHMM)"
+        aria-label={text.fields.issueTime.replace(" · ", " (") + ")"}
         placeholder={value.slice(0, 6) ? undefined : "UTC Time"}
       />
       <span className="px-2" style={{ height: "100%", fontWeight: 500, fontSize: "1rem" }}>

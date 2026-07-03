@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { TAFChange, TimelineProps } from "../types/taf";
 import { timelineColorByType } from "../constants/weather";
 import { useTimeRange } from "../hooks/useTimeRange";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 function createHourIndexMap(hours: number[]): Map<number, number> {
   const hourIndexMap = new Map<number, number>();
@@ -37,6 +38,7 @@ export default function Timeline({
   startHour,
   isDark = false,
 }: Readonly<TimelineProps>) {
+  const { text } = useLanguage();
   const hours = Array.from({ length: 24 }, (_, i) => (startHour + i) % 24);
   const hourIndexMap = createHourIndexMap(hours);
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
@@ -96,7 +98,7 @@ export default function Timeline({
             <button
               key={h}
               type="button"
-              aria-label={`Select ${String(h).padStart(2, "0")}Z`}
+              aria-label={text.actions.selectHour(String(h).padStart(2, "0"))}
               onClick={() => {
                 if (changeIndex !== -1) {
                   onSelectChange(changeIndex);

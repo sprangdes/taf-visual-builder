@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { tourCatalog } from "./tourDefinitions";
+import { getTourCatalog } from "./tourDefinitions";
 import type { TourId } from "./types";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface TourMenuProps {
   onStart: (id: TourId) => void;
 }
 
 export function TourMenu({ onStart }: Readonly<TourMenuProps>) {
+  const { text } = useLanguage();
+  const tourCatalog = getTourCatalog(text.tour);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -39,8 +42,8 @@ export function TourMenu({ onStart }: Readonly<TourMenuProps>) {
         aria-controls="guided-tour-menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Open guided tours"
-        title="Open guided tours"
+        aria-label={text.tour.openMenu}
+        title={text.tour.openMenu}
         className="theme-toggle icon-button"
         onClick={() => setOpen((current) => !current)}
       >
@@ -49,8 +52,8 @@ export function TourMenu({ onStart }: Readonly<TourMenuProps>) {
         </svg>
       </button>
       {open && (
-        <div id="guided-tour-menu" className="tour-menu" role="menu" aria-label="Guided tours">
-          <p className="tour-menu-label">Guided briefing</p>
+        <div id="guided-tour-menu" className="tour-menu" role="menu" aria-label={text.tour.menuAria}>
+          <p className="tour-menu-label">{text.tour.menuLabel}</p>
           {tourCatalog.map((tour) => (
             <button
               key={tour.id}
@@ -76,15 +79,16 @@ interface TourExitDialogProps {
 }
 
 export function TourExitDialog({ onResolve }: Readonly<TourExitDialogProps>) {
+  const { text } = useLanguage();
   return (
     <div className="tour-exit-backdrop">
       <section className="tour-exit-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-exit-title">
-        <p className="tour-menu-label">Guided briefing complete</p>
-        <h2 id="tour-exit-title">Keep the demonstration forecast?</h2>
-        <p>You can keep the example values or restore the forecast you had before starting.</p>
+        <p className="tour-menu-label">{text.tour.complete}</p>
+        <h2 id="tour-exit-title">{text.tour.keepTitle}</h2>
+        <p>{text.tour.keepDescription}</p>
         <div className="tour-exit-actions">
-          <button type="button" className="tour-flight-back" onClick={() => onResolve("restore")}>Restore my forecast</button>
-          <button type="button" className="tour-flight-next" onClick={() => onResolve("keep")}>Keep demo result</button>
+          <button type="button" className="tour-flight-back" onClick={() => onResolve("restore")}>{text.tour.restore}</button>
+          <button type="button" className="tour-flight-next" onClick={() => onResolve("keep")}>{text.tour.keep}</button>
         </div>
       </section>
     </div>

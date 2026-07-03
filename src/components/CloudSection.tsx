@@ -3,6 +3,7 @@ import { weatherButtonClass } from "../constants/ui";
 import type { CloudLayer } from "../types/taf";
 import CloudDeleteButton from "./buttons/CloudDeleteButton";
 import NumericControl from "./inputs/NumericControl";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 interface CloudSectionProps {
   isBase: boolean;
@@ -27,6 +28,7 @@ export default function CloudSection({
   onAddCloud,
   onRemoveCloud,
 }: Readonly<CloudSectionProps>) {
+  const { text } = useLanguage();
   return (
     <div
       data-tour-id="clouds"
@@ -35,7 +37,7 @@ export default function CloudSection({
       {!isBase && cloudEnabled && (
         <button
           type="button"
-          aria-label="Deactivate clouds"
+          aria-label={text.conditions.deactivateClouds}
           onClick={() => onSetEnabled(false)}
           className="condition-block-deactivate"
         >
@@ -46,14 +48,14 @@ export default function CloudSection({
         <div className="condition-block-overlay">
           <button
             type="button"
-            aria-label="Activate clouds to edit"
+            aria-label={text.conditions.activateCloudsAria}
             onClick={() => onSetEnabled(true)}
             className="condition-block-activate"
           >
             <span className="condition-block-activate-icon" aria-hidden="true">+</span>
             <span className="condition-block-activate-copy">
-              <strong>Activate cloud layers</strong>
-              <small>Include this section in the change</small>
+              <strong>{text.conditions.activateClouds}</strong>
+              <small>{text.conditions.includeInChange}</small>
             </span>
           </button>
         </div>
@@ -61,7 +63,7 @@ export default function CloudSection({
 
       <h4 className="condition-block-title">
         <span className="condition-block-icon" aria-hidden="true">☁</span>
-        Cloud layers
+        {text.conditions.clouds}
       </h4>
 
       <div className="cloud-layers-controls cloud-layers-stack">
@@ -85,7 +87,7 @@ export default function CloudSection({
               formatValue={(v) => String(v).padStart(3, "0")}
               onChange={(value) => onUpdateCloud(c.id, "height", value)}
             />
-            <span className="cloud-height-unit">hundreds ft</span>
+            <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
             <label className="cloud-checkbox">
               <input
                 type="checkbox"
@@ -114,7 +116,7 @@ export default function CloudSection({
           onClick={onAddCloud}
           className={`${weatherButtonClass} cloud-add-button`}
         >
-          Add Layer
+          {text.conditions.addLayer}
         </button>
       </div>
     </div>

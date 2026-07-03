@@ -1,6 +1,7 @@
 import { colorByType } from "../../constants/weather";
 import type { TypeButtonProps, WeatherTrendType } from "../../types/taf";
 import { useHoverTooltip } from "../../hooks/useHoverTooltip";
+import { useLanguage } from "../../features/i18n/LanguageContext";
 
 function nextType(type: WeatherTrendType): WeatherTrendType {
   if (type === "TEMPO") return "BECMG";
@@ -13,6 +14,7 @@ export default function TypeButton({
   onChangeType,
   change,
 }: Readonly<TypeButtonProps>) {
+  const { text } = useLanguage();
   const { btnRef, showTooltip, tooltipPos, onMouseEnter, onMouseLeave } = useHoverTooltip({
     delayMs: 500,
     width: 120,
@@ -42,7 +44,7 @@ export default function TypeButton({
   const type = change.type;
   const next = nextType(type);
   const colorClass = colorByType[type];
-  const tooltipText = `Switch to ${next}`;
+  const tooltipText = text.actions.switchType(next);
 
   return (
     <>
@@ -55,7 +57,7 @@ export default function TypeButton({
           onChangeType(next);
         }}
         type="button"
-        aria-label="Change type"
+        aria-label={text.actions.changeType}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >

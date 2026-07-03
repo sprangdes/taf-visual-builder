@@ -1,32 +1,39 @@
 import type { GuidedTourStep, TourDefinition, TourId } from "./types";
+import { en, type TourCopy } from "../i18n/translations";
 
-const quickStartSteps: GuidedTourStep[] = [
-  { id: "forecast-context", target: '[data-tour-id="context"]', title: "Forecast context", content: "Enter the ICAO station and issue time." },
-  { id: "base-forecast", target: '[data-tour-id="base"]', title: "Base forecast", content: "Set the prevailing conditions for the full validity period." },
-  { id: "wind", target: '[data-tour-id="wind"]', title: "Wind", content: "Set direction, speed, and gust." },
-  { id: "visibility", target: '[data-tour-id="visibility"]', title: "Visibility & weather", content: "Set visibility and select weather phenomena." },
-  { id: "clouds", target: '[data-tour-id="clouds"]', title: "Cloud layers", content: "Choose cloud amount and height." },
+function quickStartSteps(copy: TourCopy): GuidedTourStep[] {
+  return [
+  { id: "forecast-context", target: '[data-tour-id="context"]', ...copy.steps.context },
+  { id: "base-forecast", target: '[data-tour-id="base"]', ...copy.steps.base },
+  { id: "wind", target: '[data-tour-id="wind"]', ...copy.steps.wind },
+  { id: "visibility", target: '[data-tour-id="visibility"]', ...copy.steps.visibility },
+  { id: "clouds", target: '[data-tour-id="clouds"]', ...copy.steps.clouds },
   {
     id: "create-change",
     target: '[data-tour-id="timeline"]',
-    title: "Create a change period",
-    content: "Use the timeline to create and review change periods.",
-    mobileContent: "Use the timeline to create and review change periods.",
+    ...copy.steps.createChange,
+    mobileContent: copy.steps.createChange.content,
   },
-  { id: "selected-change", target: '[data-tour-id="selected-change"]', title: "Selected change", content: "Fine-tune only the conditions that change in this period." },
-  { id: "change-type", target: '[data-tour-id="change-type"]', title: "Change type", content: "Switch between TEMPO, BECMG, and FM." },
-  { id: "generated-output", target: '[data-tour-id="output"]', title: "Generated TAF", content: "The final TAF updates live as you edit." },
-];
+  { id: "selected-change", target: '[data-tour-id="selected-change"]', ...copy.steps.selectedChange },
+  { id: "change-type", target: '[data-tour-id="change-type"]', ...copy.steps.changeType },
+  { id: "generated-output", target: '[data-tour-id="output"]', ...copy.steps.output },
+  ];
+}
 
-export const tourCatalog: TourDefinition[] = [
-  { id: "quick-start", group: "quick-start", label: "Quick Start", description: "Learn the complete forecast workflow.", steps: quickStartSteps },
-  { id: "new-features", group: "new-features", label: "New Features", description: "Review the new workbench workflow.", steps: quickStartSteps.slice(5) },
-  { id: "topic-timeline", group: "topic-help", label: "Timeline Help", description: "Learn how change periods work.", steps: quickStartSteps.slice(5, 8) },
-  { id: "topic-output", group: "topic-help", label: "Generated TAF Help", description: "Understand the live output.", steps: quickStartSteps.slice(8) },
-];
+export function getTourCatalog(copy: TourCopy = en.tour): TourDefinition[] {
+  const steps = quickStartSteps(copy);
+  return [
+    { id: "quick-start", group: "quick-start", ...copy.catalog.quickStart, steps },
+    { id: "new-features", group: "new-features", ...copy.catalog.newFeatures, steps: steps.slice(5) },
+    { id: "topic-timeline", group: "topic-help", ...copy.catalog.timeline, steps: steps.slice(5, 8) },
+    { id: "topic-output", group: "topic-help", ...copy.catalog.output, steps: steps.slice(8) },
+  ];
+}
 
-export function getTourSteps(id: TourId, isMobile: boolean): GuidedTourStep[] {
-  const definition = tourCatalog.find((tour) => tour.id === id);
+export const tourCatalog = getTourCatalog();
+
+export function getTourSteps(id: TourId, isMobile: boolean, copy: TourCopy = en.tour): GuidedTourStep[] {
+  const definition = getTourCatalog(copy).find((tour) => tour.id === id);
   if (!definition) return [];
   return definition.steps.map((step) => ({
     ...step,

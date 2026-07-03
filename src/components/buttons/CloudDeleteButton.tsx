@@ -1,7 +1,9 @@
 import type { CloudDeleteButtonProps } from "../../types/taf";
 import { useHoverTooltip } from "../../hooks/useHoverTooltip";
+import { useLanguage } from "../../features/i18n/LanguageContext";
 
 export default function CloudDeleteButton({ onClick }: Readonly<CloudDeleteButtonProps>) {
+  const { text } = useLanguage();
   const { btnRef, showTooltip, tooltipPos, onMouseEnter, onMouseLeave } = useHoverTooltip({ delayMs: 500 });
 
   return (
@@ -9,7 +11,7 @@ export default function CloudDeleteButton({ onClick }: Readonly<CloudDeleteButto
       <button
         ref={btnRef}
         type="button"
-        aria-label="Delete cloud layer"
+        aria-label={text.actions.deleteCloud}
         onClick={onClick}
         className="cloud-delete-button"
         onMouseEnter={onMouseEnter}
@@ -35,7 +37,7 @@ export default function CloudDeleteButton({ onClick }: Readonly<CloudDeleteButto
             pointerEvents: "none",
           }}
         >
-          Delete Layer
+          {text.actions.deleteLayer}
         </div>
       )}
     </div>

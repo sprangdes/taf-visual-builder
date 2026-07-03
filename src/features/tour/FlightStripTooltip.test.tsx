@@ -1,7 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import type { TooltipRenderProps } from "react-joyride";
 import { describe, expect, it, vi } from "vitest";
 import FlightStripTooltip from "./FlightStripTooltip";
+import { LanguageProvider } from "../i18n/LanguageProvider";
+
+function render(node: React.ReactNode) {
+  return rtlRender(<LanguageProvider>{node}</LanguageProvider>);
+}
 
 function props(): TooltipRenderProps {
   return {

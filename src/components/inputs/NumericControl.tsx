@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useLanguage } from "../../features/i18n/LanguageContext";
 
 interface NumericControlProps {
   value: number;
@@ -17,6 +18,7 @@ export default function NumericControl({
   onChange,
   formatValue,
 }: Readonly<NumericControlProps>) {
+  const { text } = useLanguage();
   const holdDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const valueRef = useRef(value);
@@ -91,7 +93,7 @@ export default function NumericControl({
         onPointerLeave={clearHoldTimers}
         onPointerCancel={clearHoldTimers}
         onBlur={clearHoldTimers}
-        aria-label="Decrease value"
+        aria-label={text.actions.decrease}
       >
         -
       </button>
@@ -107,7 +109,7 @@ export default function NumericControl({
         onPointerLeave={clearHoldTimers}
         onPointerCancel={clearHoldTimers}
         onBlur={clearHoldTimers}
-        aria-label="Increase value"
+        aria-label={text.actions.increase}
       >
         +
       </button>

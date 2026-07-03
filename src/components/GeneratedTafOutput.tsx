@@ -22,6 +22,7 @@ export default function GeneratedTafOutput({
   validityTo,
   changeCount,
 }: Readonly<GeneratedTafOutputProps>) {
+  const { text: copy } = useLanguage();
   return (
     <>
       <pre data-testid="generated-taf" className="taf-code">
@@ -30,12 +31,13 @@ export default function GeneratedTafOutput({
         ))}
       </pre>
       <dl className="taf-output-meta">
-        <div><dt>STATION</dt><dd>{station || "—"}</dd></div>
-        <div><dt>VALIDITY</dt><dd>{validityFrom}Z–{validityTo}Z</dd></div>
-        <div><dt>BASE</dt><dd>Configured</dd></div>
-        <div><dt>CHANGES</dt><dd>{changeCount} {changeCount === 1 ? "block" : "blocks"}</dd></div>
+        <div><dt>{copy.output.station}</dt><dd>{station || "—"}</dd></div>
+        <div><dt>{copy.output.validity}</dt><dd>{validityFrom}Z–{validityTo}Z</dd></div>
+        <div><dt>{copy.output.base}</dt><dd>{copy.output.configured}</dd></div>
+        <div><dt>{copy.output.changes}</dt><dd>{copy.output.blocks(changeCount)}</dd></div>
       </dl>
-      <p className="taf-output-note">The generated message remains visible while editing, reducing context switching and making cause-and-effect easier to verify.</p>
+      <p className="taf-output-note">{copy.output.note}</p>
     </>
   );
 }
+import { useLanguage } from "../features/i18n/LanguageContext";

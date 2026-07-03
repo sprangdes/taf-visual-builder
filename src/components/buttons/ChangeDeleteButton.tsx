@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import type { ChangeDeleteButtonProps } from "../../types/taf";
 import { useHoverTooltip } from "../../hooks/useHoverTooltip";
+import { useLanguage } from "../../features/i18n/LanguageContext";
 
 export default function ChangeDeleteButton({
   onClick,
   setShowTooltip,
   showTooltip,
 }: Readonly<ChangeDeleteButtonProps>) {
+  const { text } = useLanguage();
   const {
     btnRef,
     tooltipPos,
@@ -29,7 +31,7 @@ export default function ChangeDeleteButton({
       <button
         ref={btnRef}
         className="change-delete-button"
-        aria-label="Delete change"
+        aria-label={text.actions.deleteChange}
         onClick={(e) => {
           e.stopPropagation();
           onClick();
@@ -45,7 +47,7 @@ export default function ChangeDeleteButton({
         style={{ zIndex: 10 }}
         type="button"
       >
-        Delete change
+        {text.actions.deleteChange}
       </button>
       {showTooltip && (
         <div
@@ -64,7 +66,7 @@ export default function ChangeDeleteButton({
             pointerEvents: "none",
           }}
         >
-          Delete Change
+          {text.actions.deleteChange}
         </div>
       )}
     </>

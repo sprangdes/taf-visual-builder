@@ -475,7 +475,35 @@ body.taf-dark-page {
 .taf-app.taf-dark .numeric-control-display { background: var(--taf-surface); color: var(--taf-text); }
 
 /* Guided briefing */
-.tour-menu-root { position: relative; }
+.tour-menu-root, .language-menu-root { position: relative; }
+.language-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid var(--taf-border);
+  border-radius: 10px;
+  background: var(--taf-surface);
+  box-shadow: 0 14px 32px rgb(15 35 48 / 18%);
+}
+.language-menu > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--taf-text);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.language-menu > button:hover { background: var(--taf-surface-subtle); }
+.language-menu > button i { width: 1em; color: var(--taf-accent); font-style: normal; }
 .tour-menu {
   position: absolute;
   z-index: 80;
@@ -570,6 +598,7 @@ body.taf-dark-page {
 .tour-flight-next:disabled { border-color: #b5c2c8 !important; background: #d8e0e4; color: #758891; cursor: not-allowed; }
 .tour-flight-strip button:focus-visible,
 .tour-menu button:focus-visible,
+.language-menu button:focus-visible,
 .tour-exit-dialog button:focus-visible { outline: 3px solid rgba(39, 127, 164, 0.36); outline-offset: 2px; }
 
 .tour-exit-backdrop {
@@ -605,6 +634,9 @@ body.taf-dark-page {
 .taf-dark-page .tour-flight-progress i { background: #365364; }
 .taf-dark-page .tour-flight-progress i.is-complete { background: #62b7d9; }
 .taf-dark .tour-menu { border-color: #355468; background: #102f42; }
+.taf-dark .language-menu { border-color: #355468; background: #102f42; }
+.taf-dark .language-menu > button { color: #e3f0f5; }
+.taf-dark .language-menu > button:hover { background: #173b51; }
 .taf-dark .tour-menu > button { color: #e3f0f5; }
 .taf-dark .tour-menu > button:hover { background: #173b51; }
 .taf-dark .tour-menu > button span { color: #aec2cc; }

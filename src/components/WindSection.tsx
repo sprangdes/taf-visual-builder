@@ -1,5 +1,6 @@
 import type { Wind } from "../types/taf";
 import NumericControl from "./inputs/NumericControl";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 interface WindSectionProps {
   isBase: boolean;
@@ -16,6 +17,7 @@ export default function WindSection({
   onSetEnabled,
   onUpdateWind,
 }: Readonly<WindSectionProps>) {
+  const { text } = useLanguage();
   return (
     <div
       data-tour-id="wind"
@@ -24,7 +26,7 @@ export default function WindSection({
       {!isBase && windEnabled && (
         <button
           type="button"
-          aria-label="Deactivate wind"
+          aria-label={text.conditions.deactivateWind}
           onClick={() => onSetEnabled(false)}
           className="condition-block-deactivate"
         >
@@ -35,24 +37,24 @@ export default function WindSection({
         <div className="condition-block-overlay">
           <button
             type="button"
-            aria-label="Activate wind to edit"
+            aria-label={text.conditions.activateWindAria}
             onClick={() => onSetEnabled(true)}
             className="condition-block-activate"
           >
             <span className="condition-block-activate-icon" aria-hidden="true">+</span>
             <span className="condition-block-activate-copy">
-              <strong>Activate wind</strong>
-              <small>Include this section in the change</small>
+              <strong>{text.conditions.activateWind}</strong>
+              <small>{text.conditions.includeInChange}</small>
             </span>
           </button>
         </div>
       )}
       <h4 className="condition-block-title">
         <span className="condition-block-icon" aria-hidden="true">↗</span>
-        Wind
+        {text.conditions.wind}
       </h4>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Direction</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windDirection}</span>
         <NumericControl
           value={wind.dir}
           min={0}
@@ -63,7 +65,7 @@ export default function WindSection({
         <span className="condition-unit">°</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Speed</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windSpeed}</span>
         <NumericControl
           value={wind.speed}
           min={0}
@@ -75,7 +77,7 @@ export default function WindSection({
         <span className="condition-unit">KT</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Gust</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windGust}</span>
         <NumericControl
           value={wind.gust ?? 0}
           min={0}

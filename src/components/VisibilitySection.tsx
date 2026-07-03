@@ -1,5 +1,6 @@
 import { weatherOptions } from "../constants/weather";
 import type { CSSProperties } from "react";
+import { useLanguage } from "../features/i18n/LanguageContext";
 
 interface VisibilitySectionProps {
   isBase: boolean;
@@ -30,6 +31,8 @@ export default function VisibilitySection({
   onAddWeather,
   onRemoveWeather,
 }: Readonly<VisibilitySectionProps>) {
+  const { language, text } = useLanguage();
+  const locale = language === "zh-TW" ? "zh-TW" : "en-US";
   return (
     <div
       data-tour-id="visibility"
@@ -38,7 +41,7 @@ export default function VisibilitySection({
       {!isBase && visEnabled && (
         <button
           type="button"
-          aria-label="Deactivate visibility and weather"
+          aria-label={text.conditions.deactivateVisibility}
           onClick={() => onSetEnabled(false)}
           className="condition-block-deactivate"
         >
@@ -49,33 +52,33 @@ export default function VisibilitySection({
         <div className="condition-block-overlay">
           <button
             type="button"
-            aria-label="Activate visibility and weather to edit"
+            aria-label={text.conditions.activateVisibilityAria}
             onClick={() => onSetEnabled(true)}
             className="condition-block-activate"
           >
             <span className="condition-block-activate-icon" aria-hidden="true">+</span>
             <span className="condition-block-activate-copy">
-              <strong>Activate visibility &amp; weather</strong>
-              <small>Include this section in the change</small>
+              <strong>{text.conditions.activateVisibility}</strong>
+              <small>{text.conditions.includeInChange}</small>
             </span>
           </button>
         </div>
       )}
       <h4 className="condition-block-title">
         <span className="condition-block-icon" aria-hidden="true">◉</span>
-        Visibility &amp; weather
+        {text.conditions.visibilityWeather}
       </h4>
       <label htmlFor="visibility" className="block text-sm">
         <div className="visibility-summary">
-          <span id="visibility-label" className="visually-hidden">Visibility</span>
+          <span id="visibility-label" className="visually-hidden">{text.conditions.visibility}</span>
           <span className="visibility-value">
-            {visibility.toLocaleString("en-US")} m
+            {visibility.toLocaleString(locale)} m
           </span>
           <span className="visibility-context">
             {isBase
-              ? `Maximum ${maxVis.toLocaleString("en-US")} m`
+              ? text.conditions.maximum(maxVis.toLocaleString(locale))
               : weatherArr.length > 0
-                ? `Weather: ${weatherArr.join(" ")}`
+                ? text.conditions.weatherSummary(weatherArr.join(" "))
                 : ""}
           </span>
         </div>
@@ -99,7 +102,7 @@ export default function VisibilitySection({
       </label>
 
       <div className="block text-sm">
-        <div className="condition-subheading">Weather</div>
+        <div className="condition-subheading">{text.conditions.weather}</div>
         <div className="weather-options">
           {weatherOptions.map((opt) => (
             <button
@@ -109,11 +112,11 @@ export default function VisibilitySection({
               onClick={() => onAddWeather(opt.code)}
               disabled={weatherDisabled}
               tabIndex={0}
-              aria-label={`Add ${opt.code === " " ? "space" : opt.code}`}
+              aria-label={text.conditions.addWeather(opt.code === " " ? text.conditions.space : opt.code)}
             >
               {opt.code === " " ? (
                 <span className="inline-block" style={{ minWidth: "3em" }}>
-                  space
+                  {text.conditions.space}
                 </span>
               ) : (
                 opt.code
@@ -134,11 +137,11 @@ export default function VisibilitySection({
                   w === " " ? "font-mono" : ""
                 }`}
                 onClick={() => onRemoveWeather(idx)}
-                aria-label={`Remove ${w === " " ? "space" : w}`}
+                aria-label={text.conditions.removeWeather(w === " " ? text.conditions.space : w)}
               >
                 {w === " " ? (
                   <span className="font-mono" style={{ minWidth: "3em" }}>
-                    space
+                    {text.conditions.space}
                   </span>
                 ) : (
                   w
@@ -148,7 +151,7 @@ export default function VisibilitySection({
           })}
           {showError && (
             <span className="inline-error" role="alert">
-              Visibility 5000m Or Below, Weather Must Be Selected
+              {text.conditions.visibilityError}
             </span>
           )}
         </div>
