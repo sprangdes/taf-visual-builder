@@ -75,6 +75,8 @@ export default function CloudSection({
                 min={0}
                 max={cloudAmountOptions.length - 1}
                 step={1}
+                mobileEditor="select"
+                mobileOptions={cloudAmountOptions}
                 formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
                 onChange={(value) =>
                   onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
@@ -85,6 +87,7 @@ export default function CloudSection({
                 min={0}
                 max={999}
                 step={1}
+                mobileEditor="numeric"
                 formatValue={(v) => String(v).padStart(3, "0")}
                 onChange={(value) => onUpdateCloud(c.id, "height", value)}
               />

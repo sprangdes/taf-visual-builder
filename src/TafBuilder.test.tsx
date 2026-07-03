@@ -92,6 +92,12 @@ describe("TafBuilder aviation workbench", () => {
     const cloudCheckboxes = document.querySelector(".cloud-checkbox-group");
     expect(cloudCheckboxes).toHaveTextContent("CB");
     expect(cloudCheckboxes).toHaveTextContent("TCU");
+    expect(document.querySelectorAll('input[inputmode="numeric"]')).toHaveLength(5);
+    const cloudAmountEditor = document.querySelector("select.numeric-control-mobile-editor");
+    expect(cloudAmountEditor).not.toBeNull();
+    expect(Array.from(cloudAmountEditor?.querySelectorAll("option") ?? [], (option) => option.textContent)).toEqual([
+      "FEW", "SCT", "BKN", "OVC",
+    ]);
 
     const addLayer = screen.getByRole("button", { name: "Add Layer" });
     fireEvent.click(addLayer);

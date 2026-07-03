@@ -61,6 +61,7 @@ export default function WindSection({
             min={0}
             max={360}
             step={10}
+            mobileEditor="numeric"
             onChange={(value) => onUpdateWind("dir", value)}
           />
           <span className="condition-unit">°</span>
@@ -74,6 +75,7 @@ export default function WindSection({
             min={0}
             max={99}
             step={1}
+            mobileEditor="numeric"
             formatValue={(v) => String(v).padStart(2, "0")}
             onChange={(value) => onUpdateWind("speed", value)}
           />
@@ -88,6 +90,7 @@ export default function WindSection({
             min={0}
             max={99}
             step={1}
+            mobileEditor="numeric"
             formatValue={(v) => String(v).padStart(2, "0")}
             onChange={(value) => onUpdateWind("gust", value)}
           />
