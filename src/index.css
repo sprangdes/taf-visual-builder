@@ -180,6 +180,7 @@ body {
 .cloud-block { margin-top: 10px; font-size: 14px; }
 .wind-block { display: flex; flex-direction: column; gap: 10px; }
 .wind-block label { min-height: 34px; }
+.wind-control-group { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .condition-block label,
 .condition-block .block.text-sm { font-size: 12px; }
 .condition-field-label,
@@ -212,6 +213,9 @@ body {
 .cloud-layers-stack > .cloud-layer-row { width: 100%; }
 .cloud-add-row { margin-top: 8px; }
 .cloud-layer-row { margin: 0; }
+.cloud-control-group,
+.cloud-metadata-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.cloud-metadata-group { white-space: nowrap; }
 .cloud-checkbox { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; cursor: pointer; }
 .cloud-checkbox input { width: 14px; height: 14px; margin: 0; border: 1px solid var(--taf-border-strong); border-radius: 4px; accent-color: var(--taf-accent); cursor: pointer; }
 .cloud-checkbox span { color: var(--taf-muted); font-size: 11px; font-weight: 650; letter-spacing: .02em; }
@@ -334,11 +338,17 @@ body {
   .taf-editor { padding: 10px; }
   .wind-block label {
     display: grid;
-    grid-template-columns: minmax(112px, 1fr) 122px 26px;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
   }
   .wind-block label > span:first-child { width: auto; }
+  .wind-control-group { justify-self: end; }
+  .wind-block .numeric-control { flex: 0 0 160px; }
   .cloud-layer-row { align-items: flex-start; }
+}
+@media (max-width: 420px) {
+  .cloud-metadata-group { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }

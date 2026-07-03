@@ -85,6 +85,12 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByRole("slider", { name: "Visibility" }).getAttribute("style")).toContain("--visibility-progress: 100%");
     expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
     expect(document.querySelector(".cloud-layers-controls")).not.toContainElement(screen.getByRole("button", { name: "Add Layer" }));
+    expect(document.querySelectorAll(".wind-control-group")).toHaveLength(3);
+    expect(document.querySelectorAll(".cloud-control-group")).toHaveLength(1);
+    const cloudMetadata = document.querySelector(".cloud-metadata-group");
+    expect(cloudMetadata).toHaveTextContent("hundreds ft");
+    expect(cloudMetadata).toHaveTextContent("CB");
+    expect(cloudMetadata).toHaveTextContent("TCU");
 
     const addLayer = screen.getByRole("button", { name: "Add Layer" });
     fireEvent.click(addLayer);

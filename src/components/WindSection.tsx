@@ -55,38 +55,44 @@ export default function WindSection({
       </h4>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windDirection}</span>
-        <NumericControl
-          value={wind.dir}
-          min={0}
-          max={360}
-          step={10}
-          onChange={(value) => onUpdateWind("dir", value)}
-        />
-        <span className="condition-unit">°</span>
+        <span className="wind-control-group">
+          <NumericControl
+            value={wind.dir}
+            min={0}
+            max={360}
+            step={10}
+            onChange={(value) => onUpdateWind("dir", value)}
+          />
+          <span className="condition-unit">°</span>
+        </span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windSpeed}</span>
-        <NumericControl
-          value={wind.speed}
-          min={0}
-          max={99}
-          step={1}
-          formatValue={(v) => String(v).padStart(2, "0")}
-          onChange={(value) => onUpdateWind("speed", value)}
-        />
-        <span className="condition-unit">KT</span>
+        <span className="wind-control-group">
+          <NumericControl
+            value={wind.speed}
+            min={0}
+            max={99}
+            step={1}
+            formatValue={(v) => String(v).padStart(2, "0")}
+            onChange={(value) => onUpdateWind("speed", value)}
+          />
+          <span className="condition-unit">KT</span>
+        </span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windGust}</span>
-        <NumericControl
-          value={wind.gust ?? 0}
-          min={0}
-          max={99}
-          step={1}
-          formatValue={(v) => String(v).padStart(2, "0")}
-          onChange={(value) => onUpdateWind("gust", value)}
-        />
-        <span className="condition-unit">KT</span>
+        <span className="wind-control-group">
+          <NumericControl
+            value={wind.gust ?? 0}
+            min={0}
+            max={99}
+            step={1}
+            formatValue={(v) => String(v).padStart(2, "0")}
+            onChange={(value) => onUpdateWind("gust", value)}
+          />
+          <span className="condition-unit">KT</span>
+        </span>
       </label>
     </div>
   );

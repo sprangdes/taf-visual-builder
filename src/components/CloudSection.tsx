@@ -69,41 +69,45 @@ export default function CloudSection({
       <div className="cloud-layers-controls cloud-layers-stack">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
-            <NumericControl
-              value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
-              min={0}
-              max={cloudAmountOptions.length - 1}
-              step={1}
-              formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
-              onChange={(value) =>
-                onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
-              }
-            />
-            <NumericControl
-              value={c.height}
-              min={0}
-              max={999}
-              step={1}
-              formatValue={(v) => String(v).padStart(3, "0")}
-              onChange={(value) => onUpdateCloud(c.id, "height", value)}
-            />
-            <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
-            <label className="cloud-checkbox">
-              <input
-                type="checkbox"
-                checked={!!c.cb}
-                onChange={(e) => onUpdateCloud(c.id, "cb", e.target.checked)}
+            <span className="cloud-control-group">
+              <NumericControl
+                value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
+                min={0}
+                max={cloudAmountOptions.length - 1}
+                step={1}
+                formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
+                onChange={(value) =>
+                  onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
+                }
               />
-              <span>CB</span>
-            </label>
-            <label className="cloud-checkbox">
-              <input
-                type="checkbox"
-                checked={!!c.tcu}
-                onChange={(e) => onUpdateCloud(c.id, "tcu", e.target.checked)}
+              <NumericControl
+                value={c.height}
+                min={0}
+                max={999}
+                step={1}
+                formatValue={(v) => String(v).padStart(3, "0")}
+                onChange={(value) => onUpdateCloud(c.id, "height", value)}
               />
-              <span>TCU</span>
-            </label>
+            </span>
+            <span className="cloud-metadata-group">
+              <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
+              <label className="cloud-checkbox">
+                <input
+                  type="checkbox"
+                  checked={!!c.cb}
+                  onChange={(e) => onUpdateCloud(c.id, "cb", e.target.checked)}
+                />
+                <span>CB</span>
+              </label>
+              <label className="cloud-checkbox">
+                <input
+                  type="checkbox"
+                  checked={!!c.tcu}
+                  onChange={(e) => onUpdateCloud(c.id, "tcu", e.target.checked)}
+                />
+                <span>TCU</span>
+              </label>
+            </span>
             {clouds.length > 1 && <CloudDeleteButton onClick={() => onRemoveCloud(c.id)} />}
           </div>
         ))}
