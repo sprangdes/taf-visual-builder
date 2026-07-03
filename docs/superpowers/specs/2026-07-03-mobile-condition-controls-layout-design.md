@@ -24,10 +24,10 @@ The numeric control's decrement button, value, and increment button retain their
 
 Each cloud row contains two groups:
 
-- Control group: cloud amount control and cloud-height control.
-- Metadata group: height unit, CB checkbox, and TCU checkbox.
+- Measurement group: cloud amount control, cloud-height control, and the height unit.
+- Checkbox group: CB checkbox and TCU checkbox.
 
-The metadata group is an unbreakable flex group. If both groups fit, they remain on one line. If they do not fit, the complete metadata group moves to the second line. CB and TCU never split across separate rows. A cloud delete action, when present, remains a distinct fixed-size action and must not overlap either group.
+Both groups are internally unbreakable. If both groups fit, they remain on one line. If they do not fit, the complete checkbox group moves to the second line. The height unit always remains beside the cloud-height control, and CB and TCU never split across separate rows. A cloud delete action, when present, remains a distinct fixed-size action and must not overlap either group.
 
 ## Scope
 
@@ -35,9 +35,9 @@ The change is limited to `WindSection`, `CloudSection`, their responsive CSS, an
 
 ## Testing and Verification
 
-- Add structural tests proving cloud metadata is grouped and wind rows expose a stable layout hook.
+- Add structural tests proving cloud measurements and checkboxes are grouped separately and wind rows expose a stable layout hook.
 - Run all existing tests, lint, and production build.
 - Verify the rendered layout at 393px and 635px viewport widths.
 - At both widths, every wind row shows decrement and increment buttons, with controls right-aligned.
-- At 393px, the cloud metadata group may occupy the second row but keeps the unit, CB, and TCU together.
-- At 635px, cloud controls and metadata remain on one row when space permits.
+- At 393px, the checkbox group may occupy the second row while the unit remains with the two cloud controls.
+- At 635px, cloud measurements and checkboxes remain on one row when space permits.

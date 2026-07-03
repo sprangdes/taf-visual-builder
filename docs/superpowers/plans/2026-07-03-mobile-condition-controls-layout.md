@@ -21,13 +21,14 @@ Add assertions to the existing workbench hierarchy test:
 
 ```tsx
 expect(document.querySelectorAll(".wind-control-group")).toHaveLength(3);
-expect(document.querySelector(".cloud-control-group")).toContainElement(
+expect(document.querySelector(".cloud-measurement-group")).toContainElement(
   screen.getAllByRole("spinbutton")[3],
 );
-const cloudMetadata = document.querySelector(".cloud-metadata-group");
-expect(cloudMetadata).toHaveTextContent("hundreds ft");
-expect(cloudMetadata).toHaveTextContent("CB");
-expect(cloudMetadata).toHaveTextContent("TCU");
+const cloudMeasurements = document.querySelector(".cloud-measurement-group");
+expect(cloudMeasurements).toHaveTextContent("hundreds ft");
+const cloudCheckboxes = document.querySelector(".cloud-checkbox-group");
+expect(cloudCheckboxes).toHaveTextContent("CB");
+expect(cloudCheckboxes).toHaveTextContent("TCU");
 ```
 
 - [ ] **Step 2: Verify RED**
@@ -62,12 +63,12 @@ Use the same wrapper for direction and place `°` in its unit span. This gives t
 Inside each `.cloud-layer-row`, render:
 
 ```tsx
-<span className="cloud-control-group">
+<span className="cloud-measurement-group">
   <NumericControl {...amountProps} />
   <NumericControl {...heightProps} />
-</span>
-<span className="cloud-metadata-group">
   <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
+</span>
+<span className="cloud-checkbox-group">
   <label className="cloud-checkbox">...</label>
   <label className="cloud-checkbox">...</label>
 </span>
@@ -99,14 +100,13 @@ Replace the 640px wind grid rule with:
 Add cloud grouping rules:
 
 ```css
-.cloud-control-group,
-.cloud-metadata-group { display: inline-flex; align-items: center; gap: 8px; }
-.cloud-control-group,
-.cloud-metadata-group { flex: 0 0 auto; }
-.cloud-metadata-group { white-space: nowrap; }
+.cloud-measurement-group,
+.cloud-checkbox-group { display: inline-flex; align-items: center; gap: 8px; }
+.cloud-measurement-group,
+.cloud-checkbox-group { flex: 0 0 auto; white-space: nowrap; }
 ```
 
-At `max-width: 640px`, keep `.cloud-layer-row` wrapping by group and set `.cloud-metadata-group` to remain intact. At an additional narrow breakpoint around 420px, set `.cloud-metadata-group { flex-basis: 100%; }` so the complete metadata group moves to row two instead of relying on partial wrapping.
+At `max-width: 640px`, keep `.cloud-layer-row` wrapping by group. At an additional narrow breakpoint around 420px, set `.cloud-checkbox-group { flex-basis: 100%; }` so the complete checkbox group moves to row two while the height unit remains in the measurement group.
 
 - [ ] **Step 4: Verify GREEN**
 
