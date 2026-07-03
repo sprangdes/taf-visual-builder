@@ -122,6 +122,21 @@ Each step contains:
 
 Steps are passive by default. Task gating is used only where performing the action materially improves understanding, such as creating a timeline range. A gated desktop step disables Next until the application reports completion, but Back, Close, and Skip remain available. On mobile, the same step becomes passive.
 
+### Interactive task focus treatment
+
+Desktop task steps must identify both the containing feature area and the controls that accept the required input:
+
+- Apply a high-contrast blue outline and restrained glow to the complete target area.
+- Add a low-intensity pulse to controls that can satisfy the current task.
+- Show an in-context instruction above the controls. For timeline range creation, begin with “Select a start and end time here.”
+- After the first timeline hour is selected, keep the start hour visibly selected, continue prompting the remaining valid hour controls, and change the instruction to “Start selected. Choose an end time.”
+- When the application reports task completion, immediately remove the pulse and in-context instruction, retain ordinary application selection styling, and unlock Next.
+- In dark mode, use a brighter cyan-blue outline that remains distinct from the overlay and existing timeline colors.
+- Under `prefers-reduced-motion: reduce`, replace the pulse with a static outline and retain the instruction.
+- On mobile, task steps remain passive and do not add the desktop task-focus treatment.
+
+`TourProvider` exposes the currently active task event through its public context. The relevant application component derives its task-focus presentation from that state; it does not inspect or mutate Joyride private state or Joyride-owned DOM. The task-focus state is cleared through the same idempotent cleanup path used by finish, Close, Escape, and Skip.
+
 ## Interaction and Data Flow
 
 1. The user activates the existing tour control.
@@ -177,6 +192,10 @@ Steps are passive by default. Task gating is used only where performing the acti
 - Render the desktop/tablet Flight Strip and mobile bottom sheet.
 - Verify light, dark, reduced-motion, and visible-focus states.
 - Verify copy, progress, task-status, and control labels.
+- Verify an active desktop task exposes its contextual instruction and task-focus classes.
+- Verify the timeline instruction changes after the start hour is selected.
+- Verify task-focus presentation clears after completion and on every exit path.
+- Verify mobile task steps do not render desktop task-focus presentation.
 
 ### Integration and browser verification
 
@@ -201,6 +220,9 @@ Steps are passive by default. Task gating is used only where performing the acti
 - Users can launch all three tour types from the header tour menu.
 - Desktop/tablet tours support passive and task-gated steps.
 - Mobile tours use simplified passive instructions.
+- Active desktop task steps visibly identify both the containing feature area and actionable controls.
+- Timeline task guidance distinguishes the initial, start-selected, and completed states.
+- Reduced-motion users receive an equivalent static task-focus treatment.
 - The approved Responsive Flight Strip works in light and dark modes without obscuring the active target.
 - Closing at any point leaves the editor usable and free of tour-owned state.
 - Demonstration data can be kept or fully reverted.
