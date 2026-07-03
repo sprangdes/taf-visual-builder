@@ -3,7 +3,7 @@ import type React from "react";
 import type { IssueTimeInputProps } from "../types/taf";
 import { getCurrentIssueTimeUTC } from "../utils/time";
 
-export default function IssueTimeInput({ value, onChange }: Readonly<IssueTimeInputProps>) {
+export default function IssueTimeInput({ id, value, onChange }: Readonly<IssueTimeInputProps>) {
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -23,6 +23,7 @@ export default function IssueTimeInput({ value, onChange }: Readonly<IssueTimeIn
   return (
     <span className="inline-flex items-center border rounded-xl w-full overflow-hidden">
       <input
+        id={id}
         type="text"
         inputMode="numeric"
         pattern="[0-9]*"

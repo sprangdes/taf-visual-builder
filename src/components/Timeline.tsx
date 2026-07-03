@@ -75,7 +75,7 @@ export default function Timeline({
 
   return (
     <div
-      className="overflow-x-auto lg:overflow-x-visible touch-pan-x"
+      className="timeline-scroll"
       onPointerLeave={() => {
         setHoveredChangeIndex(null);
         setHoveredFreeHour(null);
@@ -83,7 +83,7 @@ export default function Timeline({
       }}
     >
       <div
-        className={`inline-flex min-w-max lg:flex lg:min-w-0 lg:w-full border rounded-xl overflow-hidden select-none ${
+        className={`timeline-track inline-flex min-w-max lg:flex lg:min-w-0 lg:w-full ${
           isDark ? "border-slate-500" : ""
         }`}
       >
@@ -137,7 +137,7 @@ export default function Timeline({
                 setHoveredFreeHour(null);
                 if (pendingRange !== null) setHover(null);
               }}
-              className={`relative shrink-0 w-14 sm:w-16 lg:w-auto lg:flex-1 h-11 sm:h-12 text-xs flex items-center justify-center ${bgClass} cursor-pointer focus:outline-none focus-visible:ring-blue-500`}
+              className={`timeline-hour relative shrink-0 w-14 sm:w-16 lg:w-auto lg:flex-1 ${bgClass}`}
               style={{ transition: "background 0.1s" }}
             >
               <span className="relative z-20">{String(h).padStart(2, "0")}Z</span>

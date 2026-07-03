@@ -30,13 +30,14 @@ export default function CloudSection({
   return (
     <div
       id="tour-clouds"
-      className={`taf-block block text-sm mt-2 p-2 rounded-lg bg-white relative ${
+      className={`taf-block condition-block cloud-block ${
         cloudEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
       {!isBase && cloudEnabled && (
         <button
           type="button"
+          aria-label="Deactivate clouds"
           onClick={() => onSetEnabled(false)}
           className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
           style={{ zIndex: 20 }}
@@ -62,7 +63,7 @@ export default function CloudSection({
 
         <div className="space-y-2 mt-2">
         {clouds.map((c) => (
-          <div key={c.id} className="flex flex-wrap items-center gap-2">
+          <div key={c.id} className="cloud-layer-row">
             <NumericControl
               value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
               min={0}

@@ -194,7 +194,7 @@ function ChangeEditorInner({
   const maxVis = 10000;
 
   return (
-    <div className="taf-editor border border-slate-300 p-3 sm:p-4 rounded-2xl bg-slate-50 space-y-3 relative">
+    <div className="taf-editor">
       <div id={headerId} className="flex items-center relative pr-9">
         <h3 className="font-semibold text-sm sm:text-base flex flex-wrap items-center gap-y-1 m-0 p-0">
           Edit{" "}
@@ -225,7 +225,7 @@ function ChangeEditorInner({
         )}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-2">
+      <div className="condition-grid">
         <WindSection
           isBase={isBase}
           windEnabled={windEnabled}

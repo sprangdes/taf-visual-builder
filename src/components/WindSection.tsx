@@ -19,13 +19,14 @@ export default function WindSection({
   return (
     <div
       id="tour-wind"
-      className={`taf-block min-w-0 flex-1 p-2 rounded-lg flex flex-col gap-2 bg-white relative ${
+      className={`taf-block condition-block wind-block ${
         windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
       {!isBase && windEnabled && (
         <button
           type="button"
+          aria-label="Deactivate wind"
           onClick={() => onSetEnabled(false)}
           className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
           style={{ zIndex: 20 }}

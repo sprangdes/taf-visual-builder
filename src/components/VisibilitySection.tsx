@@ -32,13 +32,14 @@ export default function VisibilitySection({
   return (
     <div
       id="tour-visibility"
-      className={`taf-block min-w-0 flex-1 p-2 rounded-lg flex flex-col gap-2 bg-white relative ${
+      className={`taf-block condition-block visibility-block ${
         visEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
       }`}
     >
       {!isBase && visEnabled && (
         <button
           type="button"
+          aria-label="Deactivate visibility and weather"
           onClick={() => onSetEnabled(false)}
           className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
           style={{ zIndex: 20 }}
@@ -82,7 +83,7 @@ export default function VisibilitySection({
 
       <div className="block text-sm">
         <div className="mb-1">Weather</div>
-        <div className="flex flex-wrap gap-2 mb-2 items-center">
+        <div className="weather-options">
           {weatherOptions.map((opt) => (
             <button
               key={opt.code === " " ? "space" : opt.code}
@@ -104,7 +105,7 @@ export default function VisibilitySection({
           ))}
         </div>
 
-        <div className="selected-weather-box p-2 rounded-lg bg-slate-50 flex flex-wrap gap-2 items-center content-start mt-2 min-h-11">
+        <div className="selected-weather-box weather-selection">
           {weatherArr.map((w, idx) => {
             const opt = weatherOptions.find((o) => o.code === w);
             const bgClass = opt ? opt.color : "bg-white";
@@ -129,7 +130,7 @@ export default function VisibilitySection({
             );
           })}
           {showError && (
-            <span className="text-red-500 text-sm w-full sm:w-auto sm:ml-2">
+            <span className="inline-error" role="alert">
               Visibility 5000m Or Below, Weather Must Be Selected
             </span>
           )}

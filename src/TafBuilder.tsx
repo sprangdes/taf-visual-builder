@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import IssueTimeInput from "./components/IssueTimeInput";
 import Timeline from "./components/Timeline";
+import SectionHeader from "./components/layout/SectionHeader";
 import type { TAF, TAFChange } from "./types/taf";
 import { addTempo, generateTAF } from "./utils/taf";
 import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } from "./utils/time";
@@ -350,20 +351,33 @@ export default function TafBuilder() {
     scheduleRefresh(0);
   }
 
+  const changeLegend = (
+    <div className="timeline-legend" aria-label="Change type legend">
+      {(["TEMPO", "BECMG", "FM"] as const).map((type) => (
+        <span key={type} className="timeline-legend-item">
+          <i className={`timeline-legend-swatch timeline-legend-${type.toLowerCase()}`} aria-hidden="true" />
+          {type}
+        </span>
+      ))}
+    </div>
+  );
+
   return (
-    <div
-      className={`taf-app mx-auto max-w-6xl lg:min-w-260 p-3 sm:p-4 md:p-6 space-y-4 md:space-y-5 ${
-        isDark ? "taf-dark" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg sm:text-xl font-bold">TAF Visual Builder</h1>
-        <div className="flex items-center gap-2">
+    <div className={`taf-app ${isDark ? "taf-dark" : ""}`}>
+      <header className="workbench-appbar">
+        <div className="workbench-brand">
+          <span className="workbench-brand-mark" aria-hidden="true">TAF</span>
+          <div>
+            <h1>TAF Visual Builder</h1>
+            <p>Aviation Weather Workbench</p>
+          </div>
+        </div>
+        <div className="workbench-actions">
           <button
             type="button"
             aria-label="Start guided tour"
             title="Start guided tour"
-            className="theme-toggle border rounded-full w-9 h-9 inline-flex items-center justify-center"
+            className="theme-toggle icon-button"
             onClick={handleStartTour}
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true" fill="currentColor">
@@ -374,7 +388,7 @@ export default function TafBuilder() {
             type="button"
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            className="theme-toggle border rounded-full w-9 h-9 inline-flex items-center justify-center"
+            className="theme-toggle icon-button"
             onClick={() => setIsDark((prev) => !prev)}
           >
             {isDark ? (
@@ -389,29 +403,29 @@ export default function TafBuilder() {
             )}
           </button>
         </div>
-      </div>
+      </header>
 
-      <section id="tour-header" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
-        <h2 className="font-semibold">Header</h2>
-        <div className="mt-2 flex flex-col items-start md:flex-row md:items-center gap-2">
-          <input
-            value={taf.station}
-            onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))}
-            className="border p-1 rounded-xl w-36 md:w-40"
-            placeholder="ICAO Code"
-          />
-          <div className="w-36 md:w-40">
-            <IssueTimeInput
-              value={taf.issueTime}
-              onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))}
-            />
-          </div>
-        </div>
-      </section>
+      <main className="workbench-shell">
+        <div className="workbench-grid">
+          <div className="workbench-editor">
+            <section id="tour-header" className="taf-panel workbench-panel">
+              <SectionHeader step="01" title="Forecast context" description="Identify the aerodrome and forecast issue time." />
+              <div className="workbench-panel-body forecast-context-fields">
+                <label className="workbench-field" htmlFor="taf-station">
+                  <span>ICAO station code</span>
+                  <input id="taf-station" value={taf.station} onChange={(e) => setTaf((prev) => ({ ...prev, station: e.target.value }))} placeholder="ICAO Code" />
+                </label>
+                <label className="workbench-field" htmlFor="taf-issue-time">
+                  <span>Issue time · DDHHMM</span>
+                  <IssueTimeInput id="taf-issue-time" value={taf.issueTime} onChange={(val) => setTaf((prev) => ({ ...prev, issueTime: val }))} />
+                </label>
+              </div>
+            </section>
 
-      <section id="tour-base-forecast" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
-        <h2 className="font-semibold">Base Forecast</h2>
-        <ChangeEditor
+            <section id="tour-base-forecast" className="taf-panel workbench-panel">
+              <SectionHeader step="02" title="Base forecast" description="Set prevailing conditions for the full validity period." aside={<span className="technical-time">{String(basePeriod.from).padStart(2, "0")}Z → {String(basePeriod.to).padStart(2, "0")}Z</span>} />
+              <div className="workbench-panel-body">
+              <ChangeEditor
           change={{
             from: basePeriod.from,
             to: basePeriod.to,
@@ -437,35 +451,14 @@ export default function TafBuilder() {
               },
             }))
           }
-        />
-      </section>
+              />
+              </div>
+            </section>
 
-      <section id="tour-timeline" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
-          <h2 className="font-semibold mb-0">Timeline</h2>
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            <div className="flex items-center gap-1">
-              <span
-                className={`w-4 h-4 rounded-sm border border-black ${isDark ? "bg-yellow-700" : "bg-yellow-300"}`}
-              />
-              <span className="text-xs">TEMPO</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span
-                className={`w-4 h-4 rounded-sm border border-black ${isDark ? "bg-green-700" : "bg-green-300"}`}
-              />
-              <span className="text-xs">BECMG</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span
-                className={`w-4 h-4 rounded-sm border border-black ${isDark ? "bg-orange-700" : "bg-orange-300"}`}
-              />
-              <span className="text-xs">FM</span>
-            </div>
-          </div>
-        </div>
-
-        <Timeline
+            <section id="tour-timeline" className="taf-panel workbench-panel">
+              <SectionHeader step="03" title="Forecast timeline" description="Select a start and end hour to create a change block." aside={changeLegend} />
+              <div className="workbench-panel-body">
+              <Timeline
           changes={taf.changes}
           startHour={timelineStartHour}
           isDark={isDark}
@@ -473,14 +466,15 @@ export default function TafBuilder() {
           onSelectChange={(index) => {
             setSelectedChangeIndex((prev) => (prev === index ? null : index));
           }}
-        />
-      </section>
+              />
+              </div>
+            </section>
 
-      {selectedChangeIndex !== null && (
-        <section id="tour-selected-change" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
-          <h2 className="font-semibold">Selected Change</h2>
-          <div id="tour-selected-change-settings">
-            <ChangeEditor
+            {selectedChangeIndex !== null && (
+              <section id="tour-selected-change" className="taf-panel workbench-panel">
+                <SectionHeader step="04" title="Selected change" description="Fine-tune the conditions that change in this period." />
+                <div id="tour-selected-change-settings" className="workbench-panel-body">
+                  <ChangeEditor
               key={selectedChangeIndex}
               change={taf.changes[selectedChangeIndex]}
               onUpdate={(updated) => updateChange(selectedChangeIndex, updated as TAFChange)}
@@ -488,17 +482,20 @@ export default function TafBuilder() {
               onDelete={handleDelete}
               onChangeType={handleChangeType}
               headerId="tour-change-header-selected"
-            />
+                  />
+                </div>
+              </section>
+            )}
           </div>
-        </section>
-      )}
 
-      <section id="tour-generated-taf" className="taf-panel p-3 sm:p-4 rounded-xl bg-white/90">
-        <h2 className="font-semibold">Generated TAF</h2>
-        <pre className="taf-code whitespace-pre-wrap overflow-x-auto text-xs sm:text-sm p-3 rounded-xl border">
-          {generateTAF(taf)}
-        </pre>
-      </section>
+          <section id="tour-generated-taf" className="taf-panel workbench-panel workbench-output">
+            <SectionHeader step="05" title="Generated TAF" description="Updates live as conditions change." aside={<span className="live-indicator"><i aria-hidden="true" />Live</span>} />
+            <div className="workbench-panel-body">
+              <pre data-testid="generated-taf" className="taf-code">{generateTAF(taf)}</pre>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
