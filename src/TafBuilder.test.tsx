@@ -14,6 +14,7 @@ describe("TafBuilder aviation workbench", () => {
     render(<TafBuilder />);
     const headings = screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent);
     expect(headings).toEqual([
+      "Create Terminal Aerodrome Forecast",
       "Forecast context",
       "Base forecast",
       "Forecast timeline",
@@ -44,5 +45,14 @@ describe("TafBuilder aviation workbench", () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
     expect(localStorage.getItem("taf-dark-mode")).toBe("1");
+  });
+
+  it("matches the approved workbench hierarchy", () => {
+    render(<TafBuilder />);
+    expect(screen.getByRole("heading", { name: "Create Terminal Aerodrome Forecast" })).toBeVisible();
+    expect(screen.getByTestId("workbench-grid")).toContainElement(screen.getByTestId("generated-taf"));
+    expect(screen.getByRole("heading", { name: "Wind" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Visibility & weather" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Cloud layers" })).toBeVisible();
   });
 });

@@ -57,9 +57,10 @@ export default function CloudSection({
         </div>
       )}
 
-      <div className="flex items-center space-x-2">
-        <span>Clouds</span>
-      </div>
+      <h4 className="condition-block-title">
+        <span className="condition-block-icon" aria-hidden="true">☁</span>
+        Cloud layers
+      </h4>
 
         <div className="space-y-2 mt-2">
         {clouds.map((c) => (

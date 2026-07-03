@@ -16,6 +16,7 @@
   --taf-radius-panel: 14px;
   --taf-radius-control: 9px;
 }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 
 body {
   margin: 0;
@@ -80,6 +81,8 @@ body {
 .icon-button:hover { background: #214b68; }
 
 .workbench-shell { max-width: 1440px; margin: 0 auto; padding: 24px 30px 44px; }
+.workbench-page-heading { display: flex; align-items: center; min-height: 40px; margin-bottom: 12px; }
+.workbench-page-heading h2 { margin: 0; color: var(--taf-text); font-size: 20px; font-weight: 760; letter-spacing: -.01em; }
 .workbench-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
 .workbench-editor { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .workbench-panel {
@@ -157,6 +160,8 @@ body {
   border-radius: 10px;
   background: var(--taf-surface);
 }
+.condition-block-title { display: flex; align-items: center; gap: 8px; margin: 0 0 11px; color: var(--taf-text); font-size: 14px; font-weight: 760; }
+.condition-block-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; background: #e8f4fa; color: #1c6f9e; font-size: 13px; }
 .cloud-block { margin-top: 10px; font-size: 14px; }
 .wind-block { display: flex; flex-direction: column; gap: 10px; }
 .wind-block label { min-height: 34px; }
@@ -241,6 +246,8 @@ body {
   .workbench-brand h1 { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
   .workbench-brand-mark { width: 34px; height: 34px; }
   .workbench-shell { padding: 12px 10px 30px; }
+  .workbench-page-heading { min-height: 34px; margin-bottom: 10px; }
+  .workbench-page-heading h2 { font-size: 17px; }
   .forecast-context-fields { grid-template-columns: minmax(0, 1fr); }
   .workbench-section-header { align-items: stretch; flex-direction: column; padding: 13px; }
   .workbench-section-title h2,

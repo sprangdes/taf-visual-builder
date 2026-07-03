@@ -58,11 +58,15 @@ export default function VisibilitySection({
           </button>
         </div>
       )}
+      <h4 className="condition-block-title">
+        <span className="condition-block-icon" aria-hidden="true">◉</span>
+        Visibility &amp; weather
+      </h4>
       <label htmlFor="visibility" className="block text-sm">
         <div className="flex flex-wrap items-center gap-1">
-          <span id="visibility-label">Visibility</span>
+          <span id="visibility-label" className="visually-hidden">Visibility</span>
           <span className="visibility-value ml-2 text-[14px] font-medium text-gray-800">
-            {visibility} m
+            {visibility.toLocaleString("en-US")} m
           </span>
         </div>
         <div className="w-full mt-2">

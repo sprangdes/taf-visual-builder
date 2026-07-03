@@ -406,7 +406,10 @@ export default function TafBuilder() {
       </header>
 
       <main className="workbench-shell">
-        <div className="workbench-grid">
+        <div className="workbench-page-heading">
+          <h2>Create Terminal Aerodrome Forecast</h2>
+        </div>
+        <div className="workbench-grid" data-testid="workbench-grid">
           <div className="workbench-editor">
             <section id="tour-header" className="taf-panel workbench-panel">
               <SectionHeader step="01" title="Forecast context" description="Identify the aerodrome and forecast issue time." />

@@ -45,6 +45,10 @@ export default function WindSection({
           </button>
         </div>
       )}
+      <h4 className="condition-block-title">
+        <span className="condition-block-icon" aria-hidden="true">↗</span>
+        Wind
+      </h4>
       <label className="text-sm flex flex-wrap items-center gap-2">
         <span className="inline-block w-24 sm:w-28">Wind Direction</span>
         <NumericControl
