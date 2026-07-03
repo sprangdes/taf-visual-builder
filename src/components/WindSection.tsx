@@ -19,29 +19,31 @@ export default function WindSection({
   return (
     <div
       id="tour-wind"
-      className={`taf-block condition-block wind-block ${
-        windEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
-      }`}
+      className={`taf-block condition-block wind-block ${windEnabled ? "" : "is-inactive"}`}
     >
       {!isBase && windEnabled && (
         <button
           type="button"
           aria-label="Deactivate wind"
           onClick={() => onSetEnabled(false)}
-          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
-          style={{ zIndex: 20 }}
+          className="condition-block-deactivate"
         >
           X
         </button>
       )}
       {!windEnabled && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+        <div className="condition-block-overlay">
           <button
             type="button"
+            aria-label="Activate wind to edit"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs sm:text-sm cursor-pointer"
+            className="condition-block-activate"
           >
-            Active Wind to Edit
+            <span className="condition-block-activate-icon" aria-hidden="true">+</span>
+            <span className="condition-block-activate-copy">
+              <strong>Activate wind</strong>
+              <small>Include this section in the change</small>
+            </span>
           </button>
         </div>
       )}
@@ -84,7 +86,6 @@ export default function WindSection({
         />
         <span className="text-sm">KT</span>
       </label>
-      {!windEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-lg" />}
     </div>
   );
 }

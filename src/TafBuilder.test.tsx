@@ -62,7 +62,7 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByTestId("generated-taf").querySelector(".taf-code-keyword")).not.toBeNull();
     expect(screen.getByRole("slider", { name: "Visibility" }).getAttribute("style")).toContain("--visibility-progress: 100%");
     expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
-    expect(document.querySelector(".cloud-layers-controls")).toContainElement(screen.getByRole("button", { name: "Add Layer" }));
+    expect(document.querySelector(".cloud-layers-controls")).not.toContainElement(screen.getByRole("button", { name: "Add Layer" }));
   });
 
   it("uses the approved text delete action for a selected change", () => {
@@ -70,5 +70,17 @@ describe("TafBuilder aviation workbench", () => {
     fireEvent.click(screen.getByLabelText("Select 12Z"));
     fireEvent.click(screen.getByLabelText("Select 14Z"));
     expect(screen.getByRole("button", { name: "Delete change" })).toBeVisible();
+  });
+
+  it("keeps change blocks masked until explicitly activated", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select 12Z"));
+    fireEvent.click(screen.getByLabelText("Select 14Z"));
+
+    const activateWind = screen.getByRole("button", { name: "Activate wind to edit" });
+    expect(activateWind.closest(".condition-block")).toHaveClass("is-inactive");
+    fireEvent.click(activateWind);
+    expect(screen.getByRole("button", { name: "Deactivate wind" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Activate wind to edit" })).not.toBeInTheDocument();
   });
 });

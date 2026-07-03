@@ -30,29 +30,31 @@ export default function CloudSection({
   return (
     <div
       id="tour-clouds"
-      className={`taf-block condition-block cloud-block ${
-        cloudEnabled ? "" : "opacity-60 bg-gray-300 pointer-events-none grayscale"
-      }`}
+      className={`taf-block condition-block cloud-block ${cloudEnabled ? "" : "is-inactive"}`}
     >
       {!isBase && cloudEnabled && (
         <button
           type="button"
           aria-label="Deactivate clouds"
           onClick={() => onSetEnabled(false)}
-          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-base font-semibold rounded-full hover:bg-gray-200 transition text-gray-400"
-          style={{ zIndex: 20 }}
+          className="condition-block-deactivate"
         >
           X
         </button>
       )}
       {!cloudEnabled && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+        <div className="condition-block-overlay">
           <button
             type="button"
+            aria-label="Activate clouds to edit"
             onClick={() => onSetEnabled(true)}
-            className="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs sm:text-sm cursor-pointer"
+            className="condition-block-activate"
           >
-            Active Clouds to Edit
+            <span className="condition-block-activate-icon" aria-hidden="true">+</span>
+            <span className="condition-block-activate-copy">
+              <strong>Activate cloud layers</strong>
+              <small>Include this section in the change</small>
+            </span>
           </button>
         </div>
       )}
@@ -104,6 +106,9 @@ export default function CloudSection({
           </div>
         ))}
 
+      </div>
+
+      <div className="cloud-add-row">
         <button
           type="button"
           onClick={onAddCloud}
@@ -112,8 +117,6 @@ export default function CloudSection({
           Add Layer
         </button>
       </div>
-
-      {!cloudEnabled && <div className="absolute inset-0 bg-gray-400/40 backdrop-blur-[2px] rounded-lg" />}
     </div>
   );
 }

@@ -42,24 +42,12 @@ export default function Timeline({
   const { pendingRange, selectHour, hoverHour, setHover, reset } = useTimeRange();
   const [hoveredChangeIndex, setHoveredChangeIndex] = useState<number | null>(null);
   const [hoveredFreeHour, setHoveredFreeHour] = useState<number | null>(null);
-  const timelineBaseColorByType = isDark
-    ? {
-        TEMPO: "bg-yellow-700",
-        BECMG: "bg-green-700",
-        FM: "bg-orange-700",
-      }
-    : timelineColorByType;
-  const timelineHoverColorByType = isDark
-    ? {
-        TEMPO: "bg-yellow-800",
-        BECMG: "bg-green-800",
-        FM: "bg-orange-800",
-      }
-    : {
-        TEMPO: "bg-yellow-400",
-        BECMG: "bg-green-400",
-        FM: "bg-orange-400",
-      };
+  const timelineBaseColorByType = timelineColorByType;
+  const timelineHoverColorByType = {
+    TEMPO: "timeline-tone-tempo-hover",
+    BECMG: "timeline-tone-becmg-hover",
+    FM: "timeline-tone-fm-hover",
+  };
   const neutralHoverClass = isDark ? "bg-slate-600" : "bg-gray-200";
   const neutralBaseClass = isDark ? "bg-slate-800 text-gray-100" : "bg-white";
   const separatorClass = isDark
