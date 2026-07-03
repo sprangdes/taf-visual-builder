@@ -1,4 +1,5 @@
 import { weatherOptions } from "../constants/weather";
+import type { CSSProperties } from "react";
 
 interface VisibilitySectionProps {
   isBase: boolean;
@@ -63,10 +64,17 @@ export default function VisibilitySection({
         Visibility &amp; weather
       </h4>
       <label htmlFor="visibility" className="block text-sm">
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="visibility-summary">
           <span id="visibility-label" className="visually-hidden">Visibility</span>
           <span className="visibility-value ml-2 text-[14px] font-medium text-gray-800">
             {visibility.toLocaleString("en-US")} m
+          </span>
+          <span className="visibility-context">
+            {isBase
+              ? `Maximum ${maxVis.toLocaleString("en-US")} m`
+              : weatherArr.length > 0
+                ? `Weather: ${weatherArr.join(" ")}`
+                : ""}
           </span>
         </div>
         <div className="w-full mt-2">
@@ -80,7 +88,10 @@ export default function VisibilitySection({
             className="w-full accent-gray-400"
             value={visibility}
             onChange={(e) => onUpdateVisibility(Number(e.target.value))}
-            style={{ zIndex: 1 }}
+            style={{
+              "--visibility-progress": `${((visibility - minVis) / (maxVis - minVis)) * 100}%`,
+              zIndex: 1,
+            } as CSSProperties}
           />
         </div>
       </label>

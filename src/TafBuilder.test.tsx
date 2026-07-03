@@ -60,6 +60,9 @@ describe("TafBuilder aviation workbench", () => {
       "STATION", "VALIDITY", "BASE", "CHANGES",
     ]);
     expect(screen.getByTestId("generated-taf").querySelector(".taf-code-keyword")).not.toBeNull();
+    expect(screen.getByRole("slider", { name: "Visibility" }).getAttribute("style")).toContain("--visibility-progress: 100%");
+    expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
+    expect(document.querySelector(".cloud-layers-controls")).toContainElement(screen.getByRole("button", { name: "Add Layer" }));
   });
 
   it("uses the approved text delete action for a selected change", () => {

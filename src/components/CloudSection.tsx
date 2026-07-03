@@ -62,7 +62,7 @@ export default function CloudSection({
         Cloud layers
       </h4>
 
-        <div className="space-y-2 mt-2">
+      <div className="cloud-layers-controls">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
             <NumericControl
@@ -83,7 +83,7 @@ export default function CloudSection({
               formatValue={(v) => String(v).padStart(3, "0")}
               onChange={(value) => onUpdateCloud(c.id, "height", value)}
             />
-            <span className="text-sm">(hundreds ft)</span>
+            <span className="cloud-height-unit">hundreds ft</span>
             <label className="inline-flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
