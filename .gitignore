@@ -14,6 +14,7 @@ dist-ssr
 *.tsbuildinfo
 taf-visual-builder*.zip
 .superpowers/
+.worktrees/
 
 # Editor directories and files
 .vscode/*
