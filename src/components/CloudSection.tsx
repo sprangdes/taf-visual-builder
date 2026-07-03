@@ -5,6 +5,13 @@ import CloudDeleteButton from "./buttons/CloudDeleteButton";
 import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
 
+const cloudAmountPickerOptions = cloudAmountOptions.map((label, value) => ({ value, label }));
+
+const cloudHeightPickerOptions = Array.from({ length: 1000 }, (_, value) => ({
+  value,
+  label: String(value).padStart(3, "0"),
+}));
+
 interface CloudSectionProps {
   isBase: boolean;
   cloudEnabled: boolean;
@@ -76,7 +83,7 @@ export default function CloudSection({
                 max={cloudAmountOptions.length - 1}
                 step={1}
                 mobileEditor="select"
-                mobileOptions={cloudAmountOptions}
+                mobileOptions={cloudAmountPickerOptions}
                 formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
                 onChange={(value) =>
                   onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
@@ -87,7 +94,8 @@ export default function CloudSection({
                 min={0}
                 max={999}
                 step={1}
-                mobileEditor="numeric"
+                mobileEditor="select"
+                mobileOptions={cloudHeightPickerOptions}
                 formatValue={(v) => String(v).padStart(3, "0")}
                 onChange={(value) => onUpdateCloud(c.id, "height", value)}
               />

@@ -2,6 +2,16 @@ import type { Wind } from "../types/taf";
 import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
 
+const windDirectionOptions = Array.from({ length: 37 }, (_, index) => ({
+  value: index * 10,
+  label: String(index * 10),
+}));
+
+const twoDigitWindOptions = Array.from({ length: 100 }, (_, value) => ({
+  value,
+  label: String(value).padStart(2, "0"),
+}));
+
 interface WindSectionProps {
   isBase: boolean;
   windEnabled: boolean;
@@ -61,7 +71,8 @@ export default function WindSection({
             min={0}
             max={360}
             step={10}
-            mobileEditor="numeric"
+            mobileEditor="select"
+            mobileOptions={windDirectionOptions}
             onChange={(value) => onUpdateWind("dir", value)}
           />
           <span className="condition-unit">°</span>
@@ -75,7 +86,8 @@ export default function WindSection({
             min={0}
             max={99}
             step={1}
-            mobileEditor="numeric"
+            mobileEditor="select"
+            mobileOptions={twoDigitWindOptions}
             formatValue={(v) => String(v).padStart(2, "0")}
             onChange={(value) => onUpdateWind("speed", value)}
           />
@@ -90,7 +102,8 @@ export default function WindSection({
             min={0}
             max={99}
             step={1}
-            mobileEditor="numeric"
+            mobileEditor="select"
+            mobileOptions={twoDigitWindOptions}
             formatValue={(v) => String(v).padStart(2, "0")}
             onChange={(value) => onUpdateWind("gust", value)}
           />

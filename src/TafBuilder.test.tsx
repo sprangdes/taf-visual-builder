@@ -92,12 +92,25 @@ describe("TafBuilder aviation workbench", () => {
     const cloudCheckboxes = document.querySelector(".cloud-checkbox-group");
     expect(cloudCheckboxes).toHaveTextContent("CB");
     expect(cloudCheckboxes).toHaveTextContent("TCU");
-    expect(document.querySelectorAll('input[inputmode="numeric"]')).toHaveLength(5);
-    const cloudAmountEditor = document.querySelector("select.numeric-control-mobile-editor");
-    expect(cloudAmountEditor).not.toBeNull();
-    expect(Array.from(cloudAmountEditor?.querySelectorAll("option") ?? [], (option) => option.textContent)).toEqual([
-      "FEW", "SCT", "BKN", "OVC",
-    ]);
+    expect(document.querySelectorAll('input[inputmode="numeric"]')).toHaveLength(1);
+    const mobilePickers = Array.from(document.querySelectorAll<HTMLSelectElement>("select.numeric-control-mobile-editor"));
+    expect(mobilePickers).toHaveLength(5);
+    const optionValues = (picker: HTMLSelectElement) =>
+      Array.from(picker.options, (option) => option.value);
+    const optionLabels = (picker: HTMLSelectElement) =>
+      Array.from(picker.options, (option) => option.textContent);
+
+    expect(optionValues(mobilePickers[0])).toHaveLength(37);
+    expect(optionValues(mobilePickers[0]).slice(0, 3)).toEqual(["0", "10", "20"]);
+    expect(optionValues(mobilePickers[0]).at(-1)).toBe("360");
+    expect(optionLabels(mobilePickers[1])).toHaveLength(100);
+    expect(optionLabels(mobilePickers[1])[0]).toBe("00");
+    expect(optionLabels(mobilePickers[1]).at(-1)).toBe("99");
+    expect(optionLabels(mobilePickers[2])).toHaveLength(100);
+    expect(optionLabels(mobilePickers[3])).toEqual(["FEW", "SCT", "BKN", "OVC"]);
+    expect(optionLabels(mobilePickers[4])).toHaveLength(1000);
+    expect(optionLabels(mobilePickers[4])[0]).toBe("000");
+    expect(optionLabels(mobilePickers[4]).at(-1)).toBe("999");
 
     const addLayer = screen.getByRole("button", { name: "Add Layer" });
     fireEvent.click(addLayer);
