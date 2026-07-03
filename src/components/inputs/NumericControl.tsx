@@ -8,6 +8,8 @@ interface NumericControlProps {
   step?: number;
   onChange: (value: number) => void;
   formatValue?: (value: number) => string;
+  mobileEditor?: "numeric" | "select";
+  mobileOptions?: readonly string[];
 }
 
 export default function NumericControl({
@@ -17,6 +19,8 @@ export default function NumericControl({
   step = 1,
   onChange,
   formatValue,
+  mobileEditor,
+  mobileOptions = [],
 }: Readonly<NumericControlProps>) {
   const { text } = useLanguage();
   const holdDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,9 +67,18 @@ export default function NumericControl({
   const display = formatValue ? formatValue(value) : String(value);
   const valueText = formatValue ? formatValue(value) : String(value);
 
+  const handleNumericChange = (rawValue: string) => {
+    const digits = rawValue.replaceAll(/\D/g, "");
+    if (!digits) return;
+
+    const next = Math.max(min, Math.min(max, Number.parseInt(digits, 10)));
+    valueRef.current = next;
+    onChange(next);
+  };
+
   return (
     <div
-      className="numeric-control"
+      className={`numeric-control ${mobileEditor ? "numeric-control--has-mobile-editor" : ""}`}
       tabIndex={0}
       role="spinbutton"
       aria-valuemin={min}
@@ -98,6 +111,35 @@ export default function NumericControl({
         -
       </button>
       <div className="numeric-control-display">{display}</div>
+      {mobileEditor === "numeric" && (
+        <input
+          type="text"
+          className="numeric-control-mobile-editor"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          min={min}
+          max={max}
+          value={display}
+          onChange={(event) => handleNumericChange(event.target.value)}
+        />
+      )}
+      {mobileEditor === "select" && (
+        <select
+          className="numeric-control-mobile-editor"
+          value={value}
+          onChange={(event) => {
+            const next = Number.parseInt(event.target.value, 10);
+            valueRef.current = next;
+            onChange(next);
+          }}
+        >
+          {mobileOptions.map((option, index) => (
+            <option key={option} value={index}>
+              {option}
+            </option>
+          ))}
+        </select>
+      )}
       <button
         type="button"
         className="numeric-control-btn"

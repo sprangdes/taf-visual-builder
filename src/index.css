@@ -240,6 +240,7 @@ body {
 .numeric-control-btn { height: 100%; border: 0; background: #f0f5f8; color: #2d607f; font-weight: 800; }
 .numeric-control-btn:hover { background: #e2edf3; }
 .numeric-control-display { text-align: center; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; user-select: none; }
+.numeric-control-mobile-editor { display: none; }
 
 .timeline-legend { flex-wrap: wrap; gap: 12px; }
 .timeline-legend-item { gap: 5px; color: var(--taf-muted); font-size: 11px; font-weight: 650; }
@@ -652,6 +653,23 @@ body.taf-dark-page {
 
 
 @media (max-width: 639px) {
+  .numeric-control--has-mobile-editor .numeric-control-display { display: none; }
+  .numeric-control-mobile-editor {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline-offset: -2px;
+    background: var(--taf-surface);
+    color: var(--taf-text);
+    font: 750 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    text-align-last: center;
+  }
   .tour-flight-strip { border-radius: 16px 16px 0 0; }
   .tour-flight-strip::before { content: ""; display: block; width: 38px; height: 3px; margin: 8px auto -2px; border-radius: 4px; background: #b1c1c9; }
   .tour-flight-strip-inner { display: block; min-height: 0; padding: 14px 18px 16px; }
