@@ -213,9 +213,8 @@ body {
 .cloud-layers-stack > .cloud-layer-row { width: 100%; }
 .cloud-add-row { margin-top: 8px; }
 .cloud-layer-row { margin: 0; }
-.cloud-control-group,
-.cloud-metadata-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
-.cloud-metadata-group { white-space: nowrap; }
+.cloud-measurement-group,
+.cloud-checkbox-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; white-space: nowrap; }
 .cloud-checkbox { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; cursor: pointer; }
 .cloud-checkbox input { width: 14px; height: 14px; margin: 0; border: 1px solid var(--taf-border-strong); border-radius: 4px; accent-color: var(--taf-accent); cursor: pointer; }
 .cloud-checkbox span { color: var(--taf-muted); font-size: 11px; font-weight: 650; letter-spacing: .02em; }
@@ -348,7 +347,7 @@ body {
   .cloud-layer-row { align-items: flex-start; }
 }
 @media (max-width: 420px) {
-  .cloud-metadata-group { flex-basis: 100%; }
+  .cloud-checkbox-group { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }

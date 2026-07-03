@@ -86,11 +86,12 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
     expect(document.querySelector(".cloud-layers-controls")).not.toContainElement(screen.getByRole("button", { name: "Add Layer" }));
     expect(document.querySelectorAll(".wind-control-group")).toHaveLength(3);
-    expect(document.querySelectorAll(".cloud-control-group")).toHaveLength(1);
-    const cloudMetadata = document.querySelector(".cloud-metadata-group");
-    expect(cloudMetadata).toHaveTextContent("hundreds ft");
-    expect(cloudMetadata).toHaveTextContent("CB");
-    expect(cloudMetadata).toHaveTextContent("TCU");
+    expect(document.querySelectorAll(".cloud-measurement-group")).toHaveLength(1);
+    const cloudMeasurements = document.querySelector(".cloud-measurement-group");
+    expect(cloudMeasurements).toHaveTextContent("hundreds ft");
+    const cloudCheckboxes = document.querySelector(".cloud-checkbox-group");
+    expect(cloudCheckboxes).toHaveTextContent("CB");
+    expect(cloudCheckboxes).toHaveTextContent("TCU");
 
     const addLayer = screen.getByRole("button", { name: "Add Layer" });
     fireEvent.click(addLayer);

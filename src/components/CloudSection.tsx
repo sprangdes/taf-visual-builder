@@ -69,7 +69,7 @@ export default function CloudSection({
       <div className="cloud-layers-controls cloud-layers-stack">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
-            <span className="cloud-control-group">
+            <span className="cloud-measurement-group">
               <NumericControl
                 value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
                 min={0}
@@ -88,9 +88,9 @@ export default function CloudSection({
                 formatValue={(v) => String(v).padStart(3, "0")}
                 onChange={(value) => onUpdateCloud(c.id, "height", value)}
               />
-            </span>
-            <span className="cloud-metadata-group">
               <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
+            </span>
+            <span className="cloud-checkbox-group">
               <label className="cloud-checkbox">
                 <input
                   type="checkbox"
