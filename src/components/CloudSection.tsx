@@ -107,7 +107,7 @@ export default function CloudSection({
         <button
           type="button"
           onClick={onAddCloud}
-          className={`${weatherButtonClass} text-xs`}
+          className={`${weatherButtonClass} cloud-add-button`}
         >
           Add Layer
         </button>

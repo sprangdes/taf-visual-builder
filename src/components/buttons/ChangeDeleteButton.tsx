@@ -28,7 +28,8 @@ export default function ChangeDeleteButton({
     <>
       <button
         ref={btnRef}
-        className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+        className="change-delete-button"
+        aria-label="Delete change"
         onClick={(e) => {
           e.stopPropagation();
           onClick();
@@ -44,7 +45,7 @@ export default function ChangeDeleteButton({
         style={{ zIndex: 10 }}
         type="button"
       >
-        X
+        Delete change
       </button>
       {showTooltip && (
         <div

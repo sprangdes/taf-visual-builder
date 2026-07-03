@@ -3,6 +3,7 @@ import ChangeEditor from "./components/ChangeEditor";
 import IssueTimeInput from "./components/IssueTimeInput";
 import Timeline from "./components/Timeline";
 import SectionHeader from "./components/layout/SectionHeader";
+import GeneratedTafOutput from "./components/GeneratedTafOutput";
 import type { TAF, TAFChange } from "./types/taf";
 import { addTempo, generateTAF } from "./utils/taf";
 import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } from "./utils/time";
@@ -494,7 +495,13 @@ export default function TafBuilder() {
           <section id="tour-generated-taf" className="taf-panel workbench-panel workbench-output">
             <SectionHeader step="05" title="Generated TAF" description="Updates live as conditions change." aside={<span className="live-indicator"><i aria-hidden="true" />Live</span>} />
             <div className="workbench-panel-body">
-              <pre data-testid="generated-taf" className="taf-code">{generateTAF(taf)}</pre>
+              <GeneratedTafOutput
+                text={generateTAF(taf)}
+                station={taf.station}
+                validityFrom={basePeriod.from}
+                validityTo={basePeriod.to}
+                changeCount={taf.changes.length}
+              />
             </div>
           </section>
         </div>

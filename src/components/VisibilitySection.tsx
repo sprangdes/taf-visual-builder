@@ -92,7 +92,7 @@ export default function VisibilitySection({
             <button
               key={opt.code === " " ? "space" : opt.code}
               type="button"
-              className={`px-2 py-1 rounded-lg border border-slate-200 ${opt.color} text-black cursor-pointer`}
+              className={`weather-option ${opt.color}`}
               onClick={() => onAddWeather(opt.code)}
               disabled={weatherDisabled}
               tabIndex={0}
@@ -117,7 +117,7 @@ export default function VisibilitySection({
               <button
                 key={`${idx}-${w}-tag`}
                 type="button"
-                className={`inline-flex items-center justify-center h-6 leading-none ${bgClass} text-black px-2 py-0 rounded-lg border border-slate-200 ${
+                className={`weather-selected-option ${bgClass} ${
                   w === " " ? "font-mono" : ""
                 }`}
                 onClick={() => onRemoveWeather(idx)}

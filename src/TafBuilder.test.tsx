@@ -54,5 +54,18 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByRole("heading", { name: "Wind" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Visibility & weather" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Cloud layers" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add Layer" })).toHaveClass("cloud-add-button");
+    expect(screen.getByRole("button", { name: "Add RA" })).toHaveClass("weather-option");
+    expect(Array.from(document.querySelectorAll(".taf-output-meta dt"), (node) => node.textContent)).toEqual([
+      "STATION", "VALIDITY", "BASE", "CHANGES",
+    ]);
+    expect(screen.getByTestId("generated-taf").querySelector(".taf-code-keyword")).not.toBeNull();
+  });
+
+  it("uses the approved text delete action for a selected change", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select 12Z"));
+    fireEvent.click(screen.getByLabelText("Select 14Z"));
+    expect(screen.getByRole("button", { name: "Delete change" })).toBeVisible();
   });
 });
