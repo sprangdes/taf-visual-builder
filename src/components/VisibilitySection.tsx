@@ -32,7 +32,7 @@ export default function VisibilitySection({
 }: Readonly<VisibilitySectionProps>) {
   return (
     <div
-      id="tour-visibility"
+      data-tour-id="visibility"
       className={`taf-block condition-block visibility-block ${visEnabled ? "" : "is-inactive"}`}
     >
       {!isBase && visEnabled && (
@@ -68,7 +68,7 @@ export default function VisibilitySection({
       <label htmlFor="visibility" className="block text-sm">
         <div className="visibility-summary">
           <span id="visibility-label" className="visually-hidden">Visibility</span>
-          <span className="visibility-value ml-2 text-[14px] font-medium text-gray-800">
+          <span className="visibility-value">
             {visibility.toLocaleString("en-US")} m
           </span>
           <span className="visibility-context">
@@ -99,7 +99,7 @@ export default function VisibilitySection({
       </label>
 
       <div className="block text-sm">
-        <div className="mb-1">Weather</div>
+        <div className="condition-subheading">Weather</div>
         <div className="weather-options">
           {weatherOptions.map((opt) => (
             <button

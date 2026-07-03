@@ -18,7 +18,7 @@ export default function WindSection({
 }: Readonly<WindSectionProps>) {
   return (
     <div
-      id="tour-wind"
+      data-tour-id="wind"
       className={`taf-block condition-block wind-block ${windEnabled ? "" : "is-inactive"}`}
     >
       {!isBase && windEnabled && (
@@ -52,7 +52,7 @@ export default function WindSection({
         Wind
       </h4>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="inline-block w-24 sm:w-28">Wind Direction</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Direction</span>
         <NumericControl
           value={wind.dir}
           min={0}
@@ -60,10 +60,10 @@ export default function WindSection({
           step={10}
           onChange={(value) => onUpdateWind("dir", value)}
         />
-        <span className="text-sm">°</span>
+        <span className="condition-unit">°</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="inline-block w-24 sm:w-28">Wind Speed</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Speed</span>
         <NumericControl
           value={wind.speed}
           min={0}
@@ -72,10 +72,10 @@ export default function WindSection({
           formatValue={(v) => String(v).padStart(2, "0")}
           onChange={(value) => onUpdateWind("speed", value)}
         />
-        <span className="text-sm">KT</span>
+        <span className="condition-unit">KT</span>
       </label>
       <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="inline-block w-24 sm:w-28">Wind Gust</span>
+        <span className="condition-field-label inline-block w-24 sm:w-28">Wind Gust</span>
         <NumericControl
           value={wind.gust ?? 0}
           min={0}
@@ -84,7 +84,7 @@ export default function WindSection({
           formatValue={(v) => String(v).padStart(2, "0")}
           onChange={(value) => onUpdateWind("gust", value)}
         />
-        <span className="text-sm">KT</span>
+        <span className="condition-unit">KT</span>
       </label>
     </div>
   );

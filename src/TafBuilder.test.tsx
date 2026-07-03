@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TafBuilder from "./TafBuilder";
 
@@ -63,6 +63,12 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByRole("slider", { name: "Visibility" }).getAttribute("style")).toContain("--visibility-progress: 100%");
     expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
     expect(document.querySelector(".cloud-layers-controls")).not.toContainElement(screen.getByRole("button", { name: "Add Layer" }));
+
+    const addLayer = screen.getByRole("button", { name: "Add Layer" });
+    fireEvent.click(addLayer);
+    fireEvent.click(addLayer);
+    expect(document.querySelectorAll(".cloud-layers-controls > .cloud-layer-row")).toHaveLength(3);
+    expect(document.querySelector(".cloud-layers-controls")).toHaveClass("cloud-layers-stack");
   });
 
   it("uses the approved text delete action for a selected change", () => {
@@ -70,6 +76,17 @@ describe("TafBuilder aviation workbench", () => {
     fireEvent.click(screen.getByLabelText("Select 12Z"));
     fireEvent.click(screen.getByLabelText("Select 14Z"));
     expect(screen.getByRole("button", { name: "Delete change" })).toBeVisible();
+  });
+
+  it("uses the system destructive action for deleting a cloud layer", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByRole("button", { name: "Add Layer" }));
+
+    const deleteLayers = screen.getAllByRole("button", { name: "Delete cloud layer" });
+    expect(deleteLayers).toHaveLength(2);
+    expect(deleteLayers[0]).toHaveClass("cloud-delete-button");
+    fireEvent.click(deleteLayers[0]);
+    expect(screen.queryAllByRole("button", { name: "Delete cloud layer" })).toHaveLength(0);
   });
 
   it("keeps change blocks masked until explicitly activated", () => {
@@ -82,5 +99,45 @@ describe("TafBuilder aviation workbench", () => {
     fireEvent.click(activateWind);
     expect(screen.getByRole("button", { name: "Deactivate wind" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Activate wind to edit" })).not.toBeInTheDocument();
+  });
+
+  it("opens guided tours only after an explicit user action", () => {
+    render(<TafBuilder />);
+    expect(screen.queryByRole("menu", { name: "Guided tours" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open guided tours" }));
+    expect(screen.getByRole("menu", { name: "Guided tours" })).toBeVisible();
+  });
+
+  it("restores the pre-tour forecast after quick start", async () => {
+    render(<TafBuilder />);
+    fireEvent.change(screen.getByLabelText("ICAO station code"), { target: { value: "RCSS" } });
+    fireEvent.click(screen.getByRole("button", { name: "Open guided tours" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Quick Start/ }));
+    expect(screen.getByLabelText("ICAO station code")).toHaveValue("RCTP");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Keep the demonstration forecast?" })).toBeVisible());
+    fireEvent.click(screen.getByRole("button", { name: "Restore my forecast" }));
+    expect(screen.getByLabelText("ICAO station code")).toHaveValue("RCSS");
+  });
+
+  it("keeps the timeline task locked until a complete range is created", async () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByRole("button", { name: "Open guided tours" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Quick Start/ }));
+
+    for (const title of ["Base forecast", "Wind", "Visibility & weather", "Cloud layers", "Create a change period"]) {
+      const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
+      expect(next).not.toBeNull();
+      fireEvent.click(next!);
+      await waitFor(() => expect(document.querySelector(".tour-flight-strip h2")).toHaveTextContent(title));
+    }
+
+    const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
+    expect(next).toBeDisabled();
+    fireEvent.click(screen.getByLabelText("Select 12Z"));
+    expect(document.querySelector<HTMLButtonElement>(".tour-flight-next")).toBeDisabled();
+    fireEvent.click(screen.getByLabelText("Select 14Z"));
+    await waitFor(() => expect(document.querySelector<HTMLButtonElement>(".tour-flight-next")).toBeEnabled());
   });
 });

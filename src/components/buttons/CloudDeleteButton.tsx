@@ -9,13 +9,14 @@ export default function CloudDeleteButton({ onClick }: Readonly<CloudDeleteButto
       <button
         ref={btnRef}
         type="button"
+        aria-label="Delete cloud layer"
         onClick={onClick}
-        className="bg-red-500 text-white px-2 py-1 rounded-xl text-xs cursor-pointer"
+        className="cloud-delete-button"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={{ zIndex: 10 }}
       >
-        X
+        <span aria-hidden="true">×</span>
       </button>
       {showTooltip && (
         <div

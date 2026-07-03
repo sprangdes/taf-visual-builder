@@ -29,7 +29,7 @@ export default function CloudSection({
 }: Readonly<CloudSectionProps>) {
   return (
     <div
-      id="tour-clouds"
+      data-tour-id="clouds"
       className={`taf-block condition-block cloud-block ${cloudEnabled ? "" : "is-inactive"}`}
     >
       {!isBase && cloudEnabled && (
@@ -64,7 +64,7 @@ export default function CloudSection({
         Cloud layers
       </h4>
 
-      <div className="cloud-layers-controls">
+      <div className="cloud-layers-controls cloud-layers-stack">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
             <NumericControl
@@ -86,7 +86,7 @@ export default function CloudSection({
               onChange={(value) => onUpdateCloud(c.id, "height", value)}
             />
             <span className="cloud-height-unit">hundreds ft</span>
-            <label className="inline-flex items-center gap-1 text-sm">
+            <label className="cloud-checkbox">
               <input
                 type="checkbox"
                 checked={!!c.cb}
@@ -94,7 +94,7 @@ export default function CloudSection({
               />
               <span>CB</span>
             </label>
-            <label className="inline-flex items-center gap-1 text-sm">
+            <label className="cloud-checkbox">
               <input
                 type="checkbox"
                 checked={!!c.tcu}
