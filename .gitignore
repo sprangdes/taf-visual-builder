@@ -13,6 +13,7 @@ dist-ssr
 *.local
 *.tsbuildinfo
 taf-visual-builder*.zip
+.superpowers/
 
 # Editor directories and files
 .vscode/*
