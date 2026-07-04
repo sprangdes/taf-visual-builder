@@ -653,6 +653,15 @@ body.taf-dark-page {
 
 
 @media (max-width: 639px) {
+  .tour-menu {
+    position: fixed;
+    top: 72px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100dvh - 84px);
+    overflow-y: auto;
+  }
   .numeric-control--has-mobile-editor .numeric-control-display { display: none; }
   .numeric-control-mobile-editor {
     display: block;
