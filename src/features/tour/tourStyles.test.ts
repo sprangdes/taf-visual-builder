@@ -18,4 +18,17 @@ describe("guided tour responsive styles", () => {
     expect(mobileStyles).toContain("max-height: calc(100dvh - 84px);");
     expect(mobileStyles).toContain("overflow-y: auto;");
   });
+
+  it("keeps the flight strip and spotlight stable between tour steps", () => {
+    const floaterRule = styles.slice(
+      styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)"),
+      styles.indexOf(".react-joyride__spotlight", styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)")),
+    );
+
+    expect(floaterRule).toContain("opacity: 1 !important;");
+    expect(floaterRule).toContain("transition: none !important;");
+    expect(styles).toContain(".react-joyride__spotlight path + path {");
+    expect(styles).toContain("opacity: 0 !important;");
+    expect(styles).toContain("transition: none !important;");
+  });
 });

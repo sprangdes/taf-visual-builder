@@ -555,8 +555,14 @@ body.taf-dark-page {
   width: 100% !important;
   max-width: none !important;
   transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
 }
 .react-joyride__spotlight path { pointer-events: none !important; }
+.react-joyride__spotlight path + path {
+  opacity: 0 !important;
+  transition: none !important;
+}
 .react-joyride__arrow:has(+ .tour-flight-strip) { display: none; }
 .tour-flight-strip {
   width: 100%;
