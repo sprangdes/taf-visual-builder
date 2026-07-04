@@ -184,9 +184,13 @@ describe("TafBuilder aviation workbench", () => {
       "Change type",
       "Generated TAF",
     ]) {
-      const next = document.querySelector<HTMLButtonElement>(".tour-flight-next");
+      const next = await waitFor(() => {
+        const button = document.querySelector<HTMLButtonElement>(".tour-flight-next");
+        expect(button).not.toBeNull();
+        return button!;
+      });
       expect(next).toBeEnabled();
-      fireEvent.click(next!);
+      fireEvent.click(next);
       await waitFor(() => expect(document.querySelector(".tour-flight-strip h2")).toHaveTextContent(title));
     }
     expect(document.querySelector(".tour-task-actionable")).not.toBeInTheDocument();

@@ -31,4 +31,10 @@ describe("guided tour responsive styles", () => {
     expect(styles).toContain("opacity: 0 !important;");
     expect(styles).toContain("transition: none !important;");
   });
+
+  it("provides a compact touch-enabled mobile tour card", () => {
+    expect(styles).toContain(".tour-flight-strip { border-radius: 16px 16px 0 0; touch-action: none; }");
+    expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-strip-inner { display: none; }");
+    expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-toggle { height: 44px; }");
+  });
 });

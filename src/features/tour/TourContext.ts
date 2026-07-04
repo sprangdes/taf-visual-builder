@@ -4,6 +4,9 @@ import type { TourId } from "./types";
 export interface TourContextValue {
   startTour: (id: TourId) => void;
   isRunning: boolean;
+  isMobile: boolean;
+  isCollapsed: boolean;
+  toggleCollapsed: () => void;
 }
 
 export const TourContext = createContext<TourContextValue | null>(null);

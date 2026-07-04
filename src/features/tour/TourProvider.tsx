@@ -7,6 +7,7 @@ import { TourExitDialog } from "./TourMenu";
 import { TourContext, type TourContextValue } from "./TourContext";
 import type { TourEditorAdapter, TourEditorSnapshot, TourId } from "./types";
 import { useLanguage } from "../i18n/LanguageContext";
+import { centerTourTarget } from "./tourScroll";
 
 function getMobileQuery(): MediaQueryList | null {
   return typeof window === "undefined" || !window.matchMedia ? null : window.matchMedia("(max-width: 639px)");
@@ -23,12 +24,16 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const [snapshot, setSnapshot] = useState<TourEditorSnapshot | null>(null);
   const [exitPending, setExitPending] = useState(false);
   const [isMobile, setIsMobile] = useState(() => getMobileQuery()?.matches ?? false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const finishingRef = useRef(false);
 
   useEffect(() => {
     const query = getMobileQuery();
     if (!query) return;
-    const update = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+    const update = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      if (!event.matches) setIsCollapsed(false);
+    };
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
@@ -36,6 +41,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const startTour = useCallback((id: TourId) => {
     finishingRef.current = false;
     setExitPending(false);
+    setIsCollapsed(false);
     if (id === "quick-start") {
       setSnapshot(cloneTourSnapshot(editor.capture()));
       editor.loadDemo();
@@ -48,6 +54,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const finishTour = useCallback(() => {
     if (finishingRef.current) return;
     finishingRef.current = true;
+    setIsCollapsed(false);
     setActiveTour(null);
     if (snapshot) setExitPending(true);
   }, [snapshot]);
@@ -64,14 +71,15 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const steps = useMemo<Step[]>(() => {
     if (!activeTour) return [];
     return getTourSteps(activeTour, isMobile, text.tour).map((step) => ({
+      before: () => centerTourTarget(step.target),
       content: step.content,
       data: {
         id: step.id,
         isMobile,
       },
       id: step.id,
-      isFixed: true,
       placement: "center",
+      skipScroll: true,
       skipBeacon: true,
       target: step.target,
       title: step.title,
@@ -81,7 +89,10 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
   const contextValue = useMemo<TourContextValue>(() => ({
     startTour,
     isRunning: activeTour !== null,
-  }), [activeTour, startTour]);
+    isMobile,
+    isCollapsed,
+    toggleCollapsed: () => setIsCollapsed((current) => !current),
+  }), [activeTour, isCollapsed, isMobile, startTour]);
 
   const resolveExit = (decision: "keep" | "restore") => {
     if (decision === "restore" && snapshot) editor.restore(snapshot);
@@ -101,6 +112,7 @@ export function TourProvider({ children, editor }: Readonly<TourProviderProps>) 
           blockTargetInteraction: false,
           buttons: ["back", "close", "primary", "skip"],
           closeButtonAction: "skip",
+          hideOverlay: isMobile && isCollapsed,
           overlayClickAction: false,
           scrollOffset: 180,
           showProgress: true,

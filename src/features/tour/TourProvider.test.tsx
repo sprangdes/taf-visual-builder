@@ -29,6 +29,7 @@ function Harness() {
     <div>
       <button onClick={() => tour.startTour("quick-start")}>Start quick</button>
       <button onClick={() => tour.startTour("topic-output")}>Start topic</button>
+      <button onClick={tour.toggleCollapsed}>Toggle card</button>
       <span>{tour.isRunning ? "running" : "idle"}</span>
     </div>
   );
@@ -59,6 +60,10 @@ describe("TourProvider", () => {
       id: "create-change",
       isMobile: false,
     });
+    const contextStep = joyride.props?.steps.find((step) => step.id === "forecast-context");
+    expect(contextStep?.skipScroll).toBe(true);
+    expect(contextStep?.isFixed).toBeUndefined();
+    expect(contextStep?.before).toEqual(expect.any(Function));
   });
 
   it("asks whether to restore the snapshot after quick start", () => {
@@ -86,5 +91,25 @@ describe("TourProvider", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("generated-output"));
     expect(editor.loadDemo).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it("temporarily hides the mobile overlay without ending the tour", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    render(<TourProvider editor={adapter()}><Harness /></TourProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Start topic" }));
+
+    expect(joyride.props?.options?.hideOverlay).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Toggle card" }));
+    expect(joyride.props?.options?.hideOverlay).toBe(true);
+    expect(screen.getByText("running")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Toggle card" }));
+    expect(joyride.props?.options?.hideOverlay).toBe(false);
+
+    window.matchMedia = originalMatchMedia;
   });
 });

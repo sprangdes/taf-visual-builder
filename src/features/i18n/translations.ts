@@ -6,7 +6,7 @@ export interface TourCopy {
   menuAria: string;
   catalog: Record<"quickStart" | "newFeatures" | "timeline" | "output", { label: string; description: string }>;
   steps: Record<string, { title: string; content: string }>;
-  controls: Record<"back" | "close" | "done" | "next" | "open" | "skip", string>;
+  controls: Record<"back" | "close" | "collapse" | "done" | "expand" | "next" | "open" | "skip", string>;
   complete: string;
   keepTitle: string;
   keepDescription: string;
@@ -87,7 +87,7 @@ export const en: Translation = {
       changeType: { title: "Change type", content: "Switch between TEMPO, BECMG, and FM." },
       output: { title: "Generated TAF", content: "The final TAF updates live as you edit." },
     },
-    controls: { back: "Back", close: "Close", done: "Done", next: "Next", open: "Open guided step", skip: "Skip" },
+    controls: { back: "Back", close: "Close", collapse: "Collapse guided tour", done: "Done", expand: "Expand guided tour", next: "Next", open: "Open guided step", skip: "Skip" },
     complete: "Guided briefing complete", keepTitle: "Keep the demonstration forecast?", keepDescription: "You can keep the example values or restore the forecast you had before starting.", restore: "Restore my forecast", keep: "Keep demo result",
   },
 };
@@ -143,7 +143,7 @@ export const zhTW: Translation = {
       changeType: { title: "變化類型", content: "在 TEMPO、BECMG 與 FM 之間切換。" },
       output: { title: "產生的 TAF", content: "編輯時，最終 TAF 會即時更新。" },
     },
-    controls: { back: "上一步", close: "關閉", done: "完成", next: "下一步", open: "開啟導覽步驟", skip: "略過" },
+    controls: { back: "上一步", close: "關閉", collapse: "收合導覽", done: "完成", expand: "展開導覽", next: "下一步", open: "開啟導覽步驟", skip: "略過" },
     complete: "導覽完成", keepTitle: "要保留示範預報嗎？", keepDescription: "你可以保留範例數值，或還原開始導覽前的預報。", restore: "還原我的預報", keep: "保留示範結果",
   },
 };

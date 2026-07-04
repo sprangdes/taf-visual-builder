@@ -1,5 +1,8 @@
+import { useRef } from "react";
 import type { TooltipRenderProps } from "react-joyride";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useTour } from "./TourContext";
+import { getTourGesture } from "./tourGesture";
 
 export default function FlightStripTooltip({
   backProps,
@@ -14,8 +17,44 @@ export default function FlightStripTooltip({
   tooltipProps,
 }: Readonly<TooltipRenderProps>) {
   const { text } = useLanguage();
+  const { isCollapsed, isMobile, toggleCollapsed } = useTour();
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerEnd = (clientX: number, clientY: number) => {
+    const start = pointerStartRef.current;
+    pointerStartRef.current = null;
+    if (!start || !isMobile) return;
+    const gesture = getTourGesture(clientX - start.x, clientY - start.y);
+    if ((gesture === "collapse" && !isCollapsed) || (gesture === "expand" && isCollapsed)) {
+      toggleCollapsed();
+    }
+  };
+
   return (
-    <div className="tour-flight-strip" {...tooltipProps}>
+    <div
+      className={`tour-flight-strip ${isCollapsed ? "is-collapsed" : ""}`}
+      onPointerDown={(event) => {
+        pointerStartRef.current = { x: event.clientX, y: event.clientY };
+      }}
+      onPointerUp={(event) => handlePointerEnd(event.clientX, event.clientY)}
+      onPointerCancel={() => {
+        pointerStartRef.current = null;
+      }}
+      {...tooltipProps}
+    >
+      {isMobile && (
+        <button
+          type="button"
+          className="tour-flight-toggle"
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? text.tour.controls.expand : text.tour.controls.collapse}
+          onClick={toggleCollapsed}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={isCollapsed ? "m7 15 5-5 5 5" : "m7 9 5 5 5-5"} />
+          </svg>
+        </button>
+      )}
       <div className="tour-flight-strip-inner">
         <div className="tour-flight-copy">
           <div className="tour-flight-kicker">
