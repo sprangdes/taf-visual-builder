@@ -93,7 +93,7 @@ body {
 .workbench-appbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px;
   padding: 10px 12px 10px 14px; border-radius: 22px;
-  background: rgb(255 255 255 / 16%);
+  background: var(--glass-bg);
 }
 .workbench-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .workbench-brand > div { min-width: 0; }
@@ -126,6 +126,7 @@ body {
 .context-chip--scene { border-color: rgb(255 255 255 / 22%); background: var(--glass-bg-inset); padding: 0 14px; max-width: 100%; }
 .context-chip--scene svg { width: 15px; height: 15px; flex: 0 0 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .context-chip--scene strong { overflow: hidden; text-overflow: ellipsis; }
+.context-chip--scene .context-chip-time { color: var(--text-muted); font: 600 12px var(--mono); white-space: nowrap; }
 
 .workbench-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .icon-button {
@@ -373,6 +374,14 @@ body {
 .taf-app.is-lite .glass-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(26 36 76 / 78%); }
 .taf-app.is-lite .output-panel { background: rgb(10 14 38 / 86%); }
 .taf-app.is-lite.taf-dark .glass-panel { background: rgb(8 12 30 / 86%); }
+
+/* Bright skies (day, dawn, dusk): tint the glass darker so white text keeps its contrast. */
+.taf-app[data-phase="day"], .taf-app[data-phase="dawn"], .taf-app[data-phase="dusk"] {
+  --glass-bg: rgb(14 20 50 / 32%);
+  --glass-bg-soft: rgb(255 255 255 / 6%);
+  --glass-bg-inset: rgb(10 16 44 / 22%);
+  --code-panel: rgb(10 14 40 / 55%);
+}
 
 /* ---------- Dark glass ---------- */
 .taf-app.taf-dark {

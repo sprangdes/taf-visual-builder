@@ -1,4 +1,6 @@
 import { memo, useId, useMemo, type CSSProperties } from "react";
+import type { Daylight } from "../utils/daylight";
+import { getSceneLight, type SceneLight } from "../utils/sceneLight";
 import {
   mixColor,
   seededRandom,
@@ -59,13 +61,14 @@ interface CloudLayerProps {
   index: number;
   layer: SceneCloudLayer;
   params: WeatherSceneParams;
+  light: SceneLight;
 }
 
-function CloudLayer({ id, index, layer, params }: Readonly<CloudLayerProps>) {
+function CloudLayer({ id, index, layer, params, light }: Readonly<CloudLayerProps>) {
   const slope = layer.convective ? 3 : 2.8;
   const offset = -1.55 + layer.cover * 0.85 + (layer.convective ? 0.15 : 0);
-  const lighting = mixColor("#ffffff", "#596075", params.darkness * (layer.convective ? 1 : 0.85));
-  const elevation = Math.round(56 - params.darkness * 26);
+  const lighting = mixColor(light.cloudLight, light.stormShade, params.darkness * (layer.convective ? 1 : 0.85));
+  const elevation = light.elevation;
   const duration = Math.max(18, 60 - params.windSpeed);
   const style = {
     animationDuration: `${duration}s`,
@@ -88,7 +91,7 @@ function CloudLayer({ id, index, layer, params }: Readonly<CloudLayerProps>) {
           <feTurbulence type="fractalNoise" baseFrequency={cloudFrequency(layer)} numOctaves={layer.convective ? 6 : 5} seed={17 + index * 12} result="n" />
           <feColorMatrix in="n" type="matrix" values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${slope} ${offset.toFixed(2)}`} result="a" />
           <feDiffuseLighting in="a" surfaceScale={layer.convective ? 6 : 4} diffuseConstant="1.05" lightingColor={lighting} result="l">
-            <feDistantLight azimuth="235" elevation={elevation} />
+            <feDistantLight azimuth={light.azimuth} elevation={elevation} />
           </feDiffuseLighting>
           <feComposite in="l" in2="a" operator="in" result="c" />
           <feGaussianBlur in="c" stdDeviation="1.4" />
@@ -103,9 +106,10 @@ interface PrecipitationLayerProps {
   id: string;
   depth: "near" | "far";
   params: WeatherSceneParams;
+  night: number;
 }
 
-function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerProps>) {
+function PrecipitationLayer({ id, depth, params, night }: Readonly<PrecipitationLayerProps>) {
   const precipitation = params.precipitation!;
   const near = depth === "near";
   const intensity = precipitation.intensity;
@@ -162,7 +166,7 @@ function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerPr
   // tile per loop. Animating the HTML wrapper keeps the motion on the compositor.
   const margin = tile * 2;
   return (
-    <div className="weather-scene-precip" style={{ inset: -margin, ...fallStyle }}>
+    <div className="weather-scene-precip" style={{ inset: -margin, opacity: 1 - night * 0.35, ...fallStyle }}>
       <svg width="100%" height="100%" focusable="false">
         <defs>
           <pattern id={`${id}-p`} width={tile} height={tile} patternUnits="userSpaceOnUse" patternTransform={`rotate(${-slant})`}>
@@ -175,7 +179,8 @@ function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerPr
   );
 }
 
-function FogLayer({ id, fog }: Readonly<{ id: string; fog: number }>) {
+function FogLayer({ id, fog, night }: Readonly<{ id: string; fog: number; night: number }>) {
+  const [r, g, b] = [0.62 - night * 0.38, 0.66 - night * 0.38, 0.74 - night * 0.36].map((v) => v.toFixed(2));
   return (
     <SceneSvg style={{ opacity: Math.min(1, fog * 1.1) }} lowRes>
       <defs>
@@ -188,7 +193,7 @@ function FogLayer({ id, fog }: Readonly<{ id: string; fog: number }>) {
         </mask>
         <filter id={`${id}-f`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
           <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.007" numOctaves="3" seed="5" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0.62  0 0 0 0 0.66  0 0 0 0 0.74  0 0 0 1.3 -0.3" />
+          <feColorMatrix type="matrix" values={`0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  0 0 0 1.3 -0.3`} />
         </filter>
       </defs>
       <rect width={VIEW_W} height={VIEW_H} filter={`url(#${id}-f)`} mask={`url(#${id}-m)`} />
@@ -220,50 +225,117 @@ function LightningBolt({ id }: Readonly<{ id: string }>) {
 
 interface WeatherSceneProps {
   params: WeatherSceneParams;
+  daylight: Daylight;
   /** When false the scene is drawn as a still image to save rendering work. */
   animated?: boolean;
 }
 
-/** Decorative background that renders the weather of the period being edited. */
-function WeatherScene({ params, animated = true }: Readonly<WeatherSceneProps>) {
-  const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+const STARS = (() => {
+  const random = seededRandom(4242);
+  return Array.from({ length: 140 }, () => ({
+    x: Math.round(random() * VIEW_W),
+    y: Math.round(random() * VIEW_H * 0.68),
+    r: 0.5 + random() * 1.1,
+    o: 0.35 + random() * 0.65,
+  }));
+})();
+
+function SkyLayer({ uid, params, daylight, light }: Readonly<{ uid: string; params: WeatherSceneParams; daylight: Daylight; light: SceneLight }>) {
   const d = params.darkness;
-  const sky = [
-    mixColor("#173871", "#0c111b", d),
-    mixColor("#2a5895", "#1a2131", d),
-    mixColor("#4777b0", "#2b3242", d),
-  ];
+  const maxCover = params.layers.reduce((max, layer) => Math.max(max, layer.cover), 0);
+  const clearSky = (1 - maxCover * 0.85) * (1 - d * 0.7);
+
+  const sunY = 0.92 - Math.max(0, daylight.sun) * 0.8;
+  const sunColor = mixColor("#fff1d6", "#ffab6e", daylight.twilight);
+  const sunOpacity = Math.min(1, Math.max(0, (daylight.sun + 0.2) * 2.5)) * (1 - d * 0.9) * 0.6;
+  const horizonColor = daylight.sunX < 0.5 ? "#ffb98a" : "#ff9566";
+  const horizonOpacity = daylight.twilight * (1 - d * 0.7) * 0.5;
+
+  const starOpacity = daylight.night * clearSky * (1 - params.fog);
+  const moon = daylight.moon;
+  const moonOpacity = moon ? Math.min(1, daylight.night * 1.4) * Math.max(0.15, clearSky) : 0;
+  const moonX = moon ? moon.x * VIEW_W : 0;
+  const moonY = moon ? (0.72 - moon.height * 0.58) * VIEW_H : 0;
+  const moonR = 26;
+  // Shadow disc offset: 0 = new moon (fully covered), 2r = full moon (uncovered).
+  const shadowOffset = moon ? (moon.waxing ? -1 : 1) * moon.illumination * moonR * 2 : 0;
 
   return (
-    <div className={`weather-scene ${animated ? "" : "is-paused"}`} aria-hidden="true" data-testid="weather-scene">
-      <SceneSvg>
-        <defs>
-          <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={sky[0]} />
-            <stop offset="0.6" stopColor={sky[1]} />
-            <stop offset="1" stopColor={sky[2]} />
-          </linearGradient>
-          <radialGradient id={`${uid}-sun`} cx="0.14" cy="0.04" r="0.5">
-            <stop offset="0" stopColor="rgb(255,236,204)" stopOpacity="0.45" />
-            <stop offset="1" stopColor="rgb(255,236,204)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width={VIEW_W} height={VIEW_H} fill={`url(#${uid}-sky)`} />
-        <rect width={VIEW_W} height={VIEW_H} fill={`url(#${uid}-sun)`} opacity={Math.max(0, 1 - d * 1.4)} />
-      </SceneSvg>
+    <SceneSvg>
+      <defs>
+        <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={light.sky[0]} />
+          <stop offset="0.6" stopColor={light.sky[1]} />
+          <stop offset="1" stopColor={light.sky[2]} />
+        </linearGradient>
+        <radialGradient id={`${uid}-sun`} cx={daylight.sunX} cy={sunY} r={daylight.twilight > 0.5 ? 0.55 : 0.4}>
+          <stop offset="0" stopColor={sunColor} stopOpacity="0.9" />
+          <stop offset="0.18" stopColor={sunColor} stopOpacity="0.35" />
+          <stop offset="1" stopColor={sunColor} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`${uid}-horizon`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0.45" stopColor={horizonColor} stopOpacity="0" />
+          <stop offset="1" stopColor={horizonColor} stopOpacity="1" />
+        </linearGradient>
+        <radialGradient id={`${uid}-moonglow`}>
+          <stop offset="0" stopColor="#dfe6ff" stopOpacity="0.45" />
+          <stop offset="1" stopColor="#dfe6ff" stopOpacity="0" />
+        </radialGradient>
+        {moon && (
+          <mask id={`${uid}-moonmask`}>
+            <circle cx={moonX} cy={moonY} r={moonR} fill="#fff" />
+            <circle cx={moonX + shadowOffset} cy={moonY} r={moonR} fill="#000" />
+          </mask>
+        )}
+      </defs>
+      <rect width={VIEW_W} height={VIEW_H} fill={`url(#${uid}-sky)`} />
+      {horizonOpacity > 0.01 && <rect width={VIEW_W} height={VIEW_H} fill={`url(#${uid}-horizon)`} opacity={horizonOpacity} />}
+      {starOpacity > 0.02 && (
+        <g fill="#ffffff" opacity={starOpacity.toFixed(2)}>
+          {STARS.map((star, index) => (
+            <circle key={index} cx={star.x} cy={star.y} r={star.r} opacity={star.o} />
+          ))}
+        </g>
+      )}
+      {sunOpacity > 0.01 && <rect width={VIEW_W} height={VIEW_H} fill={`url(#${uid}-sun)`} opacity={sunOpacity.toFixed(2)} />}
+      {moon && moonOpacity > 0.02 && (
+        <g opacity={moonOpacity.toFixed(2)} data-testid="scene-moon">
+          <circle cx={moonX} cy={moonY} r={moonR * 7} fill={`url(#${uid}-moonglow)`} opacity={0.4 + moon.illumination * 0.6} />
+          <circle cx={moonX} cy={moonY} r={moonR} fill="#2a3150" opacity="0.35" />
+          <circle cx={moonX} cy={moonY} r={moonR} fill="#f3f0e4" mask={`url(#${uid}-moonmask)`} />
+        </g>
+      )}
+    </SceneSvg>
+  );
+}
+
+/** Decorative background that renders the weather of the period being edited. */
+function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSceneProps>) {
+  const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const d = params.darkness;
+  const light = getSceneLight(daylight, d);
+
+  return (
+    <div
+      className={`weather-scene ${animated ? "" : "is-paused"}`}
+      aria-hidden="true"
+      data-testid="weather-scene"
+      data-phase={daylight.phase}
+    >
+      <SkyLayer uid={uid} params={params} daylight={daylight} light={light} />
 
       {params.thunder && <div className="weather-scene-flash" />}
 
       {params.layers.map((layer, index) => (
-        <CloudLayer key={index} id={`${uid}-c${index}`} index={index} layer={layer} params={params} />
+        <CloudLayer key={index} id={`${uid}-c${index}`} index={index} layer={layer} params={params} light={light} />
       ))}
 
       {params.thunder && <LightningBolt id={`${uid}-bolt`} />}
-      {params.precipitation && <PrecipitationLayer id={`${uid}-pf`} depth="far" params={params} />}
-      {params.fog > 0 && <FogLayer id={`${uid}-fog`} fog={params.fog} />}
+      {params.precipitation && <PrecipitationLayer id={`${uid}-pf`} depth="far" params={params} night={light.night} />}
+      {params.fog > 0 && <FogLayer id={`${uid}-fog`} fog={params.fog} night={light.night} />}
       {params.haze && <div className="weather-scene-haze" />}
-      {params.precipitation && <PrecipitationLayer id={`${uid}-pn`} depth="near" params={params} />}
-      <div className="weather-scene-vignette" style={{ opacity: 0.35 + d * 0.45 }} />
+      {params.precipitation && <PrecipitationLayer id={`${uid}-pn`} depth="near" params={params} night={light.night} />}
+      <div className="weather-scene-vignette" style={{ opacity: Math.min(1, 0.35 + d * 0.45 + light.night * 0.2) }} />
     </div>
   );
 }
@@ -271,5 +343,8 @@ function WeatherScene({ params, animated = true }: Readonly<WeatherSceneProps>) 
 /** Re-render only when the drawn scene actually changes (not on every forecast edit). */
 export default memo(
   WeatherScene,
-  (previous, next) => previous.animated === next.animated && JSON.stringify(previous.params) === JSON.stringify(next.params),
+  (previous, next) =>
+    previous.animated === next.animated &&
+    JSON.stringify(previous.params) === JSON.stringify(next.params) &&
+    JSON.stringify(previous.daylight) === JSON.stringify(next.daylight),
 );

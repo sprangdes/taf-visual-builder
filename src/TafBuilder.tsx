@@ -18,6 +18,7 @@ import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } f
 import { formatHour, getChangeRange, indexToHour } from "./utils/timeline";
 import { createCloudLayer, emptyWeather, getEffectiveState } from "./utils/weather";
 import { getWeatherSceneParams } from "./utils/weatherScene";
+import { formatLocalTime, getChangeInstant, getDaylight, getForecastInstant } from "./utils/daylight";
 import { useRenderQuality } from "./hooks/useRenderQuality";
 import { useInteractionHold } from "./hooks/useInteractionHold";
 
@@ -54,6 +55,7 @@ export default function TafBuilder() {
     if (globalThis.window === undefined) return true;
     return globalThis.localStorage.getItem("taf-scene-motion") !== "0";
   });
+  const [now, setNow] = useState(() => new Date());
   const tafRef = useRef(taf);
   const outputRef = useRef<HTMLElement>(null);
   const [outputVisible, setOutputVisible] = useState(false);
@@ -72,6 +74,12 @@ export default function TafBuilder() {
     if (globalThis.window === undefined) return;
     globalThis.localStorage.setItem("taf-scene-motion", sceneAnimated ? "1" : "0");
   }, [sceneAnimated]);
+
+  useEffect(() => {
+    // Keep the base forecast's sky in step with the clock.
+    const timer = window.setInterval(() => setNow(new Date()), 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     tafRef.current = taf;
@@ -144,7 +152,18 @@ export default function TafBuilder() {
   const sceneParams = useMemo(() => getWeatherSceneParams(getEffectiveState(taf.base, selectedChange)), [taf.base, selectedChange]);
   // The scene is decorative: let edits paint first and redraw the background when the browser is idle.
   const deferredSceneParams = useDeferredValue(sceneParams);
-  const sceneKey = useMemo(() => JSON.stringify(deferredSceneParams), [deferredSceneParams]);
+
+  // Time of day follows the period being edited (base forecast: now), in the browser's time zone.
+  const sceneFrom = selectedChange ? getForecastInstant(taf.issueTime, Number(selectedChange.from), now).getTime() : now.getTime();
+  const sceneMid = selectedChange ? getChangeInstant(taf.issueTime, selectedChange, now).getTime() : now.getTime();
+  const daylight = useMemo(() => getDaylight(new Date(sceneMid)), [sceneMid]);
+  const deferredDaylight = useDeferredValue(daylight);
+  const sceneKey = useMemo(() => JSON.stringify([deferredSceneParams, deferredDaylight]), [deferredSceneParams, deferredDaylight]);
+  const sceneTime = selectedChange
+    ? selectedChange.type === "FM"
+      ? `${formatLocalTime(new Date(sceneFrom))}–`
+      : `${formatLocalTime(new Date(sceneFrom))}–${formatLocalTime(new Date(2 * sceneMid - sceneFrom))}`
+    : formatLocalTime(now);
   const [forceMotion, setForceMotion] = useState(false);
   const quality = useRenderQuality(sceneAnimated && !forceMotion, sceneKey);
   const sceneMoving = sceneAnimated && (quality === "full" || forceMotion);
@@ -160,8 +179,8 @@ export default function TafBuilder() {
 
   return (
     <TourProvider editor={editor}>
-      <div className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`}>
-        <WeatherScene params={deferredSceneParams} animated={sceneMoving} />
+      <div className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`} data-phase={deferredDaylight.phase}>
+        <WeatherScene params={deferredSceneParams} daylight={deferredDaylight} animated={sceneMoving} />
 
         <div className="app-content">
           <div className="appbar-wrap">
@@ -200,6 +219,7 @@ export default function TafBuilder() {
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 11a4 4 0 0 1-1 7H7Z" /></svg>
                   <span>{text.header.scene}</span>
                   <strong>{sceneLabel}</strong>
+                  <span className="context-chip-time">{text.scene.phases[daylight.phase]} {sceneTime}</span>
                 </span>
               </div>
 
