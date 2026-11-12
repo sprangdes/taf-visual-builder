@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { TAFChange, WeatherTrendType } from "../types/taf";
 import { useLanguage } from "../features/i18n/LanguageContext";
 import {
@@ -47,8 +47,16 @@ export default function Timeline({
   const hours = getTimelineHours(startHour);
   const [pending, setPending] = useState<Pending | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  // Roving tab stop: each lane is a single Tab stop and arrow keys move between hours.
+  const [focusIndex, setFocusIndex] = useState<Partial<Record<WeatherTrendType, number>>>({});
   const dragRef = useRef<{ type: WeatherTrendType; index: number; moved: boolean } | null>(null);
-  const suppressClickRef = useRef(false);
+  const suppressClickUntilRef = useRef(0);
+
+  const indexFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    return Math.min(TIMELINE_HOURS - 1, Math.max(0, Math.floor(ratio * TIMELINE_HOURS)));
+  };
 
   const laneRanges = (type: WeatherTrendType) =>
     changes
@@ -69,11 +77,8 @@ export default function Timeline({
     onCreate(type, range);
   };
 
-  const handleCellClick = (type: WeatherTrendType, index: number) => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
+  const handleCellClick = (type: WeatherTrendType, index: number, timeStamp: number) => {
+    if (timeStamp < suppressClickUntilRef.current) return;
     if (type === "FM") {
       commit(type, index, index);
       return;
@@ -83,6 +88,38 @@ export default function Timeline({
       return;
     }
     setPending({ type, index });
+  };
+
+  const handleCellKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, type: WeatherTrendType) => {
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "Escape"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Escape") {
+      setPending(null);
+      setHoverIndex(null);
+      return;
+    }
+    const grid = event.currentTarget.closest(".timeline-grid");
+    const track = event.currentTarget.parentElement;
+    if (!grid || !track) return;
+    const cells = Array.from(track.querySelectorAll<HTMLButtonElement>(".timeline-cell"));
+    const position = cells.indexOf(event.currentTarget);
+    let next: HTMLButtonElement | undefined;
+    if (event.key === "ArrowLeft") next = cells[position - 1];
+    if (event.key === "ArrowRight") next = cells[position + 1];
+    if (event.key === "Home") next = cells[0];
+    if (event.key === "End") next = cells[cells.length - 1];
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      const lanes = Array.from(grid.querySelectorAll<HTMLElement>(".timeline-track[data-lane]"));
+      const target = lanes[lanes.indexOf(track) + (event.key === "ArrowUp" ? -1 : 1)];
+      const column = Number(event.currentTarget.dataset.index);
+      const candidates = target ? Array.from(target.querySelectorAll<HTMLButtonElement>(".timeline-cell")) : [];
+      next = candidates.find((cell) => Number(cell.dataset.index) >= column) ?? candidates[candidates.length - 1];
+    }
+    if (!next) return;
+    next.focus();
+    const index = Number(next.dataset.index);
+    if (pending && pending.type === type) setHoverIndex(index);
   };
 
   const previewRange = (type: WeatherTrendType): TimelineRange | null => {
@@ -129,10 +166,47 @@ export default function Timeline({
             entries.forEach(({ range }) => {
               for (let i = range.start; i < range.end; i += 1) covered.add(i);
             });
+            const freeIndexes = hours.map((_, index) => index).filter((index) => !covered.has(index));
+            const preferred = focusIndex[type];
+            const laneTabStop = preferred !== undefined && freeIndexes.includes(preferred) ? preferred : freeIndexes[0];
             return (
               <div key={type} className={`timeline-row timeline-row--${type.toLowerCase()}`}>
                 <span className="timeline-lane-label">{type}</span>
-                <div className="timeline-track" data-lane={type}>
+                <div
+                  className="timeline-track"
+                  data-lane={type}
+                  onPointerDown={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (event.pointerType !== "mouse" || event.button !== 0 || type === "FM") return;
+                    if (!target.classList.contains("timeline-cell")) return;
+                    event.preventDefault();
+                    const index = indexFromPointer(event);
+                    dragRef.current = { type, index, moved: false };
+                  }}
+                  onPointerMove={(event) => {
+                    const drag = dragRef.current;
+                    if (!drag || drag.type !== type) return;
+                    const index = indexFromPointer(event);
+                    setHoverIndex(index);
+                    if (index !== drag.index && !drag.moved) {
+                      drag.moved = true;
+                      // Capture only once dragging starts so a plain click still reaches the cell.
+                      event.currentTarget.setPointerCapture?.(event.pointerId);
+                      setPending({ type, index: drag.index });
+                    }
+                  }}
+                  onPointerUp={(event) => {
+                    const drag = dragRef.current;
+                    dragRef.current = null;
+                    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    if (!drag || drag.type !== type || !drag.moved) return;
+                    suppressClickUntilRef.current = event.timeStamp + 300;
+                    commit(type, drag.index, indexFromPointer(event));
+                  }}
+                  onPointerCancel={() => {
+                    dragRef.current = null;
+                  }}
+                >
                   {hours.map((hour, index) =>
                     covered.has(index) ? null : (
                       <button
@@ -141,26 +215,13 @@ export default function Timeline({
                         className={`timeline-cell ${preview && index >= preview.start && index < preview.end ? "is-preview" : ""} ${pending?.type === type && pending.index === index ? "is-anchor" : ""}`}
                         style={{ gridColumn: index + 1 }}
                         aria-label={text.actions.selectHour(type, formatHour(hour))}
-                        onClick={() => handleCellClick(type, index)}
-                        onPointerDown={(event) => {
-                          if (event.pointerType !== "mouse" || type === "FM") return;
-                          dragRef.current = { type, index, moved: false };
-                        }}
+                        data-index={index}
+                        tabIndex={index === laneTabStop ? 0 : -1}
+                        onFocus={() => setFocusIndex((current) => ({ ...current, [type]: index }))}
+                        onKeyDown={(event) => handleCellKeyDown(event, type)}
+                        onClick={(event) => handleCellClick(type, index, event.timeStamp)}
                         onPointerEnter={() => {
-                          setHoverIndex(index);
-                          const drag = dragRef.current;
-                          if (drag && drag.type === type && drag.index !== index) {
-                            drag.moved = true;
-                            setPending({ type, index: drag.index });
-                          }
-                        }}
-                        onPointerUp={() => {
-                          const drag = dragRef.current;
-                          dragRef.current = null;
-                          if (drag && drag.moved && drag.type === type) {
-                            suppressClickRef.current = true;
-                            commit(type, drag.index, index);
-                          }
+                          if (!dragRef.current) setHoverIndex(index);
                         }}
                       />
                     ),

@@ -34,6 +34,7 @@ export interface Translation {
   output: { live: string; copy: string; copied: string; copyAria: string; checks: string; summary: string };
   actions: { increase: string; decrease: string; selectHour: (type: string, hour: string) => string; deleteChange: string; deleteCloud: string; deleteLayer: string; changeType: string; switchType: (type: string) => string };
   header: { validity: string; scene: string; context: string };
+  scene: { pause: string; play: string };
   timeline: { hint: string; pendingHint: (hour: string) => string; base: string; untilEnd: string };
   editor: {
     periods: string; from: string; to: string; note: string; output: string;
@@ -41,6 +42,7 @@ export interface Translation {
     calm: string; cloudAmount: string; cloudHeight: string;
     groups: Record<"intensity" | "descriptor" | "precipitation" | "obscuration" | "separator", string>;
     selected: string;
+    typeConflict: (type: string) => string;
   };
   checks: {
     contextOk: string; stationInvalid: string; issueTimeInvalid: string; visibilityOk: string;
@@ -89,6 +91,7 @@ export const en: Translation = {
   },
   output: { live: "Live", copy: "Copy", copied: "Copied", copyAria: "Copy TAF to clipboard", checks: "Checks", summary: "Plain-language summary" },
   header: { validity: "Valid", scene: "Background", context: "Forecast context" },
+  scene: { pause: "Pause background animation", play: "Play background animation" },
   timeline: {
     hint: "Click a start and end hour on a lane (or drag) to create a change. Click a block to edit it.",
     pendingHint: (hour) => `Start ${hour}Z selected — choose the end hour.`,
@@ -104,6 +107,7 @@ export const en: Translation = {
     calm: "Calm", cloudAmount: "Cloud amount", cloudHeight: "Cloud base",
     groups: { intensity: "Intensity", descriptor: "Descriptor", precipitation: "Precipitation", obscuration: "Obscuration", separator: "Group" },
     selected: "Selected",
+    typeConflict: (type) => `Another ${type} change already covers this time`,
   },
   checks: {
     contextOk: "Station code and issue time are complete.",
@@ -186,6 +190,7 @@ export const zhTW: Translation = {
   },
   output: { live: "即時", copy: "複製", copied: "已複製", copyAria: "複製 TAF 到剪貼簿", checks: "檢查", summary: "白話解讀" },
   header: { validity: "有效", scene: "背景場景", context: "預報基本資料" },
+  scene: { pause: "暫停背景動畫", play: "播放背景動畫" },
   timeline: {
     hint: "在對應類型的軌道上點選起訖時間（或拖曳）建立變化區段；點擊區段即可編輯。",
     pendingHint: (hour) => `已選起點 ${hour}Z，請選擇結束時間。`,
@@ -201,6 +206,7 @@ export const zhTW: Translation = {
     calm: "靜風", cloudAmount: "雲量", cloudHeight: "雲底高",
     groups: { intensity: "強度", descriptor: "描述", precipitation: "降水", obscuration: "視障", separator: "分組" },
     selected: "已選",
+    typeConflict: (type) => `此時段已有其他 ${type} 區段`,
   },
   checks: {
     contextOk: "機場代碼與發布時間皆已填寫。",

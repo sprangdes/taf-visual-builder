@@ -146,17 +146,20 @@ function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerPr
     );
   }
 
+  // The pattern is drawn in CSS pixels on an oversized layer that is moved by exactly one
+  // tile per loop. Animating the HTML wrapper keeps the motion on the compositor.
+  const margin = tile * 2;
   return (
-    <SceneSvg>
-      <defs>
-        <pattern id={`${id}-p`} width={tile} height={tile} patternUnits="userSpaceOnUse" patternTransform={`rotate(${-slant})`}>
-          {shapes}
-        </pattern>
-      </defs>
-      <g className="weather-scene-fall" style={fallStyle}>
-        <rect x={-600} y={-600} width={VIEW_W + 1200} height={VIEW_H + 1200} fill={`url(#${id}-p)`} />
-      </g>
-    </SceneSvg>
+    <div className="weather-scene-precip" style={{ inset: -margin, ...fallStyle }}>
+      <svg width="100%" height="100%" focusable="false">
+        <defs>
+          <pattern id={`${id}-p`} width={tile} height={tile} patternUnits="userSpaceOnUse" patternTransform={`rotate(${-slant})`}>
+            {shapes}
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${id}-p)`} />
+      </svg>
+    </div>
   );
 }
 
@@ -205,10 +208,12 @@ function LightningBolt({ id }: Readonly<{ id: string }>) {
 
 interface WeatherSceneProps {
   state: WeatherState;
+  /** When false the scene is drawn as a still image to save rendering work. */
+  animated?: boolean;
 }
 
 /** Decorative background that renders the weather of the period being edited. */
-export default function WeatherScene({ state }: Readonly<WeatherSceneProps>) {
+export default function WeatherScene({ state, animated = true }: Readonly<WeatherSceneProps>) {
   const params = useMemo(() => getWeatherSceneParams(state), [state]);
   const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const d = params.darkness;
@@ -219,7 +224,7 @@ export default function WeatherScene({ state }: Readonly<WeatherSceneProps>) {
   ];
 
   return (
-    <div className="weather-scene" aria-hidden="true" data-testid="weather-scene">
+    <div className={`weather-scene ${animated ? "" : "is-paused"}`} aria-hidden="true" data-testid="weather-scene">
       <SceneSvg>
         <defs>
           <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2="1">

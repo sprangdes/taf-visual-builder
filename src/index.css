@@ -56,7 +56,8 @@ body {
 .weather-scene-layer { position: absolute; inset: 0; }
 .weather-scene-layer > svg { display: block; }
 .weather-scene-drift { left: -80px; right: -80px; animation: scene-drift 40s ease-in-out infinite alternate; will-change: transform; }
-.weather-scene-fall { animation: scene-fall var(--fall-duration, .5s) linear infinite; }
+.weather-scene-precip { position: absolute; animation: scene-fall var(--fall-duration, .5s) linear infinite; will-change: transform; }
+.weather-scene-precip > svg { display: block; }
 .weather-scene-flash {
   position: absolute; left: 44%; top: -6%; width: 900px; height: 640px; border-radius: 50%;
   background: radial-gradient(closest-side, rgb(222 216 255 / 85%), rgb(170 160 255 / 25%) 55%, rgb(170 160 255 / 0%));
@@ -66,6 +67,9 @@ body {
 .weather-scene-bolt { opacity: 0; animation: scene-bolt 7s linear infinite; }
 .weather-scene-haze { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(214 190 140 / 8%), rgb(214 190 140 / 26%)); }
 .weather-scene-vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgb(4 6 14 / 70%) 100%); }
+
+.weather-scene.is-paused, .weather-scene.is-paused * { animation-play-state: paused !important; }
+.weather-scene.is-paused .weather-scene-flash, .weather-scene.is-paused .weather-scene-bolt { animation: none; opacity: 0; }
 
 @keyframes scene-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scene-drift { from { transform: translateX(-50px); } to { transform: translateX(50px); } }
@@ -82,7 +86,6 @@ body {
   background: var(--glass-bg);
   box-shadow: var(--glass-highlight), var(--glass-shadow);
   backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .appbar-wrap { position: sticky; top: 0; z-index: 100; max-width: 1440px; margin: 0 auto; padding: 14px 28px 0; box-sizing: border-box; }
@@ -199,6 +202,7 @@ body {
 }
 .segmented > button { font: 700 12px var(--mono); min-height: 32px; padding: 0 14px; }
 .period-tab:hover, .segmented > button:hover { background: rgb(255 255 255 / 14%); }
+.segmented > button:disabled { opacity: .4; cursor: not-allowed; background: transparent; }
 .period-tab.is-on, .segmented > button.is-on { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); font-weight: 700; }
 .segmented > .type-option--tempo.is-on { background: var(--tempo); color: var(--tempo-ink); }
 .segmented > .type-option--becmg.is-on { background: var(--becmg); color: var(--becmg-ink); }
@@ -227,7 +231,17 @@ body {
 .change-delete-button:hover { background: rgb(255 90 110 / 36%); }
 .change-delete-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
-.condition-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; align-items: start; }
+.period-editor { container-type: inline-size; }
+.condition-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+@container (min-width: 600px) {
+  .condition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "wind vis" "clouds vis"; }
+  .wind-card { grid-area: wind; }
+  .visibility-card { grid-area: vis; }
+  .cloud-card { grid-area: clouds; }
+}
+@container (min-width: 940px) {
+  .condition-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "wind vis clouds"; }
+}
 .condition-card {
   min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px;
   border: 1px solid rgb(255 255 255 / 30%); border-radius: 22px; background: var(--glass-bg-soft);
@@ -352,6 +366,8 @@ body {
 
 :where(button, input, select, [role="spinbutton"]):focus-visible { outline: 3px solid rgb(255 255 255 / 75%); outline-offset: 2px; }
 
+.mobile-output-bar { display: none; }
+
 /* ---------- Dark glass ---------- */
 .taf-app.taf-dark {
   --glass-bg: rgb(8 12 30 / 48%);
@@ -372,8 +388,12 @@ body {
 @media (max-width: 640px) {
   .appbar-wrap { position: static; padding: 10px 10px 0; }
   .workbench-appbar { border-radius: 22px; padding: 10px; }
+  .workbench-appbar { flex-wrap: wrap; }
+  .workbench-brand { flex: 1 1 0; }
   .workbench-brand p { display: none; }
-  .workbench-brand h1 { font-size: 15px; }
+  .workbench-brand h1 { font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
+  .workbench-actions { gap: 4px; flex-wrap: nowrap; }
+  .workbench-actions .icon-button { width: 36px; height: 36px; }
   .forecast-context { order: 3; flex-basis: 100%; }
   .context-chip--scene { flex: 1 1 100%; }
   .workbench-shell { padding: 12px 10px 32px; }
@@ -383,10 +403,20 @@ body {
   .period-tab { white-space: nowrap; }
   .wind-field { flex-wrap: wrap; }
   .numeric-control { grid-template-columns: 30px minmax(64px, 1fr) 30px; }
+  .workbench-shell { padding-bottom: 96px; }
+  .mobile-output-bar {
+    position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 90;
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 10px 14px;
+    border-radius: 20px; background: var(--code-panel); color: var(--text); text-align: left; cursor: pointer;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .mobile-output-bar.is-hidden { opacity: 0; transform: translateY(16px); pointer-events: none; }
+  .mobile-output-bar-label { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 11px; font-weight: 600; }
+  .mobile-output-bar code { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font: 600 12px/1.5 var(--mono); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-  .weather-scene, .weather-scene-drift, .weather-scene-fall, .weather-scene-flash { animation: none !important; }
+  .weather-scene, .weather-scene-drift, .weather-scene-precip, .weather-scene-flash { animation: none !important; }
   .weather-scene-bolt { animation: none !important; opacity: 0 !important; }
 }
 

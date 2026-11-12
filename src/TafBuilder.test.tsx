@@ -70,6 +70,14 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.queryByRole("switch", { name: "Include Wind" })).not.toBeInTheDocument();
   });
 
+  it("lets the user pause the weather animation and remembers the choice", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByRole("button", { name: "Pause background animation" }));
+    expect(screen.getByTestId("weather-scene")).toHaveClass("is-paused");
+    expect(localStorage.getItem("taf-scene-motion")).toBe("0");
+    expect(screen.getByRole("button", { name: "Play background animation" })).toBeVisible();
+  });
+
   it("retains theme persistence", () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
@@ -162,6 +170,39 @@ describe("TafBuilder aviation workbench", () => {
     fireEvent.click(includeWind);
     expect(includeWind).toHaveAttribute("aria-checked", "true");
     expect(screen.queryByText("Not included · follows base 00000KT")).not.toBeInTheDocument();
+  });
+
+  it("makes each timeline lane a single tab stop navigable with arrow keys", () => {
+    render(<TafBuilder />);
+    const first = screen.getByLabelText("Select TEMPO 11Z");
+    expect(first).toHaveAttribute("tabindex", "0");
+    expect(screen.getByLabelText("Select TEMPO 12Z")).toHaveAttribute("tabindex", "-1");
+
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+    expect(screen.getByLabelText("Select TEMPO 12Z")).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(screen.getByLabelText("Select BECMG 12Z")).toHaveFocus();
+  });
+
+  it("prevents switching a change into a lane that is already occupied", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select BECMG 13Z"));
+    fireEvent.click(screen.getByLabelText("Select BECMG 14Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 13Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 13Z"));
+
+    expect(screen.getByRole("button", { name: "BECMG", pressed: false })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "FM", pressed: false })).toBeEnabled();
+  });
+
+  it("does not create a change that overlaps another one in the same lane", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select TEMPO 13Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 15Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 12Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 17Z"));
+    expect(document.querySelectorAll(".timeline-bar--tempo")).toHaveLength(1);
   });
 
   it("warns when low visibility has no weather phenomenon", () => {

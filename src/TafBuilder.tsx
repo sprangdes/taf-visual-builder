@@ -47,7 +47,13 @@ export default function TafBuilder() {
     if (globalThis.window === undefined) return false;
     return globalThis.localStorage.getItem("taf-dark-mode") === "1";
   });
+  const [sceneAnimated, setSceneAnimated] = useState<boolean>(() => {
+    if (globalThis.window === undefined) return true;
+    return globalThis.localStorage.getItem("taf-scene-motion") !== "0";
+  });
   const tafRef = useRef(taf);
+  const outputRef = useRef<HTMLElement>(null);
+  const [outputVisible, setOutputVisible] = useState(false);
   const selectedChangeIndexRef = useRef(selectedChangeIndex);
   const timelineStartHour = getTimelineStartHour(taf.issueTime);
   const basePeriod = getBaseForecastPeriod(taf.issueTime);
@@ -60,12 +66,25 @@ export default function TafBuilder() {
   }, [isDark]);
 
   useEffect(() => {
+    if (globalThis.window === undefined) return;
+    globalThis.localStorage.setItem("taf-scene-motion", sceneAnimated ? "1" : "0");
+  }, [sceneAnimated]);
+
+  useEffect(() => {
     tafRef.current = taf;
   }, [taf]);
 
   useEffect(() => {
     selectedChangeIndexRef.current = selectedChangeIndex;
   }, [selectedChangeIndex]);
+
+  useEffect(() => {
+    const node = outputRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setOutputVisible(entry.isIntersecting), { threshold: 0.15 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const selectedChange = selectedChangeIndex === null ? null : taf.changes[selectedChangeIndex] ?? null;
 
@@ -121,6 +140,7 @@ export default function TafBuilder() {
 
   const sceneState = useMemo(() => getEffectiveState(taf.base, selectedChange), [taf.base, selectedChange]);
   const lines = generateTAFLines(taf);
+  const currentLine = (lines.find((line) => line.changeIndex === selectedChangeIndex) ?? lines[0]).text;
   const baseLabel = describeBase(taf.issueTime, text.decode);
   const periodTabs = taf.changes
     .map((change, index) => ({ change, index, range: getChangeRange(change, taf.changes, timelineStartHour) }))
@@ -130,7 +150,7 @@ export default function TafBuilder() {
   return (
     <TourProvider editor={editor}>
       <div className={`taf-app ${isDark ? "taf-dark" : ""}`}>
-        <WeatherScene key={selectedChangeIndex ?? "base"} state={sceneState} />
+        <WeatherScene key={selectedChangeIndex ?? "base"} state={sceneState} animated={sceneAnimated} />
 
         <div className="app-content">
           <div className="appbar-wrap">
@@ -154,7 +174,7 @@ export default function TafBuilder() {
                     autoCapitalize="characters"
                     spellCheck={false}
                     onChange={(event) => setTaf((previous) => ({ ...previous, station: event.target.value.toUpperCase() }))}
-                    placeholder={text.fields.stationPlaceholder}
+                    placeholder="XXXX"
                   />
                 </label>
                 <label className="context-field context-field--time" htmlFor="taf-issue-time">
@@ -173,6 +193,19 @@ export default function TafBuilder() {
               </div>
 
               <div className="workbench-actions">
+                <button
+                  type="button"
+                  aria-label={sceneAnimated ? text.scene.pause : text.scene.play}
+                  title={sceneAnimated ? text.scene.pause : text.scene.play}
+                  className="icon-button"
+                  onClick={() => setSceneAnimated((previous) => !previous)}
+                >
+                  {sceneAnimated ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
+                  )}
+                </button>
                 <TourLauncher />
                 <LanguageMenu />
                 <button
@@ -303,7 +336,7 @@ export default function TafBuilder() {
               </div>
 
               <aside className="workbench-output">
-                <section data-tour-id="output" className="glass-panel output-panel" aria-label={text.sections.output.title}>
+                <section id="taf-output" ref={outputRef} data-tour-id="output" className="glass-panel output-panel" aria-label={text.sections.output.title}>
                   <GeneratedTafOutput
                     lines={lines}
                     station={taf.station}
@@ -316,6 +349,19 @@ export default function TafBuilder() {
               </aside>
             </div>
           </main>
+          <button
+            type="button"
+            className={`mobile-output-bar glass-panel ${outputVisible ? "is-hidden" : ""}`}
+            aria-hidden={outputVisible}
+            tabIndex={outputVisible ? -1 : 0}
+            onClick={() => outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <span className="mobile-output-bar-label">
+              <span>{text.sections.output.title}</span>
+              <span aria-hidden="true">↓</span>
+            </span>
+            <code>{currentLine}</code>
+          </button>
         </div>
       </div>
     </TourProvider>

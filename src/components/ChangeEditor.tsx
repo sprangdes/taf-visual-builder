@@ -14,6 +14,7 @@ import {
   getChangeRange,
   getTimelineHours,
   indexToHour,
+  rangesOverlap,
 } from "../utils/timeline";
 import {
   createCloudLayer,
@@ -121,6 +122,14 @@ export default function ChangeEditor({
   const trend = isBase ? null : (change as TAFChange);
   const range = trend ? getChangeRange(trend, changes, startHour) : null;
 
+  const typeConflicts = (type: WeatherTrendType) => {
+    if (!trend || !range) return false;
+    const candidate = type === "FM" || trend.type === "FM" ? { start: range.start, end: range.start + 1 } : range;
+    return changes.some(
+      (other) => other !== trend && other.type === type && rangesOverlap(getChangeRange(other, changes, startHour), candidate),
+    );
+  };
+
   const setRange = (start: number, end: number) => {
     if (!trend) return;
     const safeEnd = Math.min(TIMELINE_HOURS, Math.max(end, start + 1));
@@ -140,6 +149,8 @@ export default function ChangeEditor({
                   key={type}
                   type="button"
                   aria-pressed={trend.type === type}
+                  disabled={trend.type !== type && typeConflicts(type)}
+                  title={trend.type !== type && typeConflicts(type) ? text.editor.typeConflict(type) : undefined}
                   className={`type-option type-option--${type.toLowerCase()} ${trend.type === type ? "is-on" : ""}`}
                   onClick={() => onChangeType?.(type)}
                 >
