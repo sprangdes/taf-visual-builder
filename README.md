@@ -24,13 +24,11 @@ TAF Visual Builder helps users create and edit TAF forecasts through an interact
 
 ## Key Features
 
-- Interactive timeline to create/select forecast change ranges.
-- Section-based editor for:
-  - Wind
-  - Visibility and weather phenomena
-  - Cloud layers
-- Change type switching (`TEMPO`, `BECMG`, `FM`).
-- Real-time TAF text generation.
+- Liquid glass interface over a live weather scene: the background renders the period being edited (clouds by amount and height, CB towers, rain/drizzle/snow slanted by the wind, lightning for TS, mist for low visibility).
+- Lane-based timeline (TEMPO / BECMG / FM): click a start and end hour (or drag with a mouse) on a lane to create a change; FM groups run until the next FM group.
+- Period tabs switch between the base forecast and each change; change type and time range are editable in place.
+- Condition cards for wind (with compass), visibility & weather, and cloud layers. In a change, each card has an "Include" switch; excluded cards show the base value they fall back to.
+- Live TAF output with copy button and the selected change highlighted, consistency checks, and a plain-language summary (English / Traditional Chinese).
 
 ## Tech Stack
 

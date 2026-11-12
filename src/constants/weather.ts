@@ -1,31 +1,10 @@
-import type { WeatherTrendType } from "../types/taf";
-
-export const weatherOptions = [
-  { code: " ", color: "bg-white" },
-  { code: "+", color: "bg-blue-200" },
-  { code: "-", color: "bg-blue-200" },
-  { code: "VC", color: "bg-purple-200" },
-  { code: "HZ", color: "bg-green-100" },
-  { code: "BR", color: "bg-green-100" },
-  { code: "FG", color: "bg-green-100" },
-  { code: "DZ", color: "bg-yellow-100" },
-  { code: "RA", color: "bg-yellow-100" },
-  { code: "SH", color: "bg-yellow-100" },
-  { code: "SN", color: "bg-yellow-100" },
-  { code: "TS", color: "bg-red-100" },
-];
-
-export const colorByType: Record<WeatherTrendType, string> = {
-  TEMPO: "type-tone-tempo",
-  BECMG: "type-tone-becmg",
-  FM: "type-tone-fm",
-};
-
-export const timelineColorByType: Record<WeatherTrendType, string> = {
-  TEMPO: "timeline-tone-tempo",
-  BECMG: "timeline-tone-becmg",
-  FM: "timeline-tone-fm",
-};
+export const weatherGroups = [
+  { id: "intensity", codes: ["-", "+", "VC"] },
+  { id: "descriptor", codes: ["SH", "TS"] },
+  { id: "precipitation", codes: ["DZ", "RA", "SN"] },
+  { id: "obscuration", codes: ["BR", "FG", "HZ"] },
+  { id: "separator", codes: [" "] },
+] as const;
 
 export const cloudAmountOptions = ["FEW", "SCT", "BKN", "OVC"];
 

@@ -1,11 +1,9 @@
 import { cloudAmountOptions } from "../constants/weather";
-import { weatherButtonClass } from "../constants/ui";
 import type { CloudLayer } from "../types/taf";
-import CloudDeleteButton from "./buttons/CloudDeleteButton";
+import { formatClouds } from "../utils/weather";
+import ConditionCard from "./ConditionCard";
 import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
-
-const cloudAmountPickerOptions = cloudAmountOptions.map((label, value) => ({ value, label }));
 
 const cloudHeightPickerOptions = Array.from({ length: 1000 }, (_, value) => ({
   value,
@@ -16,6 +14,7 @@ interface CloudSectionProps {
   isBase: boolean;
   cloudEnabled: boolean;
   clouds: CloudLayer[];
+  baseCode: string;
   onSetEnabled: (enabled: boolean) => void;
   onUpdateCloud: (
     id: string,
@@ -30,6 +29,7 @@ export default function CloudSection({
   isBase,
   cloudEnabled,
   clouds,
+  baseCode,
   onSetEnabled,
   onUpdateCloud,
   onAddCloud,
@@ -37,58 +37,33 @@ export default function CloudSection({
 }: Readonly<CloudSectionProps>) {
   const { text } = useLanguage();
   return (
-    <div
-      data-tour-id="clouds"
-      className={`taf-block condition-block cloud-block ${cloudEnabled ? "" : "is-inactive"}`}
+    <ConditionCard
+      tourId="clouds"
+      className="cloud-card"
+      title={text.conditions.clouds}
+      isBase={isBase}
+      enabled={cloudEnabled}
+      onSetEnabled={onSetEnabled}
+      output={formatClouds(clouds)}
+      inherited={baseCode}
     >
-      {!isBase && cloudEnabled && (
-        <button
-          type="button"
-          aria-label={text.conditions.deactivateClouds}
-          onClick={() => onSetEnabled(false)}
-          className="condition-block-deactivate"
-        >
-          X
-        </button>
-      )}
-      {!cloudEnabled && (
-        <div className="condition-block-overlay">
-          <button
-            type="button"
-            aria-label={text.conditions.activateCloudsAria}
-            onClick={() => onSetEnabled(true)}
-            className="condition-block-activate"
-          >
-            <span className="condition-block-activate-icon" aria-hidden="true">+</span>
-            <span className="condition-block-activate-copy">
-              <strong>{text.conditions.activateClouds}</strong>
-              <small>{text.conditions.includeInChange}</small>
-            </span>
-          </button>
-        </div>
-      )}
-
-      <h4 className="condition-block-title">
-        <span className="condition-block-icon" aria-hidden="true">☁</span>
-        {text.conditions.clouds}
-      </h4>
-
-      <div className="cloud-layers-controls cloud-layers-stack">
+      <div className="cloud-layers">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
-            <span className="cloud-measurement-group">
-              <NumericControl
-                value={Math.max(0, cloudAmountOptions.indexOf(c.amount))}
-                min={0}
-                max={cloudAmountOptions.length - 1}
-                step={1}
-                mobileEditor="select"
-                mobileOptions={cloudAmountPickerOptions}
-                formatValue={(v) => cloudAmountOptions[v] ?? cloudAmountOptions[0]}
-                onChange={(value) =>
-                  onUpdateCloud(c.id, "amount", cloudAmountOptions[value] ?? cloudAmountOptions[0])
-                }
-              />
+            <div className="segmented segmented--small" role="group" aria-label={text.editor.cloudAmount}>
+              {cloudAmountOptions.map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  aria-pressed={c.amount === amount}
+                  className={c.amount === amount ? "is-on" : ""}
+                  onClick={() => onUpdateCloud(c.id, "amount", amount)}
+                >
+                  {amount}
+                </button>
+              ))}
+            </div>
+            <span className="cloud-measurement-group" aria-label={text.editor.cloudHeight}>
               <NumericControl
                 value={c.height}
                 min={0}
@@ -99,41 +74,44 @@ export default function CloudSection({
                 formatValue={(v) => String(v).padStart(3, "0")}
                 onChange={(value) => onUpdateCloud(c.id, "height", value)}
               />
-              <span className="cloud-height-unit">{text.conditions.hundredsFeet}</span>
+              <span className="field-unit">{text.conditions.hundredsFeet}</span>
             </span>
-            <span className="cloud-checkbox-group">
-              <label className="cloud-checkbox">
-                <input
-                  type="checkbox"
-                  checked={!!c.cb}
-                  onChange={(e) => onUpdateCloud(c.id, "cb", e.target.checked)}
-                />
-                <span>CB</span>
-              </label>
-              <label className="cloud-checkbox">
-                <input
-                  type="checkbox"
-                  checked={!!c.tcu}
-                  onChange={(e) => onUpdateCloud(c.id, "tcu", e.target.checked)}
-                />
-                <span>TCU</span>
-              </label>
+            <span className="cloud-type-group">
+              <button
+                type="button"
+                className={`chip ${c.cb ? "is-on" : ""}`}
+                aria-pressed={!!c.cb}
+                onClick={() => onUpdateCloud(c.id, "cb", !c.cb)}
+              >
+                CB
+              </button>
+              <button
+                type="button"
+                className={`chip ${c.tcu ? "is-on" : ""}`}
+                aria-pressed={!!c.tcu}
+                onClick={() => onUpdateCloud(c.id, "tcu", !c.tcu)}
+              >
+                TCU
+              </button>
             </span>
-            {clouds.length > 1 && <CloudDeleteButton onClick={() => onRemoveCloud(c.id)} />}
+            {clouds.length > 1 && (
+              <button
+                type="button"
+                aria-label={text.actions.deleteCloud}
+                title={text.actions.deleteLayer}
+                onClick={() => onRemoveCloud(c.id)}
+                className="cloud-delete-button"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              </button>
+            )}
           </div>
         ))}
-
       </div>
 
-      <div className="cloud-add-row">
-        <button
-          type="button"
-          onClick={onAddCloud}
-          className={`${weatherButtonClass} cloud-add-button`}
-        >
-          {text.conditions.addLayer}
-        </button>
-      </div>
-    </div>
+      <button type="button" onClick={onAddCloud} className="cloud-add-button">
+        {text.conditions.addLayer}
+      </button>
+    </ConditionCard>
   );
 }

@@ -95,3 +95,24 @@ export function formatWeatherState(state: WeatherState, isBase = false): string 
 
   return [wind, vis, weather, cloudsStr].filter(Boolean).join(" ");
 }
+
+/** Weather that actually applies during a change: included sections override the base forecast. */
+export function getEffectiveState(base: WeatherState, change?: { state: WeatherState } | null): WeatherState {
+  if (!change) return base;
+  const eb = change.state.enabledBlocks ?? { wind: true, vis: true, clouds: true };
+  return {
+    wind: eb.wind ? change.state.wind : base.wind,
+    visibility: eb.vis ? change.state.visibility : base.visibility,
+    weather: eb.vis ? change.state.weather || [] : base.weather || [],
+    clouds: eb.clouds ? change.state.clouds || [] : base.clouds || [],
+  };
+}
+
+/** Splits the stored weather tokens into TAF groups, e.g. ["-", "TS", "RA", " ", "BR"] → ["-TSRA", "BR"]. */
+export function getWeatherGroups(weather: readonly string[]): string[] {
+  return (weather || []).join("").split(/\s+/).filter(Boolean);
+}
+
+export function formatVisibility(visibility: number): string {
+  return String(visibility >= 10000 ? 9999 : visibility).padStart(4, "0");
+}

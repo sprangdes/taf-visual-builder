@@ -1,14 +1,16 @@
-import { weatherOptions } from "../constants/weather";
 import type { CSSProperties } from "react";
+import { weatherGroups } from "../constants/weather";
 import { useLanguage } from "../features/i18n/LanguageContext";
+import { formatVisibility, getWeatherGroups } from "../utils/weather";
+import ConditionCard from "./ConditionCard";
 
 interface VisibilitySectionProps {
   isBase: boolean;
   visEnabled: boolean;
   visibility: number;
   weatherArr: string[];
+  baseCode: string;
   showError: boolean;
-  weatherDisabled: boolean;
   minVis: number;
   maxVis: number;
   onSetEnabled: (enabled: boolean) => void;
@@ -22,8 +24,8 @@ export default function VisibilitySection({
   visEnabled,
   visibility,
   weatherArr,
+  baseCode,
   showError,
-  weatherDisabled,
   minVis,
   maxVis,
   onSetEnabled,
@@ -33,129 +35,83 @@ export default function VisibilitySection({
 }: Readonly<VisibilitySectionProps>) {
   const { language, text } = useLanguage();
   const locale = language === "zh-TW" ? "zh-TW" : "en-US";
+  const label = (code: string) => (code === " " ? text.conditions.space : code);
+  const output = [formatVisibility(visibility), ...getWeatherGroups(weatherArr)].join(" ");
+
   return (
-    <div
-      data-tour-id="visibility"
-      className={`taf-block condition-block visibility-block ${visEnabled ? "" : "is-inactive"}`}
+    <ConditionCard
+      tourId="visibility"
+      className="visibility-card"
+      title={text.conditions.visibilityWeather}
+      isBase={isBase}
+      enabled={visEnabled}
+      onSetEnabled={onSetEnabled}
+      output={output}
+      inherited={baseCode}
     >
-      {!isBase && visEnabled && (
-        <button
-          type="button"
-          aria-label={text.conditions.deactivateVisibility}
-          onClick={() => onSetEnabled(false)}
-          className="condition-block-deactivate"
-        >
-          X
-        </button>
-      )}
-      {!visEnabled && (
-        <div className="condition-block-overlay">
-          <button
-            type="button"
-            aria-label={text.conditions.activateVisibilityAria}
-            onClick={() => onSetEnabled(true)}
-            className="condition-block-activate"
-          >
-            <span className="condition-block-activate-icon" aria-hidden="true">+</span>
-            <span className="condition-block-activate-copy">
-              <strong>{text.conditions.activateVisibility}</strong>
-              <small>{text.conditions.includeInChange}</small>
-            </span>
-          </button>
-        </div>
-      )}
-      <h4 className="condition-block-title">
-        <span className="condition-block-icon" aria-hidden="true">◉</span>
-        {text.conditions.visibilityWeather}
-      </h4>
-      <label htmlFor="visibility" className="block text-sm">
-        <div className="visibility-summary">
-          <span id="visibility-label" className="visually-hidden">{text.conditions.visibility}</span>
-          <span className="visibility-value">
-            {visibility.toLocaleString(locale)} m
-          </span>
-          <span className="visibility-context">
-            {isBase
-              ? text.conditions.maximum(maxVis.toLocaleString(locale))
-              : weatherArr.length > 0
-                ? text.conditions.weatherSummary(weatherArr.join(" "))
-                : ""}
-          </span>
-        </div>
-        <div className="w-full mt-2">
-          <input
-            id="visibility"
-            aria-labelledby="visibility-label"
-            type="range"
-            min={minVis}
-            max={maxVis}
-            step={50}
-            className="w-full accent-gray-400"
-            value={visibility}
-            onChange={(e) => onUpdateVisibility(Number(e.target.value))}
-            style={{
-              "--visibility-progress": `${((visibility - minVis) / (maxVis - minVis)) * 100}%`,
-              zIndex: 1,
-            } as CSSProperties}
-          />
-        </div>
+      <label htmlFor={isBase ? "visibility-base" : "visibility-change"} className="visibility-slider">
+        <span className="visibility-summary">
+          <span className="visually-hidden">{text.conditions.visibility}</span>
+          <span className="visibility-value">{visibility.toLocaleString(locale)} <small>m</small></span>
+          <span className="visibility-context">{text.conditions.maximum(maxVis.toLocaleString(locale))}</span>
+        </span>
+        <input
+          id={isBase ? "visibility-base" : "visibility-change"}
+          aria-label={text.conditions.visibility}
+          type="range"
+          min={minVis}
+          max={maxVis}
+          step={50}
+          value={visibility}
+          onChange={(e) => onUpdateVisibility(Number(e.target.value))}
+          style={{ "--visibility-progress": `${((visibility - minVis) / (maxVis - minVis)) * 100}%` } as CSSProperties}
+        />
       </label>
 
-      <div className="block text-sm">
-        <div className="condition-subheading">{text.conditions.weather}</div>
-        <div className="weather-options">
-          {weatherOptions.map((opt) => (
+      <div className="weather-picker">
+        {weatherGroups.map((group) => (
+          <div key={group.id} className="weather-group">
+            <span className="field-label">{text.editor.groups[group.id]}</span>
+            <div className="weather-options">
+              {group.codes.map((code) => (
+                <button
+                  key={code === " " ? "space" : code}
+                  type="button"
+                  className="weather-option chip"
+                  onClick={() => onAddWeather(code)}
+                  aria-label={text.conditions.addWeather(label(code))}
+                >
+                  {label(code)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="weather-selection" aria-label={text.conditions.weather}>
+        <span className="field-label">{text.editor.selected}</span>
+        <div className="weather-selection-tokens">
+          {weatherArr.length === 0 && <span className="weather-selection-empty">—</span>}
+          {weatherArr.map((w, idx) => (
             <button
-              key={opt.code === " " ? "space" : opt.code}
+              key={`${idx}-${w}-tag`}
               type="button"
-              className={`weather-option ${opt.color}`}
-              onClick={() => onAddWeather(opt.code)}
-              disabled={weatherDisabled}
-              tabIndex={0}
-              aria-label={text.conditions.addWeather(opt.code === " " ? text.conditions.space : opt.code)}
+              className="weather-selected-option chip is-on"
+              onClick={() => onRemoveWeather(idx)}
+              aria-label={text.conditions.removeWeather(label(w))}
             >
-              {opt.code === " " ? (
-                <span className="inline-block" style={{ minWidth: "3em" }}>
-                  {text.conditions.space}
-                </span>
-              ) : (
-                opt.code
-              )}
+              {label(w)}
+              <span aria-hidden="true" className="chip-remove">×</span>
             </button>
           ))}
         </div>
-
-        <div className="selected-weather-box weather-selection">
-          {weatherArr.map((w, idx) => {
-            const opt = weatherOptions.find((o) => o.code === w);
-            const bgClass = opt ? opt.color : "bg-white";
-            return (
-              <button
-                key={`${idx}-${w}-tag`}
-                type="button"
-                className={`weather-selected-option ${bgClass} ${
-                  w === " " ? "font-mono" : ""
-                }`}
-                onClick={() => onRemoveWeather(idx)}
-                aria-label={text.conditions.removeWeather(w === " " ? text.conditions.space : w)}
-              >
-                {w === " " ? (
-                  <span className="font-mono" style={{ minWidth: "3em" }}>
-                    {text.conditions.space}
-                  </span>
-                ) : (
-                  w
-                )}
-              </button>
-            );
-          })}
-          {showError && (
-            <span className="inline-error" role="alert">
-              {text.conditions.visibilityError}
-            </span>
-          )}
-        </div>
+        {showError && (
+          <span className="inline-error" role="alert">
+            {text.conditions.visibilityError}
+          </span>
+        )}
       </div>
-    </div>
+    </ConditionCard>
   );
 }

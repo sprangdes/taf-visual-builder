@@ -15,16 +15,18 @@ vi.mock("./utils/time", async (importOriginal) => {
 describe("TafBuilder aviation workbench", () => {
   beforeEach(() => localStorage.clear());
 
-  it("renders the unchanged workflow in sequence", () => {
+  it("renders the redesigned workbench sections in order", () => {
     render(<TafBuilder />);
     const headings = screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent);
     expect(headings).toEqual([
       "Create Terminal Aerodrome Forecast",
-      "Forecast context",
-      "Base forecast",
       "Forecast timeline",
+      "Base forecast",
       "Generated TAF",
+      "Checks",
+      "Plain-language summary",
     ]);
+    expect(screen.getByTestId("weather-scene")).toBeInTheDocument();
   });
 
   it("associates context labels with their inputs", () => {
@@ -39,11 +41,33 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.getByTestId("generated-taf")).toHaveTextContent("TAF RCTP 031100Z");
   });
 
-  it("creates and selects a change through the existing timeline", () => {
+  it("creates a change on the matching timeline lane and selects it", () => {
     render(<TafBuilder />);
-    fireEvent.click(screen.getByLabelText("Select 12Z"));
-    fireEvent.click(screen.getByLabelText("Select 14Z"));
-    expect(screen.getByRole("heading", { name: "Selected change" })).toBeVisible();
+    fireEvent.click(screen.getByLabelText("Select TEMPO 12Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 14Z"));
+    expect(screen.getByRole("heading", { name: "Selected change" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "TEMPO", pressed: true })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("switch", { name: "Include Wind" }));
+    expect(screen.getByTestId("generated-taf")).toHaveTextContent("TEMPO 0312/0315 00000KT");
+  });
+
+  it("creates FM groups from a single hour until the end of validity", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select FM 18Z"));
+    fireEvent.click(screen.getByRole("switch", { name: "Include Cloud layers" }));
+    expect(screen.getByTestId("generated-taf")).toHaveTextContent("FM031800 FEW000");
+  });
+
+  it("switches between the base forecast and changes with period tabs", () => {
+    render(<TafBuilder />);
+    fireEvent.click(screen.getByLabelText("Select BECMG 13Z"));
+    fireEvent.click(screen.getByLabelText("Select BECMG 13Z"));
+    expect(screen.getByRole("button", { name: /BECMG 13Z–14Z/ })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Base forecast", pressed: false }));
+    expect(screen.getByRole("heading", { name: "Base forecast", level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Include Wind" })).not.toBeInTheDocument();
   });
 
   it("retains theme persistence", () => {
@@ -58,72 +82,59 @@ describe("TafBuilder aviation workbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "Choose language" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "繁體中文" }));
 
-    expect(screen.getByRole("heading", { name: "建立機場終端預報" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "建立機場終端預報" })).toBeInTheDocument();
     expect(screen.getByLabelText("ICAO 機場代碼")).toHaveValue("RCTP");
-    expect(screen.getByRole("heading", { name: "基本預報" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "基本預報" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "風" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "能見度與天氣現象" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "雲層" })).toBeVisible();
-    expect(screen.getByText("已設定")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "白話解讀" })).toBeVisible();
+    expect(screen.getByText(/靜風；?，?能見度 10 公里以上/)).toBeVisible();
     expect(screen.getByRole("button", { name: "切換至深色模式" })).toBeVisible();
     expect(screen.getByTestId("generated-taf")).toHaveTextContent("TAF RCTP");
   });
 
-  it("matches the approved workbench hierarchy", () => {
+  it("keeps the editing controls of the redesigned cards", () => {
     render(<TafBuilder />);
-    expect(screen.getByRole("heading", { name: "Create Terminal Aerodrome Forecast" })).toBeVisible();
     expect(screen.getByTestId("workbench-grid")).toContainElement(screen.getByTestId("generated-taf"));
     expect(screen.getByRole("heading", { name: "Wind" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Visibility & weather" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Cloud layers" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Add Layer" })).toHaveClass("cloud-add-button");
-    expect(screen.getByRole("button", { name: "Add RA" })).toHaveClass("weather-option");
-    expect(Array.from(document.querySelectorAll(".taf-output-meta dt"), (node) => node.textContent)).toEqual([
-      "STATION", "VALIDITY", "BASE", "CHANGES",
-    ]);
     expect(screen.getByTestId("generated-taf").querySelector(".taf-code-keyword")).not.toBeNull();
     expect(screen.getByRole("slider", { name: "Visibility" }).getAttribute("style")).toContain("--visibility-progress: 100%");
     expect(screen.getByText("Maximum 10,000 m")).toBeVisible();
-    expect(document.querySelector(".cloud-layers-controls")).not.toContainElement(screen.getByRole("button", { name: "Add Layer" }));
     expect(document.querySelectorAll(".wind-control-group")).toHaveLength(3);
-    expect(document.querySelectorAll(".cloud-measurement-group")).toHaveLength(1);
-    const cloudMeasurements = document.querySelector(".cloud-measurement-group");
-    expect(cloudMeasurements).toHaveTextContent("hundreds ft");
-    const cloudCheckboxes = document.querySelector(".cloud-checkbox-group");
-    expect(cloudCheckboxes).toHaveTextContent("CB");
-    expect(cloudCheckboxes).toHaveTextContent("TCU");
-    expect(document.querySelectorAll('input[inputmode="numeric"]')).toHaveLength(1);
-    const mobilePickers = Array.from(document.querySelectorAll<HTMLSelectElement>("select.numeric-control-mobile-editor"));
-    expect(mobilePickers).toHaveLength(5);
-    const optionValues = (picker: HTMLSelectElement) =>
-      Array.from(picker.options, (option) => option.value);
-    const optionLabels = (picker: HTMLSelectElement) =>
-      Array.from(picker.options, (option) => option.textContent);
 
-    expect(optionValues(mobilePickers[0])).toHaveLength(37);
-    expect(optionValues(mobilePickers[0]).slice(0, 3)).toEqual(["0", "10", "20"]);
-    expect(optionValues(mobilePickers[0]).at(-1)).toBe("360");
+    const mobilePickers = Array.from(document.querySelectorAll<HTMLSelectElement>("select.numeric-control-mobile-editor"));
+    expect(mobilePickers).toHaveLength(4);
+    const optionLabels = (picker: HTMLSelectElement) => Array.from(picker.options, (option) => option.textContent);
+    expect(optionLabels(mobilePickers[0])).toHaveLength(37);
     expect(optionLabels(mobilePickers[1])).toHaveLength(100);
-    expect(optionLabels(mobilePickers[1])[0]).toBe("00");
-    expect(optionLabels(mobilePickers[1]).at(-1)).toBe("99");
     expect(optionLabels(mobilePickers[2])).toHaveLength(100);
-    expect(optionLabels(mobilePickers[3])).toEqual(["FEW", "SCT", "BKN", "OVC"]);
-    expect(optionLabels(mobilePickers[4])).toHaveLength(1000);
-    expect(optionLabels(mobilePickers[4])[0]).toBe("000");
-    expect(optionLabels(mobilePickers[4]).at(-1)).toBe("999");
+    expect(optionLabels(mobilePickers[3])).toHaveLength(1000);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add -" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add RA" }));
+    expect(screen.getByText("9999 -RA")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "BKN" }));
+    fireEvent.click(screen.getByRole("button", { name: "CB" }));
+    expect(screen.getByRole("button", { name: "CB" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("generated-taf")).toHaveTextContent("9999 -RA BKN000CB");
 
     const addLayer = screen.getByRole("button", { name: "Add Layer" });
     fireEvent.click(addLayer);
     fireEvent.click(addLayer);
-    expect(document.querySelectorAll(".cloud-layers-controls > .cloud-layer-row")).toHaveLength(3);
-    expect(document.querySelector(".cloud-layers-controls")).toHaveClass("cloud-layers-stack");
+    expect(document.querySelectorAll(".cloud-layers > .cloud-layer-row")).toHaveLength(3);
   });
 
-  it("uses the approved text delete action for a selected change", () => {
+  it("deletes the selected change and returns to the base forecast", () => {
     render(<TafBuilder />);
-    fireEvent.click(screen.getByLabelText("Select 12Z"));
-    fireEvent.click(screen.getByLabelText("Select 14Z"));
-    expect(screen.getByRole("button", { name: "Delete change" })).toBeVisible();
+    fireEvent.click(screen.getByLabelText("Select TEMPO 12Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 14Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete change" }));
+    expect(screen.getByRole("heading", { name: "Base forecast", level: 2 })).toBeInTheDocument();
+    expect(screen.getByLabelText("Select TEMPO 13Z")).toBeInTheDocument();
   });
 
   it("uses the system destructive action for deleting a cloud layer", () => {
@@ -137,16 +148,37 @@ describe("TafBuilder aviation workbench", () => {
     expect(screen.queryAllByRole("button", { name: "Delete cloud layer" })).toHaveLength(0);
   });
 
-  it("keeps change blocks masked until explicitly activated", () => {
+  it("keeps change sections excluded until explicitly included", () => {
     render(<TafBuilder />);
-    fireEvent.click(screen.getByLabelText("Select 12Z"));
-    fireEvent.click(screen.getByLabelText("Select 14Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 12Z"));
+    fireEvent.click(screen.getByLabelText("Select TEMPO 14Z"));
 
-    const activateWind = screen.getByRole("button", { name: "Activate wind to edit" });
-    expect(activateWind.closest(".condition-block")).toHaveClass("is-inactive");
-    fireEvent.click(activateWind);
-    expect(screen.getByRole("button", { name: "Deactivate wind" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Activate wind to edit" })).not.toBeInTheDocument();
+    const includeWind = screen.getByRole("switch", { name: "Include Wind" });
+    expect(includeWind).toHaveAttribute("aria-checked", "false");
+    expect(includeWind.closest(".condition-card")).toHaveClass("is-inactive");
+    expect(screen.getByText("Not included · follows base 00000KT")).toBeVisible();
+    expect(screen.getByText(/no sections are included/)).toBeVisible();
+
+    fireEvent.click(includeWind);
+    expect(includeWind).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Not included · follows base 00000KT")).not.toBeInTheDocument();
+  });
+
+  it("warns when low visibility has no weather phenomenon", () => {
+    render(<TafBuilder />);
+    fireEvent.change(screen.getByRole("slider", { name: "Visibility" }), { target: { value: "3000" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Visibility 5000m Or Below");
+    expect(screen.getByText(/visibility 5000 m or below needs a weather phenomenon/)).toBeVisible();
+  });
+
+  it("copies the generated TAF", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<TafBuilder />);
+    fireEvent.change(screen.getByLabelText("ICAO station code"), { target: { value: "rcss" } });
+    fireEvent.click(screen.getByRole("button", { name: "Copy TAF to clipboard" }));
+    await waitFor(() => expect(screen.getByText("Copied")).toBeVisible());
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^TAF RCSS 031100Z/));
   });
 
   it("opens guided tours only after an explicit user action", () => {

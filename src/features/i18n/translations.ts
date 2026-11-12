@@ -31,8 +31,36 @@ export interface Translation {
     addWeather: (value: string) => string; removeWeather: (value: string) => string; space: string;
     visibilityError: string;
   };
-  output: { station: string; validity: string; base: string; configured: string; changes: string; blocks: (count: number) => string; note: string; live: string };
-  actions: { increase: string; decrease: string; selectHour: (hour: string) => string; deleteChange: string; deleteCloud: string; deleteLayer: string; changeType: string; switchType: (type: string) => string };
+  output: { live: string; copy: string; copied: string; copyAria: string; checks: string; summary: string };
+  actions: { increase: string; decrease: string; selectHour: (type: string, hour: string) => string; deleteChange: string; deleteCloud: string; deleteLayer: string; changeType: string; switchType: (type: string) => string };
+  header: { validity: string; scene: string; context: string };
+  timeline: { hint: string; pendingHint: (hour: string) => string; base: string; untilEnd: string };
+  editor: {
+    periods: string; from: string; to: string; note: string; output: string;
+    include: (section: string) => string; included: string; notIncluded: (code: string) => string;
+    calm: string; cloudAmount: string; cloudHeight: string;
+    groups: Record<"intensity" | "descriptor" | "precipitation" | "obscuration" | "separator", string>;
+    selected: string;
+  };
+  checks: {
+    contextOk: string; stationInvalid: string; issueTimeInvalid: string; visibilityOk: string;
+    visibilityNeedsWeather: (period: string) => string;
+    gustOmitted: (period: string, gust: number, speed: number) => string;
+    emptyChange: (period: string) => string;
+  };
+  decode: {
+    calm: string; compass: string[];
+    wind: (direction: string, speed: number, gust: number | null) => string;
+    visibilityTenKm: string; visibility: (metres: string) => string;
+    intensity: Record<"-" | "+" | "VC", string>;
+    phenomena: Record<string, string>;
+    joinPhenomena: (parts: string[]) => string;
+    amounts: Record<string, string>;
+    cloud: (amount: string, feet: string, cb: boolean, tcu: boolean) => string;
+    list: (items: string[]) => string;
+    sentence: (period: string, parts: string[]) => string;
+    period: { base: (from: string, to: string) => string; TEMPO: (from: string, to: string) => string; BECMG: (from: string, to: string) => string; FM: (from: string) => string };
+  };
   tour: TourCopy;
 }
 
@@ -59,13 +87,54 @@ export const en: Translation = {
     addWeather: (value) => `Add ${value}`, removeWeather: (value) => `Remove ${value}`, space: "space",
     visibilityError: "Visibility 5000m Or Below, Weather Must Be Selected",
   },
-  output: {
-    station: "STATION", validity: "VALIDITY", base: "BASE", configured: "Configured", changes: "CHANGES",
-    blocks: (count) => `${count} ${count === 1 ? "block" : "blocks"}`,
-    note: "The generated message remains visible while editing, reducing context switching and making cause-and-effect easier to verify.", live: "Live",
+  output: { live: "Live", copy: "Copy", copied: "Copied", copyAria: "Copy TAF to clipboard", checks: "Checks", summary: "Plain-language summary" },
+  header: { validity: "Valid", scene: "Background", context: "Forecast context" },
+  timeline: {
+    hint: "Click a start and end hour on a lane (or drag) to create a change. Click a block to edit it.",
+    pendingHint: (hour) => `Start ${hour}Z selected — choose the end hour.`,
+    base: "Base",
+    untilEnd: "until end",
+  },
+  editor: {
+    periods: "Forecast periods", from: "From", to: "To",
+    note: "Only included sections are output; the rest follow the base forecast.",
+    output: "Output",
+    include: (section) => `Include ${section}`, included: "Include",
+    notIncluded: (code) => `Not included · follows base ${code}`,
+    calm: "Calm", cloudAmount: "Cloud amount", cloudHeight: "Cloud base",
+    groups: { intensity: "Intensity", descriptor: "Descriptor", precipitation: "Precipitation", obscuration: "Obscuration", separator: "Group" },
+    selected: "Selected",
+  },
+  checks: {
+    contextOk: "Station code and issue time are complete.",
+    stationInvalid: "Enter a 4-letter ICAO station code.",
+    issueTimeInvalid: "Issue time must be a valid DDHHMM value.",
+    visibilityOk: "Visibility and weather phenomena are consistent.",
+    visibilityNeedsWeather: (period) => `${period}: visibility 5000 m or below needs a weather phenomenon.`,
+    gustOmitted: (period, gust, speed) => `${period}: gust ${gust} KT is less than 15 KT above ${speed} KT, so no G group is output.`,
+    emptyChange: (period) => `${period}: no sections are included, so this change is omitted.`,
+  },
+  decode: {
+    calm: "calm wind",
+    compass: ["north", "north-northeast", "northeast", "east-northeast", "east", "east-southeast", "southeast", "south-southeast", "south", "south-southwest", "southwest", "west-southwest", "west", "west-northwest", "northwest", "north-northwest"],
+    wind: (direction, speed, gust) => `${direction} wind ${speed} KT${gust ? `, gusting ${gust} KT` : ""}`,
+    visibilityTenKm: "visibility 10 km or more", visibility: (metres) => `visibility ${metres} m`,
+    intensity: { "-": "light", "+": "heavy", VC: "in the vicinity" },
+    phenomena: { TS: "thunderstorm", SH: "showers", RA: "rain", DZ: "drizzle", SN: "snow", BR: "mist", FG: "fog", HZ: "haze" },
+    joinPhenomena: (parts) => parts.join(" "),
+    amounts: { FEW: "few", SCT: "scattered", BKN: "broken", OVC: "overcast" },
+    cloud: (amount, feet, cb, tcu) => `${amount} ${feet} ft${cb ? " cumulonimbus" : tcu ? " towering cumulus" : ""}`,
+    list: (items) => items.join(", "),
+    sentence: (period, parts) => `${period}: ${parts.join("; ")}.`,
+    period: {
+      base: (from, to) => `${from}–${to}`,
+      TEMPO: (from, to) => `Temporarily ${from}–${to}`,
+      BECMG: (from, to) => `Becoming ${from}–${to}`,
+      FM: (from) => `From ${from}`,
+    },
   },
   actions: {
-    increase: "Increase value", decrease: "Decrease value", selectHour: (hour) => `Select ${hour}Z`,
+    increase: "Increase value", decrease: "Decrease value", selectHour: (type, hour) => `Select ${type} ${hour}Z`,
     deleteChange: "Delete change", deleteCloud: "Delete cloud layer", deleteLayer: "Delete Layer", changeType: "Change type", switchType: (type) => `Switch to ${type}`,
   },
   tour: {
@@ -115,13 +184,54 @@ export const zhTW: Translation = {
     addWeather: (value) => `新增 ${value}`, removeWeather: (value) => `移除 ${value}`, space: "空格",
     visibilityError: "能見度為 5000 公尺以下時，必須選擇天氣現象",
   },
-  output: {
-    station: "機場", validity: "有效期間", base: "基本預報", configured: "已設定", changes: "變化區段",
-    blocks: (count) => `${count} 個區段`,
-    note: "編輯時會持續顯示產生的報文，減少畫面切換並方便確認設定與結果。", live: "即時",
+  output: { live: "即時", copy: "複製", copied: "已複製", copyAria: "複製 TAF 到剪貼簿", checks: "檢查", summary: "白話解讀" },
+  header: { validity: "有效", scene: "背景場景", context: "預報基本資料" },
+  timeline: {
+    hint: "在對應類型的軌道上點選起訖時間（或拖曳）建立變化區段；點擊區段即可編輯。",
+    pendingHint: (hour) => `已選起點 ${hour}Z，請選擇結束時間。`,
+    base: "基本",
+    untilEnd: "至有效期結束",
+  },
+  editor: {
+    periods: "預報區段", from: "起", to: "迄",
+    note: "僅輸出已納入的項目，未納入的沿用基本預報。",
+    output: "輸出",
+    include: (section) => `納入${section}`, included: "納入",
+    notIncluded: (code) => `未納入 · 沿用基本預報 ${code}`,
+    calm: "靜風", cloudAmount: "雲量", cloudHeight: "雲底高",
+    groups: { intensity: "強度", descriptor: "描述", precipitation: "降水", obscuration: "視障", separator: "分組" },
+    selected: "已選",
+  },
+  checks: {
+    contextOk: "機場代碼與發布時間皆已填寫。",
+    stationInvalid: "請輸入 4 碼 ICAO 機場代碼。",
+    issueTimeInvalid: "發布時間需為有效的 DDHHMM。",
+    visibilityOk: "能見度與天氣現象設定一致。",
+    visibilityNeedsWeather: (period) => `${period}：能見度 5000 公尺以下時必須填天氣現象。`,
+    gustOmitted: (period, gust, speed) => `${period}：陣風 ${gust} KT 與風速 ${speed} KT 相差未達 15 KT，不會輸出 G 組。`,
+    emptyChange: (period) => `${period}：沒有納入任何項目，此區段不會輸出。`,
+  },
+  decode: {
+    calm: "靜風",
+    compass: ["北", "北北東", "東北", "東北東", "東", "東南東", "東南", "南南東", "南", "南南西", "西南", "西南西", "西", "西北西", "西北", "北北西"],
+    wind: (direction, speed, gust) => `${direction}風 ${speed} KT${gust ? `，陣風 ${gust} KT` : ""}`,
+    visibilityTenKm: "能見度 10 公里以上", visibility: (metres) => `能見度 ${metres} 公尺`,
+    intensity: { "-": "弱", "+": "強", VC: "附近" },
+    phenomena: { TS: "雷暴", SH: "陣性", RA: "雨", DZ: "毛毛雨", SN: "雪", BR: "靄", FG: "霧", HZ: "霾" },
+    joinPhenomena: (parts) => parts.join(""),
+    amounts: { FEW: "少雲", SCT: "疏雲", BKN: "裂雲", OVC: "密雲" },
+    cloud: (amount, feet, cb, tcu) => `${amount} ${feet} 呎${cb ? "（積雨雲）" : tcu ? "（塔狀積雲）" : ""}`,
+    list: (items) => items.join("、"),
+    sentence: (period, parts) => `${period}：${parts.join("，")}。`,
+    period: {
+      base: (from, to) => `${from}–${to}`,
+      TEMPO: (from, to) => `${from}–${to} 短暫`,
+      BECMG: (from, to) => `${from}–${to} 漸變`,
+      FM: (from) => `${from} 起`,
+    },
   },
   actions: {
-    increase: "增加數值", decrease: "減少數值", selectHour: (hour) => `選擇 ${hour}Z`,
+    increase: "增加數值", decrease: "減少數值", selectHour: (type, hour) => `選擇 ${type} ${hour}Z`,
     deleteChange: "刪除變化區段", deleteCloud: "刪除雲層", deleteLayer: "刪除雲層", changeType: "變更類型", switchType: (type) => `切換為 ${type}`,
   },
   tour: {

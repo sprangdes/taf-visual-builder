@@ -46,48 +46,10 @@ export interface TAF {
   changes: TAFChange[];
 }
 
-export interface ChangeEditorProps {
-  change: TAFChange | BaseForecast | null;
-  onUpdate: (updated: TAFChange | BaseForecast) => void;
-  showActionButtons?: boolean;
-  onDelete?: () => void;
-  onChangeType?: (type: WeatherTrendType) => void;
-  headerId?: string;
-}
-
-export interface TimelineProps {
-  changes: TAFChange[];
-  onSelectRange: (start: number, end: number) => void;
-  onSelectChange: (index: number) => void;
-  startHour: number;
-  isDark?: boolean;
-}
+export type EditableBlockKey = "wind" | "vis" | "clouds";
 
 export interface IssueTimeInputProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
 }
-
-export interface CloudDeleteButtonProps {
-  onClick: () => void;
-}
-
-export interface ChangeDeleteButtonProps {
-  onClick: () => void;
-  setShowTooltip: (v: boolean) => void;
-  showTooltip: boolean;
-}
-
-export interface TooltipPos {
-  top: number;
-  left: number;
-}
-
-export interface TypeButtonProps {
-  showActionButtons: boolean;
-  onChangeType?: (type: WeatherTrendType) => void;
-  change: TAFChange | BaseForecast;
-}
-
-export type EditableBlockKey = "wind" | "vis" | "clouds";

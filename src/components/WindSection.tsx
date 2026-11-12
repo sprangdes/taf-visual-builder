@@ -1,6 +1,8 @@
-import type { Wind } from "../types/taf";
-import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
+import type { Wind } from "../types/taf";
+import { formatWind } from "../utils/weather";
+import ConditionCard from "./ConditionCard";
+import NumericControl from "./inputs/NumericControl";
 
 const windDirectionOptions = Array.from({ length: 37 }, (_, index) => ({
   value: index * 10,
@@ -16,100 +18,97 @@ interface WindSectionProps {
   isBase: boolean;
   windEnabled: boolean;
   wind: Wind;
+  baseWind: Wind;
   onSetEnabled: (enabled: boolean) => void;
   onUpdateWind: (field: keyof Wind, value: number | string) => void;
+}
+
+function WindCompass({ wind, calmLabel }: Readonly<{ wind: Wind; calmLabel: string }>) {
+  const calm = wind.speed === 0;
+  const angle = ((wind.dir % 360) * Math.PI) / 180;
+  const fromX = 60 + Math.sin(angle) * 46;
+  const fromY = 60 - Math.cos(angle) * 46;
+  const toX = 60 - Math.sin(angle) * 34;
+  const toY = 60 + Math.cos(angle) * 34;
+  const headAngle = Math.atan2(toY - fromY, toX - fromX);
+  const head = [
+    [toX, toY],
+    [toX - 11 * Math.cos(headAngle - 0.45), toY - 11 * Math.sin(headAngle - 0.45)],
+    [toX - 11 * Math.cos(headAngle + 0.45), toY - 11 * Math.sin(headAngle + 0.45)],
+  ]
+    .map((point) => point.map((value) => value.toFixed(1)).join(","))
+    .join(" ");
+
+  return (
+    <svg className="wind-compass" viewBox="0 0 120 120" role="img" aria-label={calm ? calmLabel : `${wind.dir}°`}>
+      <circle cx="60" cy="60" r="50" className="wind-compass-ring" />
+      <circle cx="60" cy="60" r="34" className="wind-compass-inner" />
+      <text x="60" y="21" textAnchor="middle">N</text>
+      <text x="103" y="64" textAnchor="middle">E</text>
+      <text x="60" y="107" textAnchor="middle">S</text>
+      <text x="17" y="64" textAnchor="middle">W</text>
+      {calm ? (
+        <circle cx="60" cy="60" r="6" className="wind-compass-calm" />
+      ) : (
+        <>
+          <line x1={fromX} y1={fromY} x2={toX} y2={toY} className="wind-compass-arrow" />
+          <polygon points={head} className="wind-compass-head" />
+          <circle cx={fromX} cy={fromY} r="5" className="wind-compass-origin" />
+        </>
+      )}
+    </svg>
+  );
 }
 
 export default function WindSection({
   isBase,
   windEnabled,
   wind,
+  baseWind,
   onSetEnabled,
   onUpdateWind,
 }: Readonly<WindSectionProps>) {
   const { text } = useLanguage();
+  const rows = [
+    { field: "dir" as const, label: text.conditions.windDirection, value: wind.dir, max: 360, step: 10, unit: "°", options: windDirectionOptions, format: undefined },
+    { field: "speed" as const, label: text.conditions.windSpeed, value: wind.speed, max: 99, step: 1, unit: "KT", options: twoDigitWindOptions, format: (v: number) => String(v).padStart(2, "0") },
+    { field: "gust" as const, label: text.conditions.windGust, value: wind.gust ?? 0, max: 99, step: 1, unit: "KT", options: twoDigitWindOptions, format: (v: number) => String(v).padStart(2, "0") },
+  ];
+
   return (
-    <div
-      data-tour-id="wind"
-      className={`taf-block condition-block wind-block ${windEnabled ? "" : "is-inactive"}`}
+    <ConditionCard
+      tourId="wind"
+      className="wind-card"
+      title={text.conditions.wind}
+      isBase={isBase}
+      enabled={windEnabled}
+      onSetEnabled={onSetEnabled}
+      output={formatWind(wind)}
+      inherited={formatWind(baseWind)}
     >
-      {!isBase && windEnabled && (
-        <button
-          type="button"
-          aria-label={text.conditions.deactivateWind}
-          onClick={() => onSetEnabled(false)}
-          className="condition-block-deactivate"
-        >
-          X
-        </button>
-      )}
-      {!windEnabled && (
-        <div className="condition-block-overlay">
-          <button
-            type="button"
-            aria-label={text.conditions.activateWindAria}
-            onClick={() => onSetEnabled(true)}
-            className="condition-block-activate"
-          >
-            <span className="condition-block-activate-icon" aria-hidden="true">+</span>
-            <span className="condition-block-activate-copy">
-              <strong>{text.conditions.activateWind}</strong>
-              <small>{text.conditions.includeInChange}</small>
-            </span>
-          </button>
+      <div className="wind-layout">
+        <WindCompass wind={wind} calmLabel={text.editor.calm} />
+        <div className="wind-fields">
+          {rows.map((row) => (
+            <div key={row.field} className="wind-field">
+              <span className="field-label">{row.label}</span>
+              <span className="wind-control-group">
+                <NumericControl
+                  value={row.value}
+                  min={0}
+                  max={row.max}
+                  step={row.step}
+                  mobileEditor="select"
+                  mobileOptions={row.options}
+                  formatValue={row.format}
+                  onChange={(value) => onUpdateWind(row.field, value)}
+                />
+                <span className="field-unit">{row.unit}</span>
+              </span>
+            </div>
+          ))}
         </div>
-      )}
-      <h4 className="condition-block-title">
-        <span className="condition-block-icon" aria-hidden="true">↗</span>
-        {text.conditions.wind}
-      </h4>
-      <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windDirection}</span>
-        <span className="wind-control-group">
-          <NumericControl
-            value={wind.dir}
-            min={0}
-            max={360}
-            step={10}
-            mobileEditor="select"
-            mobileOptions={windDirectionOptions}
-            onChange={(value) => onUpdateWind("dir", value)}
-          />
-          <span className="condition-unit">°</span>
-        </span>
-      </label>
-      <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windSpeed}</span>
-        <span className="wind-control-group">
-          <NumericControl
-            value={wind.speed}
-            min={0}
-            max={99}
-            step={1}
-            mobileEditor="select"
-            mobileOptions={twoDigitWindOptions}
-            formatValue={(v) => String(v).padStart(2, "0")}
-            onChange={(value) => onUpdateWind("speed", value)}
-          />
-          <span className="condition-unit">KT</span>
-        </span>
-      </label>
-      <label className="text-sm flex flex-wrap items-center gap-2">
-        <span className="condition-field-label inline-block w-24 sm:w-28">{text.conditions.windGust}</span>
-        <span className="wind-control-group">
-          <NumericControl
-            value={wind.gust ?? 0}
-            min={0}
-            max={99}
-            step={1}
-            mobileEditor="select"
-            mobileOptions={twoDigitWindOptions}
-            formatValue={(v) => String(v).padStart(2, "0")}
-            onChange={(value) => onUpdateWind("gust", value)}
-          />
-          <span className="condition-unit">KT</span>
-        </span>
-      </label>
-    </div>
+      </div>
+    </ConditionCard>
   );
 }
