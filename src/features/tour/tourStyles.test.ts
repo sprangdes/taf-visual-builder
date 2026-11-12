@@ -10,10 +10,11 @@ describe("guided tour responsive styles", () => {
     const mobileStyles = styles.slice(mobileStart, mobileEnd);
 
     expect(mobileStyles).toContain(".tour-menu {");
-    expect(mobileStyles).toContain("position: fixed;");
-    expect(mobileStyles).toContain("top: 72px;");
-    expect(mobileStyles).toContain("left: 12px;");
-    expect(mobileStyles).toContain("right: 12px;");
+    expect(mobileStyles).toContain(".tour-menu-root { position: static; }");
+    expect(mobileStyles).toContain("position: absolute;");
+    expect(mobileStyles).toContain("top: calc(100% + 8px);");
+    expect(mobileStyles).toContain("left: 0;");
+    expect(mobileStyles).toContain("right: 0;");
     expect(mobileStyles).toContain("width: auto;");
     expect(mobileStyles).toContain("max-height: calc(100dvh - 84px);");
     expect(mobileStyles).toContain("overflow-y: auto;");
@@ -33,7 +34,7 @@ describe("guided tour responsive styles", () => {
   });
 
   it("provides a compact touch-enabled mobile tour card", () => {
-    expect(styles).toContain(".tour-flight-strip { border-radius: 16px 16px 0 0; touch-action: none; }");
+    expect(styles).toContain("border-radius: 22px; touch-action: none; }");
     expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-strip-inner { display: none; }");
     expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-toggle { height: 44px; }");
   });

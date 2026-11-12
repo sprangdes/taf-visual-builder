@@ -1,14 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Menus, dialogs and the guided tour keep solid surfaces for legibility. */
-  --taf-surface: #ffffff;
-  --taf-surface-subtle: #f3f6fb;
-  --taf-border: #d5deea;
-  --taf-text: #172033;
-  --taf-text-muted: #55627a;
-  --taf-accent: #2f6fd6;
-  --taf-focus: #ffffff;
+  /* Menus, dialogs and the guided tour: denser glass so text stays legible over busy content. */
+  --popover-bg: rgb(26 36 80 / 97%);
+  --popover-solid: rgb(26 36 80);
+  --popover-border: rgb(255 255 255 / 26%);
+  --popover-hover: rgb(255 255 255 / 12%);
+  --popover-shadow: inset 0 1px 0 rgb(255 255 255 / 30%), 0 18px 48px rgb(6 10 30 / 45%);
+  --popover-blur: blur(24px) saturate(160%);
 
   /* Liquid glass */
   --glass-bg: rgb(255 255 255 / 14%);
@@ -426,7 +425,7 @@ body {
   .issue-time-input { width: 100%; }
 }
 @media (max-width: 640px) {
-  .appbar-wrap { position: static; padding: 10px 10px 0; }
+  .appbar-wrap { position: relative; padding: 10px 10px 0; }
   .workbench-appbar { border-radius: 22px; padding: 10px; }
   .workbench-brand h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .workbench-actions { gap: 4px; }
@@ -458,52 +457,73 @@ body {
 
 body.taf-dark-page { background: #0b1226; }
 
-/* Guided briefing */
+/* Guided briefing, language menu and tour dialogs share the liquid-glass popover look. */
+body.taf-dark-page {
+  --popover-bg: rgb(12 16 36 / 97%);
+  --popover-solid: rgb(12 16 36);
+  --popover-border: rgb(255 255 255 / 16%);
+  --popover-hover: rgb(255 255 255 / 10%);
+}
 .tour-menu-root, .language-menu-root { position: relative; }
+.language-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip {
+  border: 1px solid var(--popover-border);
+  background: var(--popover-bg);
+  color: var(--text);
+  box-shadow: var(--popover-shadow);
+  -webkit-backdrop-filter: var(--popover-blur);
+  backdrop-filter: var(--popover-blur);
+}
+/* Menus sit inside the blurred header, where a nested backdrop blur cannot sample the page; keep them solid. */
+.language-menu, .tour-menu { background: var(--popover-solid); }
 .language-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
   z-index: 1000;
   min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 6px;
-  border: 1px solid var(--taf-border);
-  border-radius: 10px;
-  background: var(--taf-surface);
-  box-shadow: 0 14px 32px rgb(15 35 48 / 18%);
+  border-radius: 20px;
 }
 .language-menu > button {
   display: flex;
   width: 100%;
+  min-height: 38px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 9px 10px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 7px;
-  color: var(--taf-text);
+  border-radius: 999px;
+  color: var(--text);
   background: transparent;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   text-align: left;
 }
-.language-menu > button:hover { background: var(--taf-surface-subtle); }
-.language-menu > button i { width: 1em; color: var(--taf-accent); font-style: normal; }
+.language-menu > button:hover { background: var(--popover-hover); }
+.language-menu > button[aria-checked="true"] { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
+.language-menu > button i { width: 1em; font-style: normal; font-weight: 700; }
 .tour-menu {
   position: absolute;
   z-index: 80;
   top: calc(100% + 10px);
   right: 0;
   width: min(340px, calc(100vw - 24px));
-  padding: 10px;
-  border: 1px solid var(--taf-border);
-  border-radius: 12px;
-  background: var(--taf-surface);
-  box-shadow: 0 18px 45px rgba(9, 30, 43, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 22px;
 }
 .tour-menu-label {
-  margin: 2px 8px 8px;
-  color: var(--taf-accent);
-  font: 700 0.68rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin: 6px 12px 8px;
+  color: var(--text-muted);
+  font: 700 11px/1.2 var(--mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -511,17 +531,17 @@ body.taf-dark-page { background: #0b1226; }
   display: grid;
   width: 100%;
   gap: 3px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 16px;
   background: transparent;
-  color: var(--taf-text);
+  color: var(--text);
   text-align: left;
   cursor: pointer;
 }
-.tour-menu > button:hover { background: var(--taf-surface-subtle); }
-.tour-menu > button strong { font-size: 0.86rem; }
-.tour-menu > button span { color: var(--taf-text-muted); font-size: 0.76rem; line-height: 1.4; }
+.tour-menu > button:hover { background: var(--popover-hover); }
+.tour-menu > button strong { font-size: 13px; font-weight: 700; }
+.tour-menu > button span { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 
 .react-joyride__floater:has(.tour-flight-strip) {
   position: fixed !important;
@@ -539,12 +559,10 @@ body.taf-dark-page { background: #0b1226; }
 }
 .react-joyride__arrow:has(+ .tour-flight-strip) { display: none; }
 .tour-flight-strip {
-  width: 100%;
-  border-top: 1px solid #adc2cd;
-  background: rgba(249, 252, 253, 0.98);
-  color: #173344;
-  box-shadow: 0 -16px 36px rgba(15, 44, 61, 0.18);
-  backdrop-filter: blur(14px);
+  width: min(1180px, calc(100% - 32px));
+  box-sizing: border-box;
+  margin: 0 auto max(16px, env(safe-area-inset-bottom));
+  border-radius: 26px;
 }
 .tour-flight-toggle { display: none; }
 .tour-flight-strip-inner {
@@ -552,45 +570,51 @@ body.taf-dark-page { background: #0b1226; }
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 30px;
   align-items: center;
-  width: min(1180px, 100%);
-  min-height: 154px;
-  margin: 0 auto;
-  padding: 22px 28px;
+  min-height: 132px;
+  padding: 20px 26px;
+  box-sizing: border-box;
 }
 .tour-flight-copy { min-width: 0; }
 .tour-flight-kicker {
   display: flex;
   gap: 14px;
-  color: #277ca2;
-  font: 700 0.69rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
+  font: 700 11px/1.2 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.tour-flight-strip h2 { margin: 7px 0 4px; color: inherit; font-size: 1.15rem; }
-.tour-flight-description { color: #4f6876; font-size: 0.86rem; line-height: 1.55; }
+.tour-flight-kicker > span:first-child { color: var(--text); }
+.tour-flight-strip h2 { margin: 7px 0 4px; color: inherit; font-size: 17px; font-weight: 700; }
+.tour-flight-description { color: var(--text-muted); font-size: 13px; line-height: 1.55; }
 .tour-flight-actions { display: grid; grid-template-columns: auto auto; gap: 14px 18px; align-items: center; }
-.tour-flight-close { justify-self: end; border: 0; background: transparent; color: #607783; cursor: pointer; }
+.tour-flight-close { justify-self: end; border: 0; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+.tour-flight-close:hover { color: var(--text); }
 .tour-flight-progress { display: flex; width: 220px; gap: 5px; }
-.tour-flight-progress i { width: 100%; height: 3px; border-radius: 3px; background: #d5e0e5; }
-.tour-flight-progress i.is-complete { background: #2c88ae; }
+.tour-flight-progress i { width: 100%; height: 4px; border-radius: 999px; background: rgb(255 255 255 / 20%); }
+.tour-flight-progress i.is-complete { background: var(--text); }
 .tour-flight-buttons { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
 .tour-flight-buttons button,
 .tour-exit-actions button {
   min-height: 36px;
-  padding: 7px 13px;
-  border: 1px solid #aebfc8;
-  border-radius: 7px;
-  font: 700 0.77rem/1 system-ui, sans-serif;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
 }
-.tour-flight-skip { margin-right: auto; border-color: transparent !important; background: transparent; color: #607783; }
-.tour-flight-back { background: #fff; color: #284552; }
-.tour-flight-next { border-color: #276f8e !important; background: #277fa4; color: #fff; }
-.tour-flight-next:disabled { border-color: #b5c2c8 !important; background: #d8e0e4; color: #758891; cursor: not-allowed; }
+.tour-flight-skip { margin-right: auto; border-color: transparent !important; background: transparent; color: var(--text-muted); }
+.tour-flight-skip:hover { color: var(--text); }
+.tour-flight-back { background: rgb(255 255 255 / 14%); color: var(--text); box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%); }
+.tour-flight-back:hover { background: rgb(255 255 255 / 24%); }
+.tour-flight-next { border-color: transparent !important; background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
+.tour-flight-next:disabled { background: rgb(255 255 255 / 20%); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
 .tour-flight-strip button:focus-visible,
 .tour-menu button:focus-visible,
 .language-menu button:focus-visible,
-.tour-exit-dialog button:focus-visible { outline: 3px solid rgba(39, 127, 164, 0.36); outline-offset: 2px; }
+.tour-exit-dialog button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
 .tour-exit-backdrop {
   position: fixed;
@@ -599,46 +623,28 @@ body.taf-dark-page { background: #0b1226; }
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(8, 25, 36, 0.62);
+  background: rgb(6 10 30 / 55%);
 }
 .tour-exit-dialog {
   width: min(480px, 100%);
+  box-sizing: border-box;
   padding: 24px;
-  border: 1px solid var(--taf-border);
-  border-radius: 14px;
-  background: var(--taf-surface);
-  color: var(--taf-text);
-  box-shadow: 0 24px 70px rgba(6, 23, 34, 0.32);
+  border-radius: 26px;
 }
-.tour-exit-dialog h2 { margin: 8px 0; font-size: 1.18rem; }
-.tour-exit-dialog > p:not(.tour-menu-label) { color: var(--taf-text-muted); line-height: 1.55; }
+.tour-exit-dialog .tour-menu-label { margin: 0; }
+.tour-exit-dialog h2 { margin: 8px 0; font-size: 18px; font-weight: 700; }
+.tour-exit-dialog > p:not(.tour-menu-label) { margin: 0; color: var(--text-muted); line-height: 1.55; }
 .tour-exit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
-.taf-dark-page .tour-flight-strip {
-  border-color: #36566a;
-  background: rgba(9, 31, 46, 0.98);
-  color: #e6f2f7;
-  box-shadow: 0 -16px 40px rgba(0, 8, 14, 0.5);
-}
-.taf-dark-page .tour-flight-description { color: #afc5d0; }
-.taf-dark-page .tour-flight-back { border-color: #4c6878; background: #15364a; color: #e2eef3; }
-.taf-dark-page .tour-flight-progress i { background: #365364; }
-.taf-dark-page .tour-flight-progress i.is-complete { background: #62b7d9; }
-.taf-dark .tour-menu { border-color: #355468; background: #102f42; }
-.taf-dark .language-menu { border-color: #355468; background: #102f42; }
-.taf-dark .language-menu > button { color: #e3f0f5; }
-.taf-dark .language-menu > button:hover { background: #173b51; }
-.taf-dark .tour-menu > button { color: #e3f0f5; }
-.taf-dark .tour-menu > button:hover { background: #173b51; }
-.taf-dark .tour-menu > button span { color: #aec2cc; }
-
-
 @media (max-width: 639px) {
+  /* Anchor the menu to the full header width instead of the small trigger button. */
+  .workbench-appbar { position: relative; }
+  .tour-menu-root { position: static; }
   .tour-menu {
-    position: fixed;
-    top: 72px;
-    left: 12px;
-    right: 12px;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
     width: auto;
     max-height: calc(100dvh - 84px);
     overflow-y: auto;
@@ -661,7 +667,7 @@ body.taf-dark-page { background: #0b1226; }
     text-align: center;
     text-align-last: center;
   }
-  .tour-flight-strip { border-radius: 16px 16px 0 0; touch-action: none; }
+  .tour-flight-strip { position: relative; width: calc(100% - 20px); margin-bottom: max(10px, env(safe-area-inset-bottom)); border-radius: 22px; touch-action: none; }
   .tour-flight-toggle {
     width: 100%;
     height: 32px;
@@ -670,15 +676,15 @@ body.taf-dark-page { background: #0b1226; }
     padding: 0;
     border: 0;
     background: transparent;
-    color: #4f6876;
+    color: var(--text-muted);
     cursor: pointer;
   }
   .tour-flight-toggle svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .tour-flight-strip.is-collapsed .tour-flight-strip-inner { display: none; }
   .tour-flight-strip.is-collapsed .tour-flight-toggle { height: 44px; }
   .tour-flight-strip-inner { display: block; min-height: 0; padding: 14px 18px 16px; }
-  .tour-flight-strip h2 { font-size: 1rem; }
-  .tour-flight-description { font-size: 0.8rem; }
+  .tour-flight-strip h2 { font-size: 15px; }
+  .tour-flight-description { font-size: 12px; }
   .tour-flight-actions { display: block; }
   .tour-flight-close { position: absolute; top: 15px; right: 16px; }
   .tour-flight-progress { width: 100%; margin: 12px 0; }

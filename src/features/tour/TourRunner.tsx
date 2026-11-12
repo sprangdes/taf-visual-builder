@@ -39,7 +39,7 @@ export default function TourRunner({ steps, isMobile, isCollapsed, onFinish }: R
         scrollOffset: 180,
         showProgress: true,
         spotlightPadding: 8,
-        spotlightRadius: 10,
+        spotlightRadius: 22,
         targetWaitTimeout: 1500,
         zIndex: 1200,
       }}
