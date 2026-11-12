@@ -52,11 +52,12 @@ body {
 .mono { font-family: var(--mono); }
 
 /* ---------- Weather scene ---------- */
-.weather-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #142042; animation: scene-in .7s ease-out; }
+.weather-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #142042; animation: scene-in .7s ease-out; contain: strict; }
 .weather-scene-layer { position: absolute; inset: 0; }
 .weather-scene-layer > svg { display: block; }
 .weather-scene-drift { left: -80px; right: -80px; animation: scene-drift 40s ease-in-out infinite alternate; will-change: transform; }
-.weather-scene-precip { position: absolute; animation: scene-fall var(--fall-duration, .5s) linear infinite; will-change: transform; }
+.weather-scene-precip { position: absolute; animation: scene-fall var(--fall-duration, .5s) steps(var(--fall-steps, 8)) infinite; will-change: transform; }
+.weather-scene-lowres { position: absolute; top: 0; left: 0; width: 50%; height: 50%; transform: scale(2); transform-origin: 0 0; }
 .weather-scene-precip > svg { display: block; }
 .weather-scene-flash {
   position: absolute; left: 44%; top: -6%; width: 900px; height: 640px; border-radius: 50%;
@@ -68,7 +69,7 @@ body {
 .weather-scene-haze { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(214 190 140 / 8%), rgb(214 190 140 / 26%)); }
 .weather-scene-vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgb(4 6 14 / 70%) 100%); }
 
-.weather-scene.is-paused, .weather-scene.is-paused * { animation-play-state: paused !important; }
+.weather-scene.is-paused *, .scene-hold .weather-scene * { animation-play-state: paused !important; }
 .weather-scene.is-paused .weather-scene-flash, .weather-scene.is-paused .weather-scene-bolt { animation: none; opacity: 0; }
 
 @keyframes scene-in { from { opacity: 0; } to { opacity: 1; } }
@@ -367,6 +368,11 @@ body {
 :where(button, input, select, [role="spinbutton"]):focus-visible { outline: 3px solid rgb(255 255 255 / 75%); outline-offset: 2px; }
 
 .mobile-output-bar { display: none; }
+
+/* Lite rendering: devices that cannot keep up with live backdrop blur get tinted panels instead. */
+.taf-app.is-lite .glass-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(26 36 76 / 78%); }
+.taf-app.is-lite .output-panel { background: rgb(10 14 38 / 86%); }
+.taf-app.is-lite.taf-dark .glass-panel { background: rgb(8 12 30 / 86%); }
 
 /* ---------- Dark glass ---------- */
 .taf-app.taf-dark {

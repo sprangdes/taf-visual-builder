@@ -47,11 +47,19 @@ function adapter(): TourEditorAdapter {
 }
 
 describe("TourProvider", () => {
-  it("loads demo data with passive steps", () => {
+  it("loads the tour engine only after a tour starts", async () => {
+    render(<TourProvider editor={adapter()}><Harness /></TourProvider>);
+    expect(screen.queryByTestId("joyride-mock")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start topic" }));
+    expect(await screen.findByTestId("joyride-mock")).toHaveAttribute("data-running", "true");
+  });
+
+  it("loads demo data with passive steps", async () => {
     const editor = adapter();
     render(<TourProvider editor={editor}><Harness /></TourProvider>);
 
     fireEvent.click(screen.getByRole("button", { name: "Start quick" }));
+    await screen.findByTestId("joyride-mock");
     expect(editor.capture).toHaveBeenCalledOnce();
     expect(editor.loadDemo).toHaveBeenCalledOnce();
     expect(screen.getByText("running")).toBeVisible();
@@ -66,10 +74,11 @@ describe("TourProvider", () => {
     expect(contextStep?.before).toEqual(expect.any(Function));
   });
 
-  it("asks whether to restore the snapshot after quick start", () => {
+  it("asks whether to restore the snapshot after quick start", async () => {
     const editor = adapter();
     render(<TourProvider editor={editor}><Harness /></TourProvider>);
     fireEvent.click(screen.getByRole("button", { name: "Start quick" }));
+    await screen.findByTestId("joyride-mock");
 
     act(() => joyride.props?.onEvent?.({ type: "tour:end", status: "finished" } as EventData, {} as never));
     fireEvent.click(screen.getByRole("button", { name: "Restore my forecast" }));
@@ -78,12 +87,13 @@ describe("TourProvider", () => {
     expect(screen.getByText("idle")).toBeVisible();
   });
 
-  it("skips missing targets without ending a focused tour", () => {
+  it("skips missing targets without ending a focused tour", async () => {
     const editor = adapter();
     const next = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     render(<TourProvider editor={editor}><Harness /></TourProvider>);
     fireEvent.click(screen.getByRole("button", { name: "Start topic" }));
+    await screen.findByTestId("joyride-mock");
 
     act(() => joyride.props?.onEvent?.({ type: "error:target_not_found", step: { id: "generated-output" } } as EventData, { next } as never));
 
@@ -93,7 +103,7 @@ describe("TourProvider", () => {
     warn.mockRestore();
   });
 
-  it("temporarily hides the mobile overlay without ending the tour", () => {
+  it("temporarily hides the mobile overlay without ending the tour", async () => {
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = vi.fn().mockReturnValue({
       matches: true,
@@ -102,6 +112,7 @@ describe("TourProvider", () => {
     });
     render(<TourProvider editor={adapter()}><Harness /></TourProvider>);
     fireEvent.click(screen.getByRole("button", { name: "Start topic" }));
+    await screen.findByTestId("joyride-mock");
 
     expect(joyride.props?.options?.hideOverlay).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Toggle card" }));

@@ -1,7 +1,5 @@
-import { useId, useMemo, type CSSProperties } from "react";
-import type { WeatherState } from "../types/taf";
+import { memo, useId, useMemo, type CSSProperties } from "react";
 import {
-  getWeatherSceneParams,
   mixColor,
   seededRandom,
   type SceneCloudLayer,
@@ -11,18 +9,30 @@ import {
 const VIEW_W = 1600;
 const VIEW_H = 1010;
 
+/** Layers are refreshed at a low rate: each step repaints the glass panels above them. */
+const PRECIPITATION_FPS = 15;
+const DRIFT_STEPS = 50;
+
 interface SceneSvgProps {
   children: React.ReactNode;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Rasterise at half resolution and scale up. Soft, filter-heavy layers (clouds, mist)
+   * look the same but cost a quarter of the pixels to render.
+   */
+  lowRes?: boolean;
 }
 
-function SceneSvg({ children, className = "", style }: Readonly<SceneSvgProps>) {
+function SceneSvg({ children, className = "", style, lowRes = false }: Readonly<SceneSvgProps>) {
+  const svg = (
+    <svg width="100%" height="100%" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" focusable="false">
+      {children}
+    </svg>
+  );
   return (
     <div className={`weather-scene-layer ${className}`} style={style}>
-      <svg width="100%" height="100%" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" focusable="false">
-        {children}
-      </svg>
+      {lowRes ? <div className="weather-scene-lowres">{svg}</div> : svg}
     </div>
   );
 }
@@ -60,10 +70,11 @@ function CloudLayer({ id, index, layer, params }: Readonly<CloudLayerProps>) {
   const style = {
     animationDuration: `${duration}s`,
     animationDirection: params.drift < 0 ? "alternate-reverse" : "alternate",
+    animationTimingFunction: `steps(${DRIFT_STEPS})`,
   } as CSSProperties;
 
   return (
-    <SceneSvg className="weather-scene-drift" style={style}>
+    <SceneSvg className="weather-scene-drift" style={style} lowRes>
       <defs>
         <linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1">
           {bandStops(layer.top, layer.bottom).map((stop, stopIndex) => (
@@ -120,6 +131,7 @@ function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerPr
     "--fall-x": `${(Math.sin(radians) * tile).toFixed(1)}px`,
     "--fall-y": `${(Math.cos(radians) * tile).toFixed(1)}px`,
     "--fall-duration": `${duration}s`,
+    "--fall-steps": Math.max(2, Math.round(duration * PRECIPITATION_FPS)),
   } as CSSProperties;
 
   let shapes: React.ReactNode;
@@ -165,7 +177,7 @@ function PrecipitationLayer({ id, depth, params }: Readonly<PrecipitationLayerPr
 
 function FogLayer({ id, fog }: Readonly<{ id: string; fog: number }>) {
   return (
-    <SceneSvg style={{ opacity: Math.min(1, fog * 1.1) }}>
+    <SceneSvg style={{ opacity: Math.min(1, fog * 1.1) }} lowRes>
       <defs>
         <linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1">
           <stop offset={Math.max(0, 0.5 - fog * 0.5)} stopColor="#000" />
@@ -207,14 +219,13 @@ function LightningBolt({ id }: Readonly<{ id: string }>) {
 }
 
 interface WeatherSceneProps {
-  state: WeatherState;
+  params: WeatherSceneParams;
   /** When false the scene is drawn as a still image to save rendering work. */
   animated?: boolean;
 }
 
 /** Decorative background that renders the weather of the period being edited. */
-export default function WeatherScene({ state, animated = true }: Readonly<WeatherSceneProps>) {
-  const params = useMemo(() => getWeatherSceneParams(state), [state]);
+function WeatherScene({ params, animated = true }: Readonly<WeatherSceneProps>) {
   const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const d = params.darkness;
   const sky = [
@@ -256,3 +267,9 @@ export default function WeatherScene({ state, animated = true }: Readonly<Weathe
     </div>
   );
 }
+
+/** Re-render only when the drawn scene actually changes (not on every forecast edit). */
+export default memo(
+  WeatherScene,
+  (previous, next) => previous.animated === next.animated && JSON.stringify(previous.params) === JSON.stringify(next.params),
+);

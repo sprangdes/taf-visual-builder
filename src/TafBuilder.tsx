@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import GeneratedTafOutput from "./components/GeneratedTafOutput";
 import IssueTimeInput from "./components/IssueTimeInput";
@@ -17,6 +17,9 @@ import { describeBase, describePeriod } from "./utils/tafInsights";
 import { getBaseForecastPeriod, getCurrentIssueTimeUTC, getTimelineStartHour } from "./utils/time";
 import { formatHour, getChangeRange, indexToHour } from "./utils/timeline";
 import { createCloudLayer, emptyWeather, getEffectiveState } from "./utils/weather";
+import { getWeatherSceneParams } from "./utils/weatherScene";
+import { useRenderQuality } from "./hooks/useRenderQuality";
+import { useInteractionHold } from "./hooks/useInteractionHold";
 
 function createEmptyTaf(): TAF {
   return {
@@ -138,7 +141,15 @@ export default function TafBuilder() {
     clouds: taf.base.clouds?.length ? taf.base.clouds : [createCloudLayer({ amount: "FEW", height: 0 })],
   };
 
-  const sceneState = useMemo(() => getEffectiveState(taf.base, selectedChange), [taf.base, selectedChange]);
+  const sceneParams = useMemo(() => getWeatherSceneParams(getEffectiveState(taf.base, selectedChange)), [taf.base, selectedChange]);
+  // The scene is decorative: let edits paint first and redraw the background when the browser is idle.
+  const deferredSceneParams = useDeferredValue(sceneParams);
+  const sceneKey = useMemo(() => JSON.stringify(deferredSceneParams), [deferredSceneParams]);
+  const [forceMotion, setForceMotion] = useState(false);
+  const quality = useRenderQuality(sceneAnimated && !forceMotion, sceneKey);
+  const sceneMoving = sceneAnimated && (quality === "full" || forceMotion);
+  const autoPaused = sceneAnimated && !sceneMoving;
+  useInteractionHold(sceneMoving);
   const lines = generateTAFLines(taf);
   const currentLine = (lines.find((line) => line.changeIndex === selectedChangeIndex) ?? lines[0]).text;
   const baseLabel = describeBase(taf.issueTime, text.decode);
@@ -149,8 +160,8 @@ export default function TafBuilder() {
 
   return (
     <TourProvider editor={editor}>
-      <div className={`taf-app ${isDark ? "taf-dark" : ""}`}>
-        <WeatherScene key={selectedChangeIndex ?? "base"} state={sceneState} animated={sceneAnimated} />
+      <div className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`}>
+        <WeatherScene params={deferredSceneParams} animated={sceneMoving} />
 
         <div className="app-content">
           <div className="appbar-wrap">
@@ -195,12 +206,20 @@ export default function TafBuilder() {
               <div className="workbench-actions">
                 <button
                   type="button"
-                  aria-label={sceneAnimated ? text.scene.pause : text.scene.play}
-                  title={sceneAnimated ? text.scene.pause : text.scene.play}
+                  aria-label={sceneMoving ? text.scene.pause : text.scene.play}
+                  title={sceneMoving ? text.scene.pause : autoPaused ? text.scene.autoPaused : text.scene.play}
                   className="icon-button"
-                  onClick={() => setSceneAnimated((previous) => !previous)}
+                  onClick={() => {
+                    if (sceneMoving) {
+                      setSceneAnimated(false);
+                      setForceMotion(false);
+                    } else {
+                      setSceneAnimated(true);
+                      if (quality !== "full") setForceMotion(true);
+                    }
+                  }}
                 >
-                  {sceneAnimated ? (
+                  {sceneMoving ? (
                     <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
                   ) : (
                     <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>

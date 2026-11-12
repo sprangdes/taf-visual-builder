@@ -90,12 +90,13 @@ export function getWeatherSceneParams(state: WeatherState): WeatherSceneParams {
   const towardEast = speed === 0 ? 0 : -Math.sin(dirRad);
   const slant = Math.round(clamp(speed / 30, 0, 1) * 28 * towardEast);
 
+  const quantize = (value: number) => Math.round(value * 20) / 20;
   return {
-    darkness,
+    darkness: quantize(darkness),
     layers,
     precipitation,
     thunder,
-    fog,
+    fog: quantize(fog),
     haze: has("HZ"),
     slant,
     drift: towardEast,

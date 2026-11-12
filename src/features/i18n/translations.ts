@@ -34,7 +34,7 @@ export interface Translation {
   output: { live: string; copy: string; copied: string; copyAria: string; checks: string; summary: string };
   actions: { increase: string; decrease: string; selectHour: (type: string, hour: string) => string; deleteChange: string; deleteCloud: string; deleteLayer: string; changeType: string; switchType: (type: string) => string };
   header: { validity: string; scene: string; context: string };
-  scene: { pause: string; play: string };
+  scene: { pause: string; play: string; autoPaused: string };
   timeline: { hint: string; pendingHint: (hour: string) => string; base: string; untilEnd: string };
   editor: {
     periods: string; from: string; to: string; note: string; output: string;
@@ -91,7 +91,7 @@ export const en: Translation = {
   },
   output: { live: "Live", copy: "Copy", copied: "Copied", copyAria: "Copy TAF to clipboard", checks: "Checks", summary: "Plain-language summary" },
   header: { validity: "Valid", scene: "Background", context: "Forecast context" },
-  scene: { pause: "Pause background animation", play: "Play background animation" },
+  scene: { pause: "Pause background animation", play: "Play background animation", autoPaused: "Background animation was paused automatically to keep editing smooth. Click to play it anyway." },
   timeline: {
     hint: "Click a start and end hour on a lane (or drag) to create a change. Click a block to edit it.",
     pendingHint: (hour) => `Start ${hour}Z selected — choose the end hour.`,
@@ -190,7 +190,7 @@ export const zhTW: Translation = {
   },
   output: { live: "即時", copy: "複製", copied: "已複製", copyAria: "複製 TAF 到剪貼簿", checks: "檢查", summary: "白話解讀" },
   header: { validity: "有效", scene: "背景場景", context: "預報基本資料" },
-  scene: { pause: "暫停背景動畫", play: "播放背景動畫" },
+  scene: { pause: "暫停背景動畫", play: "播放背景動畫", autoPaused: "為了維持編輯流暢，背景動畫已自動暫停；點擊可強制播放。" },
   timeline: {
     hint: "在對應類型的軌道上點選起訖時間（或拖曳）建立變化區段；點擊區段即可編輯。",
     pendingHint: (hour) => `已選起點 ${hour}Z，請選擇結束時間。`,

@@ -1,4 +1,5 @@
 import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TafBuilder from "./TafBuilder";
 import { LanguageProvider } from "./features/i18n/LanguageProvider";
@@ -74,8 +75,26 @@ describe("TafBuilder aviation workbench", () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Pause background animation" }));
     expect(screen.getByTestId("weather-scene")).toHaveClass("is-paused");
+    // Pausing must freeze the motion layers only, never the scene's own fade-in.
+    const css = readFileSync("src/index.css", "utf8");
+    expect(css).not.toMatch(/\.weather-scene\.is-paused\s*[,{]/);
     expect(localStorage.getItem("taf-scene-motion")).toBe("0");
     expect(screen.getByRole("button", { name: "Play background animation" })).toBeVisible();
+  });
+
+  it("supports forcing a lighter rendering level for slow devices", () => {
+    window.history.pushState({}, "", "/?fx=lite");
+    render(<TafBuilder />);
+    expect(document.querySelector(".taf-app")).toHaveClass("is-lite");
+    expect(screen.getByTestId("weather-scene")).toHaveClass("is-paused");
+    expect(screen.getByRole("button", { name: "Play background animation" })).toBeVisible();
+    window.history.pushState({}, "", "/");
+  });
+
+  it("holds the weather animation while the user is editing", () => {
+    render(<TafBuilder />);
+    fireEvent.keyDown(window, { key: "a" });
+    expect(document.documentElement).toHaveClass("scene-hold");
   });
 
   it("retains theme persistence", () => {
