@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../../features/i18n/LanguageContext";
 
 interface NumericControlProps {
@@ -26,6 +26,7 @@ export default function NumericControl({
   const holdDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const valueRef = useRef(value);
+  const [draft, setDraft] = useState<string | null>(null);
 
   useEffect(() => {
     valueRef.current = value;
@@ -64,28 +65,20 @@ export default function NumericControl({
     }, 300);
   };
 
-  const display = formatValue ? formatValue(value) : String(value);
   const valueText = formatValue ? formatValue(value) : String(value);
 
+  const commitDraft = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    setDraft(null);
+    if (!digits) return;
+    const parsed = Math.round(Number.parseInt(digits, 10) / step) * step;
+    const next = Math.max(min, Math.min(max, parsed));
+    valueRef.current = next;
+    if (next !== value) onChange(next);
+  };
+
   return (
-    <div
-      className={`numeric-control ${mobileEditor ? "numeric-control--has-mobile-editor" : ""}`}
-      tabIndex={0}
-      role="spinbutton"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      aria-valuetext={valueText}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          applyDelta(step);
-        } else if (e.key === "ArrowDown") {
-          e.preventDefault();
-          applyDelta(-step);
-        }
-      }}
-    >
+    <div className={`numeric-control ${mobileEditor ? "numeric-control--has-mobile-editor" : ""}`}>
       <button
         type="button"
         className="numeric-control-btn"
@@ -101,7 +94,39 @@ export default function NumericControl({
       >
         -
       </button>
-      <div className="numeric-control-display">{display}</div>
+      <input
+        type="text"
+        inputMode="numeric"
+        className="numeric-control-display"
+        role="spinbutton"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={valueText}
+        maxLength={String(max).length}
+        value={draft ?? valueText}
+        onFocus={(e) => {
+          setDraft(valueText);
+          e.currentTarget.select();
+        }}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, ""))}
+        onBlur={(e) => commitDraft(e.currentTarget.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitDraft(e.currentTarget.value);
+            e.currentTarget.blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            setDraft(null);
+            e.currentTarget.blur();
+          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            applyDelta(e.key === "ArrowUp" ? step : -step);
+            setDraft(null);
+          }
+        }}
+      />
       {mobileEditor === "select" && (
         <select
           className="numeric-control-mobile-editor"

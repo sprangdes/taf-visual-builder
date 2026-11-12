@@ -284,7 +284,8 @@ body {
 }
 .numeric-control-btn { height: 100%; padding: 0; border: 0; background: transparent; color: var(--text); font-weight: 800; cursor: pointer; }
 .numeric-control-btn:hover { background: rgb(255 255 255 / 16%); }
-.numeric-control-display { text-align: center; color: var(--text); font: 700 13px var(--mono); font-variant-numeric: tabular-nums; user-select: none; }
+.numeric-control-display { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline-offset: -2px; background: transparent; text-align: center; color: var(--text); font: 700 13px var(--mono); font-variant-numeric: tabular-nums; cursor: text; }
+.numeric-control-display:focus { background: rgb(255 255 255 / 16%); }
 .numeric-control-mobile-editor { display: none; }
 
 .visibility-slider { display: flex; flex-direction: column; gap: 8px; }
@@ -329,7 +330,7 @@ body {
 
 /* ---------- Output ---------- */
 .workbench-output { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.output-panel { border-radius: 26px; overflow: hidden; background: var(--code-panel); }
+.output-panel { border-radius: 26px; overflow: hidden; }
 .output-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px 12px; }
 .output-title { display: flex; align-items: center; gap: 8px; }
 .output-title h2 { margin: 0; font-size: 15px; font-weight: 700; }
@@ -338,7 +339,7 @@ body {
 .copy-button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); font-size: 12px; font-weight: 700; cursor: pointer; }
 .copy-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .taf-code {
-  min-height: 150px; margin: 0 10px 10px; padding: 14px; border-radius: 18px; background: rgb(8 12 36 / 38%);
+  min-height: 150px; margin: 0 10px 10px; padding: 14px; border-radius: 18px; background: var(--glass-bg-inset);
   color: #eef2ff; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.85 var(--mono);
 }
 .taf-code-line { display: block; }
@@ -372,7 +373,6 @@ body {
 
 /* Lite rendering: devices that cannot keep up with live backdrop blur get tinted panels instead. */
 .taf-app.is-lite .glass-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(26 36 76 / 78%); }
-.taf-app.is-lite .output-panel { background: rgb(10 14 38 / 86%); }
 .taf-app.is-lite.taf-dark .glass-panel { background: rgb(8 12 30 / 86%); }
 
 /* Bright skies (day, dawn, dusk): tint the glass darker so white text keeps its contrast. */

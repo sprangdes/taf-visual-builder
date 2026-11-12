@@ -38,3 +38,33 @@ describe("NumericControl mobile editors", () => {
     expect(onChange).toHaveBeenLastCalledWith(20);
   });
 });
+
+describe("NumericControl direct entry", () => {
+  it("commits typed values on Enter, clamped and snapped to step", () => {
+    const onChange = vi.fn();
+    renderControl({ value: 0, min: 0, max: 360, step: 10, onChange });
+    const input = screen.getByRole("spinbutton");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "247" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith(250);
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "999" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenLastCalledWith(360);
+  });
+
+  it("reverts on Escape without emitting", () => {
+    const onChange = vi.fn();
+    renderControl({ value: 5, min: 0, max: 99, onChange, formatValue: (v) => String(v).padStart(2, "0") });
+    const input = screen.getByRole("spinbutton");
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "42" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input).toHaveValue("05");
+  });
+});
