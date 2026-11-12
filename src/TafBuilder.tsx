@@ -187,10 +187,7 @@ export default function TafBuilder() {
             <header className="workbench-appbar glass-panel">
               <div className="workbench-brand">
                 <span className="workbench-brand-mark" aria-hidden="true">TAF</span>
-                <div>
-                  <h1>{text.app.title}</h1>
-                  <p>{text.app.subtitle}</p>
-                </div>
+                <h1 title={text.app.subtitle}>{text.app.title}</h1>
               </div>
 
               <div className="forecast-context" data-tour-id="context" role="group" aria-label={text.header.context}>
@@ -215,36 +212,37 @@ export default function TafBuilder() {
                   <span>{text.header.validity}</span>
                   <strong>{basePeriod.from}/{basePeriod.to}</strong>
                 </span>
-                <span className="context-chip context-chip--scene" aria-live="polite">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 11a4 4 0 0 1-1 7H7Z" /></svg>
-                  <span>{text.header.scene}</span>
-                  <strong>{sceneLabel}</strong>
-                  <span className="context-chip-time">{text.scene.phases[daylight.phase]} {sceneTime}</span>
-                </span>
               </div>
 
               <div className="workbench-actions">
-                <button
-                  type="button"
-                  aria-label={sceneMoving ? text.scene.pause : text.scene.play}
-                  title={sceneMoving ? text.scene.pause : autoPaused ? text.scene.autoPaused : text.scene.play}
-                  className="icon-button"
-                  onClick={() => {
-                    if (sceneMoving) {
-                      setSceneAnimated(false);
-                      setForceMotion(false);
-                    } else {
-                      setSceneAnimated(true);
-                      if (quality !== "full") setForceMotion(true);
-                    }
-                  }}
-                >
-                  {sceneMoving ? (
-                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
-                  )}
-                </button>
+                <div className="scene-control" role="group" aria-label={text.header.scene}>
+                  <button
+                    type="button"
+                    aria-label={sceneMoving ? text.scene.pause : text.scene.play}
+                    title={sceneMoving ? text.scene.pause : autoPaused ? text.scene.autoPaused : text.scene.play}
+                    className="scene-control-button"
+                    onClick={() => {
+                      if (sceneMoving) {
+                        setSceneAnimated(false);
+                        setForceMotion(false);
+                      } else {
+                        setSceneAnimated(true);
+                        if (quality !== "full") setForceMotion(true);
+                      }
+                    }}
+                  >
+                    {sceneMoving ? (
+                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6.5" y="5" width="3.5" height="14" rx="1" /><rect x="14" y="5" width="3.5" height="14" rx="1" /></svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" /></svg>
+                    )}
+                  </button>
+                  <span className="scene-control-info" aria-live="polite" title={`${text.header.scene}: ${sceneLabel} · ${text.scene.phases[daylight.phase]} ${sceneTime}`}>
+                    <strong>{sceneLabel}</strong>
+                    <span>{text.scene.phases[daylight.phase]} {sceneTime}</span>
+                  </span>
+                </div>
+                <span className="workbench-actions-divider" aria-hidden="true" />
                 <TourLauncher />
                 <LanguageMenu />
                 <button
