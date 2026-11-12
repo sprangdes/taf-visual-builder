@@ -545,21 +545,24 @@ body.taf-dark-page {
 .tour-menu > button strong { font-size: 13px; font-weight: 700; }
 .tour-menu > button span { color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 
-.react-joyride__floater:has(.tour-flight-strip) {
-  position: fixed !important;
-  inset: auto 0 0 !important;
-  width: 100% !important;
-  max-width: none !important;
-  transform: none !important;
-  opacity: 1 !important;
-  transition: none !important;
+.tour-spotlight {
+  position: fixed;
+  z-index: 1190;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 85%), 0 0 0 200vmax rgb(4 8 24 / 58%);
+  transition: top .28s ease, left .28s ease, width .28s ease, height .28s ease, border-radius .28s ease, box-shadow .2s ease;
 }
-.react-joyride__spotlight path { pointer-events: none !important; }
-.react-joyride__spotlight path + path {
-  opacity: 0 !important;
-  transition: none !important;
+.tour-spotlight.is-undimmed { box-shadow: 0 0 0 2px rgb(255 255 255 / 85%); }
+body.tour-running { padding-bottom: 200px; }
+.tour-dock {
+  position: fixed;
+  z-index: 1200;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
 }
-.react-joyride__arrow:has(+ .tour-flight-strip) { display: none; }
+.tour-dock > * { pointer-events: auto; }
 .tour-flight-strip {
   width: min(1180px, calc(100% - 32px));
   box-sizing: border-box;
@@ -697,7 +700,7 @@ body.taf-dark-page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .react-joyride__floater,
+  .tour-spotlight,
   .tour-flight-strip,
   .tour-menu { transition: none !important; animation: none !important; }
 }

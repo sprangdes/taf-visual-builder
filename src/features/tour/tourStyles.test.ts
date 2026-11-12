@@ -20,17 +20,12 @@ describe("guided tour responsive styles", () => {
     expect(mobileStyles).toContain("overflow-y: auto;");
   });
 
-  it("keeps the flight strip and spotlight stable between tour steps", () => {
-    const floaterRule = styles.slice(
-      styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)"),
-      styles.indexOf(".react-joyride__spotlight", styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)")),
-    );
-
-    expect(floaterRule).toContain("opacity: 1 !important;");
-    expect(floaterRule).toContain("transition: none !important;");
-    expect(styles).toContain(".react-joyride__spotlight path + path {");
-    expect(styles).toContain("opacity: 0 !important;");
-    expect(styles).toContain("transition: none !important;");
+  it("dims everything except the spotlighted target without blocking the page", () => {
+    const spotlight = styles.slice(styles.indexOf(".tour-spotlight {"), styles.indexOf("}", styles.indexOf(".tour-spotlight {")));
+    expect(spotlight).toContain("position: fixed;");
+    expect(spotlight).toContain("pointer-events: none;");
+    expect(spotlight).toContain("200vmax");
+    expect(styles).toContain(".tour-spotlight.is-undimmed { box-shadow: 0 0 0 2px rgb(255 255 255 / 85%); }");
   });
 
   it("provides a compact touch-enabled mobile tour card", () => {

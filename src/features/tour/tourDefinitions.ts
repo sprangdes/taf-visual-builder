@@ -3,20 +3,15 @@ import { en, type TourCopy } from "../i18n/translations";
 
 function quickStartSteps(copy: TourCopy): GuidedTourStep[] {
   return [
-  { id: "forecast-context", target: '[data-tour-id="context"]', ...copy.steps.context },
-  { id: "base-forecast", target: '[data-tour-id="base"]', ...copy.steps.base },
-  { id: "wind", target: '[data-tour-id="wind"]', ...copy.steps.wind },
-  { id: "visibility", target: '[data-tour-id="visibility"]', ...copy.steps.visibility },
-  { id: "clouds", target: '[data-tour-id="clouds"]', ...copy.steps.clouds },
-  {
-    id: "create-change",
-    target: '[data-tour-id="timeline"]',
-    ...copy.steps.createChange,
-    mobileContent: copy.steps.createChange.content,
-  },
-  { id: "selected-change", target: '[data-tour-id="selected-change"]', ...copy.steps.selectedChange },
-  { id: "change-type", target: '[data-tour-id="change-type"]', ...copy.steps.changeType },
-  { id: "generated-output", target: '[data-tour-id="output"]', ...copy.steps.output },
+    { id: "forecast-context", target: '[data-tour-id="context"]', ...copy.steps.context },
+    { id: "base-forecast", target: '[data-tour-id="base-editor"]', period: "base", ...copy.steps.base },
+    { id: "wind", target: '[data-tour-id="wind"]', period: "base", ...copy.steps.wind },
+    { id: "visibility", target: '[data-tour-id="visibility"]', period: "base", ...copy.steps.visibility },
+    { id: "clouds", target: '[data-tour-id="clouds"]', period: "base", ...copy.steps.clouds },
+    { id: "create-change", target: '[data-tour-id="timeline"]', period: "change", ...copy.steps.createChange },
+    { id: "selected-change", target: '[data-tour-id="selected-change"]', period: "change", ...copy.steps.selectedChange },
+    { id: "change-type", target: '[data-tour-id="change-type"]', period: "change", ...copy.steps.changeType },
+    { id: "generated-output", target: '[data-tour-id="output"]', ...copy.steps.output },
   ];
 }
 

@@ -28,3 +28,21 @@ describe("tour definitions", () => {
     ]);
   });
 });
+
+describe("tour step periods", () => {
+  it("shows base conditions on the base forecast and change steps on a change period", () => {
+    const steps = getTourSteps("quick-start", false);
+    const periods = Object.fromEntries(steps.map((step) => [step.id, step.period ?? null]));
+    expect(periods).toEqual({
+      "forecast-context": null,
+      "base-forecast": "base",
+      wind: "base",
+      visibility: "base",
+      clouds: "base",
+      "create-change": "change",
+      "selected-change": "change",
+      "change-type": "change",
+      "generated-output": null,
+    });
+  });
+});
