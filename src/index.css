@@ -91,21 +91,19 @@ body {
 
 .appbar-wrap { position: sticky; top: 0; z-index: 100; max-width: 1440px; margin: 0 auto; padding: 14px 28px 0; box-sizing: border-box; }
 .workbench-appbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px;
-  padding: 10px 12px 10px 14px; border-radius: 22px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px;
+  padding: 10px 12px 10px 12px; border-radius: 22px;
   background: var(--glass-bg);
 }
 .workbench-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.workbench-brand > div { min-width: 0; }
 .workbench-brand-mark {
   width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 12px;
   background: var(--lens); color: #26355f; box-shadow: var(--lens-shadow);
   font: 700 11px var(--mono);
 }
 .workbench-brand h1 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
-.workbench-brand p { margin: 2px 0 0; color: var(--text-muted); font-size: 11px; }
 
-.forecast-context { flex: 1 1 520px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.forecast-context { flex: 0 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .context-field, .context-chip {
   height: 38px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; box-sizing: border-box;
   border: 1px solid rgb(255 255 255 / 30%); border-radius: 999px; background: rgb(255 255 255 / 14%);
@@ -123,12 +121,23 @@ body {
 .issue-time-input > span { color: var(--text-muted); font: 600 13px var(--mono); }
 .context-chip { border-color: transparent; background: transparent; padding: 0 6px; }
 .context-chip strong { font: 700 13px var(--mono); white-space: nowrap; }
-.context-chip--scene { border-color: rgb(255 255 255 / 22%); background: var(--glass-bg-inset); padding: 0 14px; max-width: 100%; }
-.context-chip--scene svg { width: 15px; height: 15px; flex: 0 0 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
-.context-chip--scene strong { overflow: hidden; text-overflow: ellipsis; }
-.context-chip--scene .context-chip-time { color: var(--text-muted); font: 600 12px var(--mono); white-space: nowrap; }
 
-.workbench-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.scene-control {
+  height: 40px; display: inline-flex; align-items: center; gap: 10px; padding: 0 14px 0 4px; box-sizing: border-box; min-width: 0;
+  border: 1px solid rgb(255 255 255 / 22%); border-radius: 999px; background: var(--glass-bg-inset);
+}
+.scene-control-button {
+  width: 30px; height: 30px; flex: 0 0 30px; display: inline-grid; place-items: center; padding: 0;
+  border: 0; border-radius: 999px; background: rgb(255 255 255 / 16%); color: var(--text); cursor: pointer;
+}
+.scene-control-button:hover { background: rgb(255 255 255 / 28%); }
+.scene-control-button svg { width: 15px; height: 15px; }
+.scene-control-info { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.scene-control-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px var(--mono); }
+.scene-control-info span { color: var(--text-muted); font: 600 10px var(--mono); white-space: nowrap; }
+.workbench-actions-divider { width: 1px; height: 22px; margin: 0 4px; background: rgb(255 255 255 / 24%); }
+
+.workbench-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; min-width: 0; }
 .icon-button {
   width: 40px; height: 40px; display: inline-grid; place-items: center; padding: 0;
   border: 1px solid rgb(255 255 255 / 30%); border-radius: 999px;
@@ -398,19 +407,31 @@ body {
 /* ---------- Responsive ---------- */
 @media (max-width: 1179px) {
   .workbench-grid { grid-template-columns: minmax(0, 1fr); }
+  .workbench-brand h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .workbench-appbar { column-gap: 16px; }
   .workbench-output { position: static; }
+}
+@media (max-width: 899px) {
+  .workbench-appbar { gap: 10px; }
+  .workbench-brand { flex: 0 0 auto; }
+  .workbench-brand h1 { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+  .workbench-actions { flex: 1 1 0; justify-content: flex-end; flex-wrap: nowrap; }
+  .scene-control { flex: 0 1 auto; }
+  .forecast-context { order: 3; flex-basis: 100%; flex-wrap: nowrap; gap: 6px; }
+  .context-field, .context-chip { height: 44px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 0 12px; }
+  .context-field { flex: 1 1 0; min-width: 0; max-width: 220px; }
+  .context-chip { flex: 0 0 auto; padding: 0 4px; }
+  .context-field > span:first-child, .context-chip > span { font-size: 10px; }
+  .context-field input, .issue-time-input input { width: 100%; font-size: 13px; }
+  .issue-time-input { width: 100%; }
 }
 @media (max-width: 640px) {
   .appbar-wrap { position: static; padding: 10px 10px 0; }
   .workbench-appbar { border-radius: 22px; padding: 10px; }
-  .workbench-appbar { flex-wrap: wrap; }
-  .workbench-brand { flex: 1 1 0; }
-  .workbench-brand p { display: none; }
-  .workbench-brand h1 { font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
-  .workbench-actions { gap: 4px; flex-wrap: nowrap; }
+  .workbench-brand h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .workbench-actions { gap: 4px; }
+  .context-field { max-width: none; }
   .workbench-actions .icon-button { width: 36px; height: 36px; }
-  .forecast-context { order: 3; flex-basis: 100%; }
-  .context-chip--scene { flex: 1 1 100%; }
   .workbench-shell { padding: 12px 10px 32px; }
   .workbench-panel { padding: 16px 14px; border-radius: 22px; }
   .condition-grid { grid-template-columns: minmax(0, 1fr); }
