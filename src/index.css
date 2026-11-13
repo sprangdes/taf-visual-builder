@@ -27,11 +27,18 @@
   --lg-control-fill: rgb(255 255 255 / 13%);
   --lg-control-fill-hover: rgb(255 255 255 / 22%);
   --lg-control-rim: inset 0 1px 0 rgb(255 255 255 / 40%), inset 0 -1px 0 rgb(255 255 255 / 10%), inset 0 0 0 .5px rgb(255 255 255 / 12%);
+  /* Prominent glass: selected states and primary actions. Brighter fill and rim plus a soft glow
+     instead of an opaque white chip, so the background still reads through. */
+  --lg-prominent-fill: rgb(255 255 255 / 42%);
+  --lg-prominent-rim: inset 0 1px 0 rgb(255 255 255 / 78%), inset 0 -1px 0 rgb(255 255 255 / 24%), inset 0 0 0 1px rgb(255 255 255 / 18%),
+    inset 0 9px 14px -10px rgb(255 255 255 / 45%), 0 2px 8px rgb(6 10 30 / 24%), 0 0 18px rgb(255 255 255 / 10%);
+  /* Tinted glass for the TEMPO / BECMG / FM colours. */
+  --lg-tint-rim: inset 0 1px 0 rgb(255 255 255 / 70%), inset 0 -1px 0 rgb(255 255 255 / 20%), inset 0 0 0 1px rgb(255 255 255 / 16%),
+    inset 0 9px 14px -10px rgb(255 255 255 / 40%), 0 2px 8px rgb(6 10 30 / 22%);
   --lg-well: rgb(8 14 40 / 15%);
   --lg-group: rgb(255 255 255 / 5%);
   --lg-divider: rgb(255 255 255 / 12%);
   --lg-well-shadow: inset 0 1px 3px rgb(0 0 0 / 24%), inset 0 -1px 0 rgb(255 255 255 / 9%);
-  --lens: rgb(255 255 255 / 92%);
   --lens-shadow: inset 0 1px 0 rgb(255 255 255 / 90%), inset 0 -2px 4px rgb(30 40 90 / 12%), 0 4px 14px rgb(12 18 48 / 25%);
   --ink: #1a2340;
   --text: #ffffff;
@@ -138,7 +145,7 @@ body {
 .workbench-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .workbench-brand-mark {
   width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 12px;
-  background: var(--lens); color: #26355f; box-shadow: var(--lens-shadow);
+  background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim);
   font: 700 11px var(--mono);
 }
 .workbench-brand h1 { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
@@ -187,17 +194,17 @@ body {
 .icon-button:hover { background: var(--lg-control-fill-hover); }
 
 /* Liquid response: controls swell slightly and glow while pressed, then settle back on a spring. */
-:is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button,
+:is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button, .cloud-add-button,
     .change-delete-button, .tour-flight-buttons button, .tour-exit-actions button, .language-menu > button, .tour-menu > button) {
   transition: transform .45s var(--lg-spring), background-color .2s ease, box-shadow .2s ease;
 }
-:is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button,
+:is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button, .cloud-add-button,
     .change-delete-button, .tour-flight-buttons button, .tour-exit-actions button):active:not(:disabled) {
   transform: scale(1.06);
   transition-duration: .12s;
   box-shadow: var(--lg-control-rim), 0 0 0 1px rgb(255 255 255 / 10%), 0 0 22px rgb(255 255 255 / 22%);
 }
-:is(.chip.is-on, .period-tab.is-on, .segmented > button.is-on, .copy-button):active:not(:disabled) { box-shadow: var(--lens-shadow), 0 0 22px rgb(255 255 255 / 35%); }
+:is(.chip.is-on, .period-tab.is-on, .segmented > button.is-on, .copy-button, .tour-flight-next):active:not(:disabled) { box-shadow: var(--lg-prominent-rim), 0 0 26px rgb(255 255 255 / 30%); }
 :is(.language-menu > button, .tour-menu > button):active { transform: scale(.985); transition-duration: .12s; }
 .icon-button svg { width: 19px; height: 19px; }
 
@@ -242,15 +249,15 @@ body {
   grid-row: 1; z-index: 1; min-width: 0; margin: 4px 2px; padding: 0 12px;
   display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap;
   border: 0; border-radius: 999px; font: 700 12px var(--mono); text-align: left; cursor: pointer;
-  box-shadow: var(--lens-shadow);
+  box-shadow: var(--lg-tint-rim);
 }
 .timeline-bar-code { overflow: hidden; text-overflow: ellipsis; }
 .timeline-bar--base { background: rgb(255 255 255 / 22%); color: var(--text); box-shadow: var(--lg-control-rim); }
 .timeline-bar--base strong { font-family: Inter, "Noto Sans TC", sans-serif; }
-.timeline-bar--tempo { background: var(--tempo); color: var(--tempo-ink); }
-.timeline-bar--becmg { background: var(--becmg); color: var(--becmg-ink); }
-.timeline-bar--fm { background: var(--fm); color: var(--fm-ink); }
-.timeline-bar.is-selected { outline: 2px solid #fff; outline-offset: 1px; box-shadow: var(--lens-shadow), 0 0 18px rgb(255 255 255 / 45%); }
+.timeline-bar--tempo { background: color-mix(in srgb, var(--tempo) 80%, transparent); color: var(--tempo-ink); }
+.timeline-bar--becmg { background: color-mix(in srgb, var(--becmg) 80%, transparent); color: var(--becmg-ink); }
+.timeline-bar--fm { background: color-mix(in srgb, var(--fm) 80%, transparent); color: var(--fm-ink); }
+.timeline-bar.is-selected { outline: 2px solid rgb(255 255 255 / 85%); outline-offset: 1px; box-shadow: var(--lg-tint-rim), 0 0 18px rgb(255 255 255 / 35%); }
 .timeline-bar--base.is-selected { background: rgb(255 255 255 / 34%); }
 .timeline-hint { margin: 10px 0 0; color: var(--text-muted); font-size: 12px; }
 
@@ -268,10 +275,13 @@ body {
 .segmented > button { font: 700 12px var(--mono); min-height: 32px; padding: 0 14px; }
 .period-tab:hover, .segmented > button:hover { background: rgb(255 255 255 / 14%); }
 .segmented > button:disabled { opacity: .4; cursor: not-allowed; background: transparent; }
-.period-tab.is-on, .segmented > button.is-on { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); font-weight: 700; }
-.segmented > .type-option--tempo.is-on { background: var(--tempo); color: var(--tempo-ink); }
-.segmented > .type-option--becmg.is-on { background: var(--becmg); color: var(--becmg-ink); }
-.segmented > .type-option--fm.is-on { background: var(--fm); color: var(--fm-ink); }
+/* White text on bright glass needs a soft shadow to keep its contrast. */
+:is(.period-tab.is-on, .segmented > button.is-on:not(.type-option--tempo, .type-option--becmg, .type-option--fm), .chip.is-on, .copy-button,
+    .period-badge, .workbench-brand-mark, .tour-flight-next, .language-menu > button[aria-checked="true"]) { text-shadow: 0 1px 2px rgb(6 10 30 / 45%); }
+.period-tab.is-on, .segmented > button.is-on { background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim); font-weight: 700; }
+.segmented > .type-option--tempo.is-on { background: color-mix(in srgb, var(--tempo) 80%, transparent); color: var(--tempo-ink); box-shadow: var(--lg-tint-rim); }
+.segmented > .type-option--becmg.is-on { background: color-mix(in srgb, var(--becmg) 80%, transparent); color: var(--becmg-ink); box-shadow: var(--lg-tint-rim); }
+.segmented > .type-option--fm.is-on { background: color-mix(in srgb, var(--fm) 80%, transparent); color: var(--fm-ink); box-shadow: var(--lg-tint-rim); }
 .segmented--small { padding: 2px; }
 .segmented--small > button { min-height: 28px; padding: 0 9px; font-size: 11px; }
 
@@ -286,7 +296,7 @@ body {
 }
 .time-select select option { color: #172033; }
 .period-note { margin: 0; color: var(--text-muted); font-size: 12px; }
-.period-badge { padding: 4px 12px; border-radius: 999px; background: var(--lens); color: var(--ink); font: 700 12px var(--mono); box-shadow: var(--lens-shadow); }
+.period-badge { padding: 4px 12px; border-radius: 999px; background: var(--lg-prominent-fill); color: var(--text); font: 700 12px var(--mono); box-shadow: var(--lg-prominent-rim); }
 .period-range-text { font: 700 14px var(--mono); }
 .change-delete-button {
   height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;
@@ -324,9 +334,9 @@ body {
 .condition-output code { color: var(--text); font: 700 12px var(--mono); }
 
 .include-switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
-.include-switch-track { position: relative; width: 40px; height: 24px; border-radius: 999px; background: rgb(255 255 255 / 22%); box-shadow: inset 0 1px 2px rgb(0 0 0 / 15%); transition: background .2s ease; }
+.include-switch-track { position: relative; width: 40px; height: 24px; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-well-shadow), var(--lg-control-rim); transition: background .2s ease; }
 .include-switch-track i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--lens-shadow); transition: transform .2s ease; }
-.include-switch[aria-checked="true"] .include-switch-track { background: var(--ok); }
+.include-switch[aria-checked="true"] .include-switch-track { background: color-mix(in srgb, var(--ok) 82%, transparent); box-shadow: var(--lg-tint-rim); }
 .include-switch[aria-checked="true"] .include-switch-track i { transform: translateX(16px); }
 
 .field-label { color: var(--text-muted); font-size: 11px; font-weight: 600; }
@@ -377,7 +387,7 @@ body {
   color: var(--text); font: 700 12px var(--mono); cursor: pointer;
 }
 .chip:hover { background: var(--lg-control-fill-hover); }
-.chip.is-on { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
+.chip.is-on { background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim); }
 .chip-remove { font-size: 14px; line-height: 1; opacity: .65; }
 .weather-selection { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--lg-divider); }
 .weather-selection-tokens { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; align-items: center; }
@@ -393,9 +403,9 @@ body {
 .cloud-delete-button { width: 28px; height: 28px; margin-left: auto; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-control-rim); color: #fff; cursor: pointer; }
 .cloud-delete-button:hover { background: rgb(255 90 110 / 40%); }
 .cloud-delete-button svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
-.cloud-add-button { height: 38px; border: 1.5px dashed rgb(255 255 255 / 34%); border-radius: 999px; background: transparent; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cloud-add-button { height: 38px; border: 0; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-control-rim); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .cloud-add-button::before { content: "+"; margin-right: 6px; }
-.cloud-add-button:hover { background: rgb(255 255 255 / 10%); }
+.cloud-add-button:hover { background: var(--lg-control-fill-hover); }
 
 /* ---------- Output ---------- */
 .workbench-output { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -405,7 +415,7 @@ body {
 .output-title h2 { margin: 0; font-size: 15px; font-weight: 700; }
 .live-indicator { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: rgb(52 199 89 / 30%); font-size: 11px; font-weight: 600; }
 .live-indicator i { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
-.copy-button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); font-size: 12px; font-weight: 700; cursor: pointer; }
+.copy-button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim); font-size: 12px; font-weight: 700; cursor: pointer; }
 .copy-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .taf-code {
   min-height: 150px; margin: 0; padding: 4px 20px 20px;
@@ -572,7 +582,7 @@ body.taf-dark-page {
   text-align: left;
 }
 .language-menu > button:hover { background: var(--popover-hover); }
-.language-menu > button[aria-checked="true"] { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
+.language-menu > button[aria-checked="true"] { background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim); }
 .language-menu > button i { width: 1em; font-style: normal; font-weight: 700; }
 .tour-menu {
   position: absolute;
@@ -680,7 +690,7 @@ body.tour-running { padding-bottom: 200px; }
 .tour-flight-skip:hover { color: var(--text); }
 .tour-flight-back { background: var(--lg-control-fill); color: var(--text); box-shadow: var(--lg-control-rim); }
 .tour-flight-back:hover { background: var(--lg-control-fill-hover); }
-.tour-flight-next { border-color: transparent !important; background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
+.tour-flight-next { border-color: transparent !important; background: var(--lg-prominent-fill); color: var(--text); box-shadow: var(--lg-prominent-rim); }
 .tour-flight-next:disabled { background: rgb(255 255 255 / 20%); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
 .tour-flight-strip button:focus-visible,
 .tour-menu button:focus-visible,
