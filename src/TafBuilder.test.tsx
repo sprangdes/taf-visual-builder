@@ -97,6 +97,17 @@ describe("TafBuilder aviation workbench", () => {
     expect(document.documentElement).toHaveClass("scene-hold");
   });
 
+  it("keeps the weather animation running while the page scrolls", () => {
+    render(<TafBuilder />);
+    document.documentElement.classList.remove("scene-hold");
+    fireEvent.scroll(window);
+    fireEvent.wheel(window, { deltaY: 120 });
+    fireEvent.pointerDown(window, { pointerType: "touch" });
+    expect(document.documentElement).not.toHaveClass("scene-hold");
+    fireEvent.pointerDown(window, { pointerType: "mouse" });
+    expect(document.documentElement).toHaveClass("scene-hold");
+  });
+
   it("retains theme persistence", () => {
     render(<TafBuilder />);
     fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
