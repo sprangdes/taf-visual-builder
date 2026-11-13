@@ -181,7 +181,9 @@ export default function TafBuilder() {
   useInteractionHold(sceneMoving);
   const scrolled = useScrolled();
   // The band behind the sticky header fades content out in the same colour as the sky above it.
-  const skyTop = useMemo(() => getSceneLight(deferredDaylight, deferredSceneParams.darkness).sky[0], [deferredDaylight, deferredSceneParams.darkness]);
+  const sceneLight = useMemo(() => getSceneLight(deferredDaylight, deferredSceneParams.darkness), [deferredDaylight, deferredSceneParams.darkness]);
+  // Glass rims catch the scene's sun or moon: 135deg when it sits far left, 225deg far right.
+  const lightAngle = 135 + 90 * ((sceneLight.azimuth - 180) / 180);
   const lines = generateTAFLines(taf);
   const currentLine = (lines.find((line) => line.changeIndex === selectedChangeIndex) ?? lines[0]).text;
   const baseLabel = describeBase(taf.issueTime, text.decode);
@@ -195,7 +197,7 @@ export default function TafBuilder() {
       <div
         className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`}
         data-phase={deferredDaylight.phase}
-        style={{ "--scene-sky-top": skyTop } as React.CSSProperties}
+        style={{ "--scene-sky-top": sceneLight.sky[0], "--lg-light-angle": `${Math.round(lightAngle)}deg` } as React.CSSProperties}
       >
         <WeatherScene params={deferredSceneParams} daylight={deferredDaylight} animated={sceneMoving} />
 
