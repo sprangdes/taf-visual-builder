@@ -4,11 +4,31 @@ import { formatClouds } from "../utils/weather";
 import ConditionCard from "./ConditionCard";
 import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
+import { useGlassIndicator } from "../hooks/useGlassIndicator";
 
 const cloudHeightPickerOptions = Array.from({ length: 1000 }, (_, value) => ({
   value,
   label: String(value).padStart(3, "0"),
 }));
+
+function CloudAmountSegment({ amount: selected, label, onSelect }: Readonly<{ amount: string; label: string; onSelect: (amount: string) => void }>) {
+  const ref = useGlassIndicator<HTMLDivElement>(selected);
+  return (
+    <div ref={ref} className="segmented segmented--small lg-seg" role="group" aria-label={label}>
+      {cloudAmountOptions.map((amount) => (
+        <button
+          key={amount}
+          type="button"
+          aria-pressed={selected === amount}
+          className={selected === amount ? "is-on" : ""}
+          onClick={() => onSelect(amount)}
+        >
+          {amount}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface CloudSectionProps {
   isBase: boolean;
@@ -50,19 +70,7 @@ export default function CloudSection({
       <div className="cloud-layers">
         {clouds.map((c) => (
           <div key={c.id} className="cloud-layer-row">
-            <div className="segmented segmented--small" role="group" aria-label={text.editor.cloudAmount}>
-              {cloudAmountOptions.map((amount) => (
-                <button
-                  key={amount}
-                  type="button"
-                  aria-pressed={c.amount === amount}
-                  className={c.amount === amount ? "is-on" : ""}
-                  onClick={() => onUpdateCloud(c.id, "amount", amount)}
-                >
-                  {amount}
-                </button>
-              ))}
-            </div>
+            <CloudAmountSegment amount={c.amount} label={text.editor.cloudAmount} onSelect={(amount) => onUpdateCloud(c.id, "amount", amount)} />
             <span className="cloud-measurement-group" aria-label={text.editor.cloudHeight}>
               <NumericControl
                 value={c.height}

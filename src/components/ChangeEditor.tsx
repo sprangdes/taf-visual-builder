@@ -8,6 +8,7 @@ import type {
   Wind,
 } from "../types/taf";
 import { toBoundedNonNegativeInt, toWindDirection } from "../utils/number";
+import { useGlassIndicator } from "../hooks/useGlassIndicator";
 import {
   TIMELINE_HOURS,
   formatHour,
@@ -121,6 +122,7 @@ export default function ChangeEditor({
   const hours = getTimelineHours(startHour);
   const trend = isBase ? null : (change as TAFChange);
   const range = trend ? getChangeRange(trend, changes, startHour) : null;
+  const typeSegmentRef = useGlassIndicator<HTMLDivElement>(trend?.type);
 
   const typeConflicts = (type: WeatherTrendType) => {
     if (!trend || !range) return false;
@@ -143,7 +145,7 @@ export default function ChangeEditor({
       <div className="period-editor-header">
         {trend && range ? (
           <div className="period-controls">
-            <div className="segmented" role="group" aria-label={text.actions.changeType} data-tour-id="change-type">
+            <div ref={typeSegmentRef} className="segmented lg-seg" role="group" aria-label={text.actions.changeType} data-tour-id="change-type">
               {TYPES.map((type) => (
                 <button
                   key={type}
