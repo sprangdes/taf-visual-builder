@@ -86,7 +86,20 @@ body {
 .weather-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #142042; animation: scene-in .7s ease-out; contain: strict; }
 .weather-scene-layer { position: absolute; inset: 0; }
 .weather-scene-layer > svg { display: block; }
-.weather-scene-drift { left: -80px; right: -80px; animation: scene-drift 40s ease-in-out infinite alternate; will-change: transform; }
+/* Cloud layers: two copies of a horizontally tiling bitmap on a strip that slides one tile per loop.
+   Each tile covers the viewport (like background-size: cover) and is centred vertically. */
+.weather-cloud-frame { overflow: hidden; }
+.weather-cloud-strip {
+  --tile-w: max(100vw, calc(100vh * var(--cloud-aspect, 1.584)));
+  position: absolute; top: 50%; left: calc(50% - var(--tile-w) / 2);
+  display: flex; width: calc(var(--tile-w) * 2); margin-top: calc(var(--tile-w) / var(--cloud-aspect, 1.584) / -2);
+  animation: scene-cloud-drift 300s linear infinite; will-change: transform;
+}
+.weather-cloud-tile { display: block; flex: none; width: var(--tile-w); height: auto; }
+/* Gusts: an irregular sway (bursts of different strength at uneven intervals); the far layer lags a little.
+   Keyframes are 0.4s apart and each interval steps 6 times, i.e. exactly on the scene's 15fps clock. */
+.weather-scene-gust { position: absolute; inset: 0; transform-origin: 50% 40%; animation: scene-gust 8s steps(6) infinite; will-change: transform; }
+.weather-scene-gust.is-far { animation-delay: -1.2s; }
 .weather-scene-precip { position: absolute; animation: scene-fall var(--fall-duration, .5s) steps(var(--fall-steps, 8)) infinite; will-change: transform; }
 /* Canvas layers are drawn at half size and scaled up; "cover" matches the SVG slice framing. */
 .weather-scene-raster { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -105,7 +118,30 @@ body {
 .weather-scene.is-paused .weather-scene-flash, .weather-scene.is-paused .weather-scene-bolt { animation: none; opacity: 0; }
 
 @keyframes scene-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scene-drift { from { transform: translateX(-50px); } to { transform: translateX(50px); } }
+@keyframes scene-cloud-drift { from { transform: translateX(0); } to { transform: translateX(calc(var(--tile-w) * -1)); } }
+@keyframes scene-gust {
+  0% { transform: skewX(calc(var(--gust-skew) * 0)); }
+  5% { transform: skewX(calc(var(--gust-skew) * 0.5)); }
+  10% { transform: skewX(calc(var(--gust-skew) * 0.9)); }
+  15% { transform: skewX(calc(var(--gust-skew) * 0.75)); }
+  20% { transform: skewX(calc(var(--gust-skew) * 0.3)); }
+  25% { transform: skewX(calc(var(--gust-skew) * 0.15)); }
+  30% { transform: skewX(calc(var(--gust-skew) * 0.1)); }
+  35% { transform: skewX(calc(var(--gust-skew) * 0.2)); }
+  40% { transform: skewX(calc(var(--gust-skew) * 0.55)); }
+  45% { transform: skewX(calc(var(--gust-skew) * 0.95)); }
+  50% { transform: skewX(calc(var(--gust-skew) * 1)); }
+  55% { transform: skewX(calc(var(--gust-skew) * 0.6)); }
+  60% { transform: skewX(calc(var(--gust-skew) * 0.7)); }
+  65% { transform: skewX(calc(var(--gust-skew) * 0.85)); }
+  70% { transform: skewX(calc(var(--gust-skew) * 0.4)); }
+  75% { transform: skewX(calc(var(--gust-skew) * 0.15)); }
+  80% { transform: skewX(calc(var(--gust-skew) * 0.05)); }
+  85% { transform: skewX(calc(var(--gust-skew) * 0.1)); }
+  90% { transform: skewX(calc(var(--gust-skew) * 0.25)); }
+  95% { transform: skewX(calc(var(--gust-skew) * 0.1)); }
+  100% { transform: skewX(calc(var(--gust-skew) * 0)); }
+}
 @keyframes scene-fall { from { transform: translate(0, 0); } to { transform: translate(var(--fall-x), var(--fall-y)); } }
 @keyframes scene-flash { 0%, 84%, 100% { opacity: 0; } 86% { opacity: .9; } 88% { opacity: .2; } 90% { opacity: .65; } 94% { opacity: 0; } }
 @keyframes scene-bolt { 0%, 85.5%, 100% { opacity: 0; } 86% { opacity: 1; } 87.5% { opacity: 0; } 89.5% { opacity: .9; } 91% { opacity: 0; } }
@@ -143,19 +179,26 @@ body {
 }
 
 .appbar-wrap { position: sticky; top: 0; z-index: 100; max-width: 1440px; margin: 0 auto; padding: 14px 28px 0; box-sizing: border-box; }
-/* Once the page scrolls, content passing under the sticky header fades out behind a sky-coloured band
-   (covering the gap above the header too) and the header itself turns more opaque. */
+/* As the page scrolls (--scroll-p 0 → 1 over the first 120px, set by useScrollProgress), content passing
+   under the sticky header fades out behind a sky-coloured band that covers the gap above the header and
+   dissolves over a long tail below it, and the header glass deepens in step. */
+.appbar-wrap { --scroll-p: 0; }
 .appbar-wrap::before {
-  content: ""; position: absolute; z-index: -1; top: 0; left: calc(50% - 50vw); width: 100vw; height: calc(100% + 28px);
+  content: ""; position: absolute; z-index: -1; top: 0; left: calc(50% - 50vw); width: 100vw; height: calc(100% + 56px);
   background: linear-gradient(to bottom,
     var(--scene-sky-top, #142042) 0,
-    var(--scene-sky-top, #142042) calc(100% - 40px),
+    color-mix(in srgb, var(--scene-sky-top, #142042) 92%, transparent) calc(100% - 80px),
+    color-mix(in srgb, var(--scene-sky-top, #142042) 55%, transparent) calc(100% - 44px),
+    color-mix(in srgb, var(--scene-sky-top, #142042) 18%, transparent) calc(100% - 16px),
     transparent);
-  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  opacity: var(--scroll-p); pointer-events: none;
 }
-.appbar-wrap.is-scrolled::before { opacity: 1; }
-.appbar-wrap.is-scrolled .workbench-appbar { --panel-bg: var(--lg-sheen), rgb(18 26 62 / 74%); box-shadow: var(--lg-depth), 0 2px 4px rgb(6 10 30 / 18%), 0 16px 36px -8px rgb(6 10 30 / 42%); }
-.taf-dark .appbar-wrap.is-scrolled .workbench-appbar { --panel-bg: var(--lg-sheen), rgb(8 12 30 / 82%); }
+.workbench-appbar.glass-panel {
+  --panel-bg: var(--lg-sheen), color-mix(in srgb, rgb(18 26 62 / 74%) calc(var(--scroll-p) * 100%), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent));
+}
+.taf-dark .workbench-appbar.glass-panel {
+  --panel-bg: var(--lg-sheen), color-mix(in srgb, rgb(8 12 30 / 82%) calc(var(--scroll-p) * 100%), color-mix(in srgb, rgb(8 12 30 / 52%) var(--lg-fill), transparent));
+}
 .workbench-appbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px;
   padding: 14px 18px; border-radius: 26px;
@@ -515,7 +558,6 @@ body {
   --glass-bg-inset: rgb(0 0 0 / 22%);
   --code-panel: rgb(4 6 18 / 62%);
 }
-.taf-dark .workbench-appbar { --panel-bg: var(--lg-sheen), color-mix(in srgb, rgb(8 12 30 / 52%) var(--lg-fill), transparent); }
 .taf-app.taf-dark {
   --lg-rim-strength: .6;
   --lg-control-fill: rgb(255 255 255 / 9%);
@@ -576,7 +618,7 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-  .weather-scene, .weather-scene-drift, .weather-scene-precip, .weather-scene-flash { animation: none !important; }
+  .weather-scene, .weather-cloud-strip, .weather-scene-gust, .weather-scene-precip, .weather-scene-flash { animation: none !important; }
   .weather-scene-bolt { animation: none !important; opacity: 0 !important; }
 }
 

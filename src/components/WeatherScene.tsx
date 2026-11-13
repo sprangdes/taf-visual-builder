@@ -1,5 +1,7 @@
-import { memo, useId, useMemo, type CSSProperties } from "react";
+import { memo, useEffect, useId, useMemo, type CSSProperties } from "react";
 import RasterLayer from "./RasterLayer";
+import CloudCanvas from "../features/clouds/CloudCanvas";
+import type { CloudKind, CloudLayerSpec, CloudLight, Rgb } from "../features/clouds/cloudRenderer";
 import type { Daylight } from "../utils/daylight";
 import { getSceneLight, type SceneLight } from "../utils/sceneLight";
 import {
@@ -18,7 +20,8 @@ const VIEW_H = 1010;
  * instead of drifting in and out of phase (which doubled the repaints).
  */
 const PRECIPITATION_FPS = 15;
-const DRIFT_STEPS = 50;
+/** Drift step rate without precipitation: smooth enough for slow clouds, few glass re-blurs. */
+const CLOUD_DRIFT_FPS = 8;
 /** Cloud and mist textures are soft: rasterising them at half size is visually identical. */
 const RASTER_W = VIEW_W / 2;
 const RASTER_H = VIEW_H / 2;
@@ -44,65 +47,68 @@ function svgDocument(body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${VIEW_W}" height="${VIEW_H}" viewBox="0 0 ${VIEW_W} ${VIEW_H}">${body}</svg>`;
 }
 
-function bandStops(top: number, bottom: number) {
-  const fade = 0.1;
-  return [
-    { offset: Math.max(0, top - fade), color: top <= 0 ? "#fff" : "#000" },
-    { offset: top, color: "#fff" },
-    { offset: bottom, color: "#fff" },
-    { offset: Math.min(1, bottom + fade), color: "#000" },
-  ];
+/** Cloud bitmaps are this wide; CSS scales the canvas to cover the viewport (they are soft anyway). */
+const CLOUD_W = 1200;
+const CLOUD_H = Math.round((CLOUD_W * VIEW_H) / VIEW_W);
+
+function hexToRgb(hex: string): Rgb {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
-function cloudFrequency(layer: SceneCloudLayer): string {
-  if (layer.convective) return "0.0032 0.006";
-  if (layer.height <= 20) return "0.0055 0.016";
-  if (layer.height <= 60) return "0.0042 0.0095";
-  return "0.003 0.007";
-}
-
-function cloudSvg(index: number, layer: SceneCloudLayer, params: WeatherSceneParams, light: SceneLight): string {
-  const slope = layer.convective ? 3 : 2.8;
-  const offset = -1.55 + layer.cover * 0.85 + (layer.convective ? 0.15 : 0);
-  const lighting = mixColor(light.cloudLight, light.stormShade, params.darkness * (layer.convective ? 1 : 0.85));
-  const stops = bandStops(layer.top, layer.bottom)
-    .map((stop) => `<stop offset="${stop.offset}" stop-color="${stop.color}"/>`)
-    .join("");
-  return svgDocument(
-    `<defs>`
-    + `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient>`
-    + `<mask id="m"><rect width="${VIEW_W}" height="${VIEW_H}" fill="url(#g)"/></mask>`
-    + `<filter id="f" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">`
-    + `<feTurbulence type="fractalNoise" baseFrequency="${cloudFrequency(layer)}" numOctaves="${layer.convective ? 6 : 5}" seed="${17 + index * 12}" result="n"/>`
-    + `<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${slope} ${offset.toFixed(2)}" result="a"/>`
-    + `<feDiffuseLighting in="a" surfaceScale="${layer.convective ? 6 : 4}" diffuseConstant="1.05" lighting-color="${lighting}" result="l">`
-    + `<feDistantLight azimuth="${light.azimuth}" elevation="${light.elevation}"/>`
-    + `</feDiffuseLighting>`
-    + `<feComposite in="l" in2="a" operator="in" result="c"/>`
-    + `<feGaussianBlur in="c" stdDeviation="1.4"/>`
-    + `</filter>`
-    + `</defs>`
-    + `<rect width="${VIEW_W}" height="${VIEW_H}" filter="url(#f)" mask="url(#m)" opacity="0.94"/>`,
-  );
+/** Lighting for the cloud renderer from the scene: where the sun or moon is and the sky's colours. */
+function cloudLight(daylight: Daylight, light: SceneLight, darkness: number): CloudLight {
+  const moon = daylight.moon;
+  const byMoon = daylight.night > 0.5 && moon !== null;
+  const x = byMoon ? moon.x : daylight.sunX;
+  const y = byMoon ? 0.72 - moon.height * 0.58 : 0.92 - Math.max(0, daylight.sun) * 0.8;
+  const height = byMoon ? moon.height : Math.max(0, daylight.sun);
+  const horizon = hexToRgb(light.sky[2]);
+  const lit = hexToRgb(light.cloudLight);
+  // Shaded sides pick up the sky's blue; storms pull them towards the storm shade.
+  const skyMid = mixColor(light.sky[1], light.sky[2], 0.5);
+  const shade = hexToRgb(mixColor(mixColor(skyMid, light.cloudLight, 0.3), light.stormShade, Math.min(1, 0.15 + darkness * 0.85)));
+  return { x, y, color: lit, shade, haze: horizon, low: Math.min(1, Math.max(0, 1 - height * 2.2)) };
 }
 
 interface CloudLayerProps {
   index: number;
   layer: SceneCloudLayer;
   params: WeatherSceneParams;
+  daylight: Daylight;
   light: SceneLight;
 }
 
-function CloudLayer({ index, layer, params, light }: Readonly<CloudLayerProps>) {
-  const svg = cloudSvg(index, layer, params, light);
-  const duration = Math.max(18, 60 - params.windSpeed);
-  const style = {
-    animationDuration: `${duration}s`,
-    animationDirection: params.drift < 0 ? "alternate-reverse" : "alternate",
-    animationTimingFunction: `steps(${DRIFT_STEPS})`,
-  } as CSSProperties;
+function CloudLayer({ index, layer, params, daylight, light }: Readonly<CloudLayerProps>) {
+  const kind: CloudKind = layer.height >= 200 ? "cirrus" : layer.cover >= 1 && !layer.convective ? "stratus" : "cumulus";
+  const spec: CloudLayerSpec = {
+    width: CLOUD_W,
+    height: CLOUD_H,
+    seed: 17 + index * 12,
+    cover: layer.cover,
+    altitude: layer.height,
+    kind,
+    tower: layer.tower,
+    light: cloudLight(daylight, light, params.darkness),
+    darkness: params.darkness,
+  };
+  // Clouds drift downwind and wrap round. Crosswind moves them across the screen; a head- or tailwind
+  // still moves them a little (we see them pass at an angle). Low clouds cross the sky faster than high
+  // ones, as their angular speed is larger. Calm air leaves them still.
+  const speed = params.windSpeed;
+  const across = Math.max(Math.abs(params.drift), 0.3);
+  const altitudeFactor = 0.7 + Math.min(layer.height, 250) / 120;
+  const driftSeconds = speed < 3 ? 0 : Math.round(Math.min(900, Math.max(60, 3600 / (speed * across))) * altitudeFactor);
+  const driftDirection = params.drift < 0 ? -1 : 1;
 
-  return <RasterLayer svg={svg} width={RASTER_W} height={RASTER_H} className="weather-scene-drift" style={style} />;
+  return (
+    <CloudCanvas
+      spec={spec}
+      driftSeconds={driftSeconds}
+      driftDirection={driftDirection}
+      driftFps={params.precipitation ? PRECIPITATION_FPS : CLOUD_DRIFT_FPS}
+    />
+  );
 }
 
 interface PrecipitationLayerProps {
@@ -133,13 +139,16 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   }, [intensity, kind, near, tile]);
 
   const radians = (slant * Math.PI) / 180;
-  const nominal = kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7;
+  // Wind blowing the precipitation towards us makes it rush past faster; blowing it away slows it down.
+  const toward = params.towardViewer * Math.min(1, params.windSpeed / 30);
+  const nominal = (kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7) / (1 + toward * 0.35);
   // Whole ticks only, so near and far layers change on exactly the same frames.
   const steps = Math.max(2, Math.round(nominal * PRECIPITATION_FPS));
   const fallStyle = {
     "--fall-x": `${(Math.sin(radians) * tile).toFixed(1)}px`,
     "--fall-y": `${(Math.cos(radians) * tile).toFixed(1)}px`,
-    "--fall-duration": `${(steps / PRECIPITATION_FPS).toFixed(4)}s`,
+    // Exact multiple of the tick (a rounded decimal drifts off the shared clock).
+    "--fall-duration": `calc(${steps}s / ${PRECIPITATION_FPS})`,
     "--fall-steps": steps,
   } as CSSProperties;
 
@@ -170,7 +179,9 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   // The pattern is drawn in CSS pixels on an oversized layer that is moved by exactly one
   // tile per loop. Animating the HTML wrapper keeps the motion on the compositor.
   const margin = tile * 2;
-  return (
+  // Gusts sway the curtain: a compositor-only skew that swings the streaks further downwind now and then.
+  const gustSkew = params.gustiness * (kind === "snow" ? 14 : 9) * Math.max(Math.abs(params.drift), 0.35) * (params.drift < 0 ? -1 : 1);
+  const curtain = (
     <div className="weather-scene-precip" style={{ inset: -margin, opacity: 1 - night * 0.35, ...fallStyle }}>
       <svg width="100%" height="100%" focusable="false">
         <defs>
@@ -180,6 +191,12 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
         </defs>
         <rect width="100%" height="100%" fill={`url(#${id}-p)`} />
       </svg>
+    </div>
+  );
+  if (!gustSkew) return curtain;
+  return (
+    <div className={`weather-scene-gust ${near ? "" : "is-far"}`} style={{ "--gust-skew": `${gustSkew.toFixed(1)}deg` } as CSSProperties}>
+      {curtain}
     </div>
   );
 }
@@ -311,8 +328,32 @@ function SkyLayer({ uid, params, daylight, light }: Readonly<{ uid: string; para
 }
 
 /** Decorative background that renders the weather of the period being edited. */
+/** Animations that step on the shared precipitation clock. */
+const CLOCKED_ANIMATIONS = new Set(["scene-fall", "scene-cloud-drift", "scene-gust"]);
+
+/**
+ * Snaps every stepped weather animation's start time onto one 1/15 s grid. Their steps then land on the
+ * same frames, so the glass panels above are re-blurred once per tick instead of once per animation.
+ */
+function alignToSceneClock(root: HTMLElement | null) {
+  if (!root || typeof root.getAnimations !== "function") return;
+  const tick = 1000 / PRECIPITATION_FPS;
+  for (const animation of root.getAnimations({ subtree: true })) {
+    if (!(animation instanceof CSSAnimation) || !CLOCKED_ANIMATIONS.has(animation.animationName)) continue;
+    const start = animation.startTime;
+    if (typeof start !== "number") continue;
+    animation.startTime = Math.round(start / tick) * tick;
+  }
+}
+
 function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSceneProps>) {
   const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const paramsKey = JSON.stringify(params);
+  useEffect(() => {
+    // New animations get a start time on the next frame.
+    const frame = requestAnimationFrame(() => alignToSceneClock(document.querySelector<HTMLElement>("[data-testid=weather-scene]")));
+    return () => cancelAnimationFrame(frame);
+  }, [paramsKey, animated]);
   const d = params.darkness;
   const light = getSceneLight(daylight, d);
 
@@ -328,7 +369,7 @@ function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSce
       {params.thunder && <div className="weather-scene-flash" />}
 
       {params.layers.map((layer, index) => (
-        <CloudLayer key={index} index={index} layer={layer} params={params} light={light} />
+        <CloudLayer key={index} index={index} layer={layer} params={params} daylight={daylight} light={light} />
       ))}
 
       {params.thunder && <LightningBolt id={`${uid}-bolt`} />}

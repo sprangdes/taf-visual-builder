@@ -11,6 +11,8 @@ export interface SceneCloudLayer {
   cover: number;
   /** Cumulonimbus or towering cumulus. */
   convective: boolean;
+  /** Which towering cloud, if any. */
+  tower: "none" | "tcu" | "cb";
   /** Cloud base in hundreds of feet. */
   height: number;
 }
@@ -29,6 +31,13 @@ export interface WeatherSceneParams {
   /** Signed horizontal drift for clouds: positive = to the right. */
   drift: number;
   windSpeed: number;
+  /**
+   * Wind component blowing towards the viewer (who faces north): +1 = northerly wind carrying weather
+   * at us, -1 = southerly carrying it away, 0 = purely crosswind.
+   */
+  towardViewer: number;
+  /** How far gusts exceed the mean wind, 0 (none) … 1 (≥ 20 KT above it). */
+  gustiness: number;
 }
 
 const COVER_BY_AMOUNT: Record<string, number> = { FEW: 0.18, SCT: 0.42, BKN: 0.7, OVC: 1 };
@@ -69,7 +78,8 @@ export function getWeatherSceneParams(state: WeatherState): WeatherSceneParams {
     .slice(0, 3)
     .map((cloud) => {
       const convective = Boolean(cloud.cb || cloud.tcu);
-      return { ...cloudBand(cloud.height, convective), cover: COVER_BY_AMOUNT[cloud.amount], convective, height: cloud.height };
+      const tower = cloud.cb ? "cb" : cloud.tcu ? "tcu" : "none";
+      return { ...cloudBand(cloud.height, convective), cover: COVER_BY_AMOUNT[cloud.amount], convective, tower, height: cloud.height } as SceneCloudLayer;
     });
 
   const maxCover = layers.reduce((max, layer) => Math.max(max, layer.cover), 0);
@@ -84,13 +94,18 @@ export function getWeatherSceneParams(state: WeatherState): WeatherSceneParams {
   if (has("FG")) fog = Math.max(fog, 0.75);
   if (has("BR")) fog = Math.max(fog, 0.4);
 
+  const quantize = (value: number) => Math.round(value * 20) / 20;
   const speed = Math.max(0, state.wind?.speed ?? 0);
   const dirRad = ((state.wind?.dir ?? 0) * Math.PI) / 180;
   // Wind direction is where the wind comes FROM; precipitation travels the opposite way.
-  const towardEast = speed === 0 ? 0 : -Math.sin(dirRad);
+  // Rounded so a pure north/south wind gives exactly 0 rather than floating-point noise with a random sign.
+  const towardEast = speed === 0 ? 0 : Math.round(-Math.sin(dirRad) * 100) / 100 || 0;
   const slant = Math.round(clamp(speed / 30, 0, 1) * 28 * towardEast);
+  // Blowing from the north (dir 0°) means moving south, towards a viewer facing north.
+  const towardViewer = speed === 0 ? 0 : Math.round(Math.cos(dirRad) * 20) / 20;
+  const gust = state.wind?.gust ?? null;
+  const gustiness = gust && gust > speed ? quantize(clamp((gust - speed) / 20, 0, 1)) : 0;
 
-  const quantize = (value: number) => Math.round(value * 20) / 20;
   return {
     darkness: quantize(darkness),
     layers,
@@ -101,6 +116,8 @@ export function getWeatherSceneParams(state: WeatherState): WeatherSceneParams {
     slant,
     drift: towardEast,
     windSpeed: speed,
+    towardViewer,
+    gustiness,
   };
 }
 
