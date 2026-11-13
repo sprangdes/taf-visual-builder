@@ -20,8 +20,10 @@ import { formatHour, getChangeRange, indexToHour } from "./utils/timeline";
 import { createCloudLayer, emptyWeather, getEffectiveState } from "./utils/weather";
 import { getWeatherSceneParams } from "./utils/weatherScene";
 import { formatLocalTime, getChangeInstant, getDaylight, getForecastInstant } from "./utils/daylight";
+import { getSceneLight } from "./utils/sceneLight";
 import { useRenderQuality } from "./hooks/useRenderQuality";
 import { useInteractionHold } from "./hooks/useInteractionHold";
+import { useScrolled } from "./hooks/useScrolled";
 
 function createEmptyTaf(): TAF {
   return {
@@ -177,6 +179,9 @@ export default function TafBuilder() {
   const sceneMoving = sceneAnimated && (quality === "full" || forceMotion);
   const autoPaused = sceneAnimated && !sceneMoving;
   useInteractionHold(sceneMoving);
+  const scrolled = useScrolled();
+  // The band behind the sticky header fades content out in the same colour as the sky above it.
+  const skyTop = useMemo(() => getSceneLight(deferredDaylight, deferredSceneParams.darkness).sky[0], [deferredDaylight, deferredSceneParams.darkness]);
   const lines = generateTAFLines(taf);
   const currentLine = (lines.find((line) => line.changeIndex === selectedChangeIndex) ?? lines[0]).text;
   const baseLabel = describeBase(taf.issueTime, text.decode);
@@ -187,11 +192,15 @@ export default function TafBuilder() {
 
   return (
     <TourProvider editor={editor}>
-      <div className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`} data-phase={deferredDaylight.phase}>
+      <div
+        className={`taf-app ${isDark ? "taf-dark" : ""} ${quality === "lite" ? "is-lite" : ""}`}
+        data-phase={deferredDaylight.phase}
+        style={{ "--scene-sky-top": skyTop } as React.CSSProperties}
+      >
         <WeatherScene params={deferredSceneParams} daylight={deferredDaylight} animated={sceneMoving} />
 
         <div className="app-content">
-          <div className="appbar-wrap">
+          <div className={`appbar-wrap ${scrolled ? "is-scrolled" : ""}`}>
             <header className="workbench-appbar glass-panel">
               <div className="workbench-brand">
                 <span className="workbench-brand-mark" aria-hidden="true">TAF</span>
