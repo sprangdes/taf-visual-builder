@@ -1,4 +1,4 @@
-import { memo, useId, useMemo, type CSSProperties } from "react";
+import { memo, useEffect, useId, useMemo, type CSSProperties } from "react";
 import RasterLayer from "./RasterLayer";
 import CloudCanvas from "../features/clouds/CloudCanvas";
 import type { CloudKind, CloudLayerSpec, CloudLight, Rgb } from "../features/clouds/cloudRenderer";
@@ -20,7 +20,8 @@ const VIEW_H = 1010;
  * instead of drifting in and out of phase (which doubled the repaints).
  */
 const PRECIPITATION_FPS = 15;
-const DRIFT_STEPS = 50;
+/** Drift step rate without precipitation: smooth enough for slow clouds, few glass re-blurs. */
+const CLOUD_DRIFT_FPS = 8;
 /** Cloud and mist textures are soft: rasterising them at half size is visually identical. */
 const RASTER_W = VIEW_W / 2;
 const RASTER_H = VIEW_H / 2;
@@ -91,14 +92,23 @@ function CloudLayer({ index, layer, params, daylight, light }: Readonly<CloudLay
     light: cloudLight(daylight, light, params.darkness),
     darkness: params.darkness,
   };
-  const duration = Math.max(18, 60 - params.windSpeed);
-  const style = {
-    animationDuration: `${duration}s`,
-    animationDirection: params.drift < 0 ? "alternate-reverse" : "alternate",
-    animationTimingFunction: `steps(${DRIFT_STEPS})`,
-  } as CSSProperties;
+  // Clouds drift downwind and wrap round. Crosswind moves them across the screen; a head- or tailwind
+  // still moves them a little (we see them pass at an angle). Low clouds cross the sky faster than high
+  // ones, as their angular speed is larger. Calm air leaves them still.
+  const speed = params.windSpeed;
+  const across = Math.max(Math.abs(params.drift), 0.3);
+  const altitudeFactor = 0.7 + Math.min(layer.height, 250) / 120;
+  const driftSeconds = speed < 3 ? 0 : Math.round(Math.min(900, Math.max(60, 3600 / (speed * across))) * altitudeFactor);
+  const driftDirection = params.drift < 0 ? -1 : 1;
 
-  return <CloudCanvas spec={spec} className="weather-scene-drift" style={style} />;
+  return (
+    <CloudCanvas
+      spec={spec}
+      driftSeconds={driftSeconds}
+      driftDirection={driftDirection}
+      driftFps={params.precipitation ? PRECIPITATION_FPS : CLOUD_DRIFT_FPS}
+    />
+  );
 }
 
 interface PrecipitationLayerProps {
@@ -129,13 +139,16 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   }, [intensity, kind, near, tile]);
 
   const radians = (slant * Math.PI) / 180;
-  const nominal = kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7;
+  // Wind blowing the precipitation towards us makes it rush past faster; blowing it away slows it down.
+  const toward = params.towardViewer * Math.min(1, params.windSpeed / 30);
+  const nominal = (kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7) / (1 + toward * 0.35);
   // Whole ticks only, so near and far layers change on exactly the same frames.
   const steps = Math.max(2, Math.round(nominal * PRECIPITATION_FPS));
   const fallStyle = {
     "--fall-x": `${(Math.sin(radians) * tile).toFixed(1)}px`,
     "--fall-y": `${(Math.cos(radians) * tile).toFixed(1)}px`,
-    "--fall-duration": `${(steps / PRECIPITATION_FPS).toFixed(4)}s`,
+    // Exact multiple of the tick (a rounded decimal drifts off the shared clock).
+    "--fall-duration": `calc(${steps}s / ${PRECIPITATION_FPS})`,
     "--fall-steps": steps,
   } as CSSProperties;
 
@@ -166,7 +179,9 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   // The pattern is drawn in CSS pixels on an oversized layer that is moved by exactly one
   // tile per loop. Animating the HTML wrapper keeps the motion on the compositor.
   const margin = tile * 2;
-  return (
+  // Gusts sway the curtain: a compositor-only skew that swings the streaks further downwind now and then.
+  const gustSkew = params.gustiness * (kind === "snow" ? 14 : 9) * Math.max(Math.abs(params.drift), 0.35) * (params.drift < 0 ? -1 : 1);
+  const curtain = (
     <div className="weather-scene-precip" style={{ inset: -margin, opacity: 1 - night * 0.35, ...fallStyle }}>
       <svg width="100%" height="100%" focusable="false">
         <defs>
@@ -176,6 +191,12 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
         </defs>
         <rect width="100%" height="100%" fill={`url(#${id}-p)`} />
       </svg>
+    </div>
+  );
+  if (!gustSkew) return curtain;
+  return (
+    <div className={`weather-scene-gust ${near ? "" : "is-far"}`} style={{ "--gust-skew": `${gustSkew.toFixed(1)}deg` } as CSSProperties}>
+      {curtain}
     </div>
   );
 }
@@ -307,8 +328,32 @@ function SkyLayer({ uid, params, daylight, light }: Readonly<{ uid: string; para
 }
 
 /** Decorative background that renders the weather of the period being edited. */
+/** Animations that step on the shared precipitation clock. */
+const CLOCKED_ANIMATIONS = new Set(["scene-fall", "scene-cloud-drift", "scene-gust"]);
+
+/**
+ * Snaps every stepped weather animation's start time onto one 1/15 s grid. Their steps then land on the
+ * same frames, so the glass panels above are re-blurred once per tick instead of once per animation.
+ */
+function alignToSceneClock(root: HTMLElement | null) {
+  if (!root || typeof root.getAnimations !== "function") return;
+  const tick = 1000 / PRECIPITATION_FPS;
+  for (const animation of root.getAnimations({ subtree: true })) {
+    if (!(animation instanceof CSSAnimation) || !CLOCKED_ANIMATIONS.has(animation.animationName)) continue;
+    const start = animation.startTime;
+    if (typeof start !== "number") continue;
+    animation.startTime = Math.round(start / tick) * tick;
+  }
+}
+
 function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSceneProps>) {
   const uid = `ws${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const paramsKey = JSON.stringify(params);
+  useEffect(() => {
+    // New animations get a start time on the next frame.
+    const frame = requestAnimationFrame(() => alignToSceneClock(document.querySelector<HTMLElement>("[data-testid=weather-scene]")));
+    return () => cancelAnimationFrame(frame);
+  }, [paramsKey, animated]);
   const d = params.darkness;
   const light = getSceneLight(daylight, d);
 

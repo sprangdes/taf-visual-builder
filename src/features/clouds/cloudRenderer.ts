@@ -188,13 +188,26 @@ function erosion(n: Noise, x: number, y: number): number {
   return n.fbm(x * 3.1, y * 3.1, 3);
 }
 
+/**
+ * Samples a noise function so the result tiles horizontally: the value at u is cross-faded with the value one
+ * screen-width earlier, so u = 0 and u = 1 match and a drifting layer can wrap round without a seam. Dividing
+ * by the blend's norm keeps the contrast (and so the coverage) the same across the screen.
+ */
+function periodic(spec: CloudLayerSpec, u: number, v: number, f: (x: number, y: number) => number): number {
+  const a = project(spec, u, v);
+  const b = project(spec, u - 1, v);
+  if (!a || !b) return 0;
+  const t = u;
+  return (f(a[0], a[1]) * (1 - t) + f(b[0], b[1]) * t) / Math.hypot(1 - t, t);
+}
+
 function makeDeck(spec: CloudLayerSpec): Deck {
   const n = createNoise(spec.seed);
   const rand = mulberry32(spec.seed ^ 0x5bd1e995);
   const samples: number[] = [];
   for (let i = 0; i < 1800; i += 1) {
     const p = project(spec, rand(), rand() * 0.88);
-    if (p) samples.push(shape(spec, n, p[0], p[1]));
+    if (p) samples.push(periodic(spec, rand(), rand() * 0.88, (x, y) => shape(spec, n, x, y)));
   }
   samples.sort((a, b) => a - b);
   const soft = spec.kind === "cirrus" ? 0.12 : spec.kind === "stratus" ? 0.16 : 0.1;
@@ -209,9 +222,9 @@ function deckBody(d: Deck, u: number, v: number): [number, number] {
   const { spec, n } = d;
   const p = project(spec, u, v);
   if (!p) return [0, 0.5];
-  const s = shape(spec, n, p[0], p[1]);
+  const s = periodic(spec, u, v, (x, y) => shape(spec, n, x, y));
   const scale = spec.kind === "stratus" ? 1.1 : spec.kind === "cirrus" ? 2 : 2.8;
-  const puff = n.billow(p[0] * scale + 40, p[1] * scale, 4);
+  const puff = 0.5 + periodic(spec, u, v, (x, y) => n.billow(x * scale + 40, y * scale, 4) - 0.5);
   // A closed deck: thickness follows the noise itself, giving darker rolls and thinner, brighter patches.
   const depth = spec.kind === "stratus" ? 0.5 + s * 1.6 : (s - d.threshold) / 0.32;
   return [clamp01(depth), puff];
@@ -221,13 +234,13 @@ function deckDensity(d: Deck, u: number, v: number): number {
   const { spec, n } = d;
   const p = project(spec, u, v);
   if (!p) return 0;
-  const s = shape(spec, n, p[0], p[1]);
+  const s = periodic(spec, u, v, (x, y) => shape(spec, n, x, y));
   // Overhead clouds are magnified by perspective; tighten their margin in noise space to keep them sharp.
   const soft = d.soft * (0.4 + 0.6 * (1 - p[2] / FOV));
   let density = smoothstep(d.threshold - soft, d.threshold + soft * 2.2, s);
   if (density > 0 && density < 0.75 && spec.kind !== "stratus") {
     // Edge erosion: thin parts are eaten away by fine noise into ragged wisps.
-    const e = erosion(n, p[0] * 0.42, p[1] * 0.42);
+    const e = periodic(spec, u, v, (x, y) => erosion(n, x * 0.42, y * 0.42));
     density = clamp01(density - (1 - density) * (0.35 + e * 0.9) * 0.6);
   }
   if (spec.kind === "cirrus") density *= 0.55;
@@ -273,10 +286,12 @@ function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Arr
   for (let y = 0; y < h; y += 1) {
     let sum = 0;
     const row = y * w;
-    for (let x = -r; x <= r; x += 1) sum += src[row + Math.min(w - 1, Math.max(0, x))];
+    // Horizontal pass wraps round: the layer tiles horizontally.
+    const wrap = (x: number) => ((x % w) + w) % w;
+    for (let x = -r; x <= r; x += 1) sum += src[row + wrap(x)];
     for (let x = 0; x < w; x += 1) {
       tmp[row + x] = sum / span;
-      sum += src[row + Math.min(w - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+      sum += src[row + wrap(x + r + 1)] - src[row + wrap(x - r)];
     }
   }
   for (let x = 0; x < w; x += 1) {
@@ -322,7 +337,7 @@ export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: 
   const H = boxBlur(boxBlur(D, w, h, Math.max(2, Math.round(w / 90))), w, h, Math.max(2, Math.round(w / 90)));
   const Hf = boxBlur(T, w, h, Math.max(1, Math.round(w / 260)));
   const at = (arr: Float32Array, x: number, y: number) => {
-    const xi = x < 0 ? 0 : x >= w ? w - 1 : x | 0;
+    const xi = ((Math.floor(x) % w) + w) % w;
     const yi = y < 0 ? 0 : y >= h ? h - 1 : y | 0;
     return arr[yi * w + xi];
   };
@@ -338,6 +353,10 @@ export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: 
   const relief = spec.kind === "stratus" ? 5 : spec.kind === "cirrus" ? 3 : 9;
   const sampleR = Math.max(1, Math.round(w / 300));
 
+  const lightLen = Math.hypot((light.x - 0.5) * aspect, light.y - 0.45) || 1;
+  const lightDirX = ((light.x - 0.5) * aspect) / lightLen;
+  const lightDirY = (light.y - 0.45) / lightLen;
+
   // Pass 2: lighting.
   for (let py = 0; py < h; py += 1) {
     const v = py / h;
@@ -347,33 +366,30 @@ export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: 
       const i = py * w + px;
       const d = D[i];
       if (d < 0.004) continue;
-      const u = px / w;
-
       // Surface normal of the height field: bulges facing the light are bright, creases dark.
       const R = sampleR * 3;
       // Big forms from the blurred field; heap detail (stronger in closed decks) from the lightly blurred one.
       const fine = spec.kind === "stratus" ? 1.4 : 0.75;
       const gx = (at(H, px + R, py) - at(H, px - R, py)) * relief * 1.6 + (at(Hf, px + sampleR, py) - at(Hf, px - sampleR, py)) * relief * fine;
       const gy = (at(H, px, py + R) - at(H, px, py - R)) * relief * 1.6 + (at(Hf, px, py + sampleR) - at(Hf, px, py - sampleR)) * relief * fine;
-      let ldx = light.x - u;
-      let ldy = light.y - v;
-      const len = Math.hypot(ldx * aspect, ldy) || 1;
-      ldx = (ldx * aspect) / len;
-      ldy /= len;
+      // One light direction for the whole layer (the clouds drift, and per-pixel directions would also
+      // break the horizontal tiling): from mid-screen towards the sun/moon. Only vertical distance to the
+      // light varies, so the layer stays seamless.
+      const len = Math.max(0.05, Math.abs(light.y - v) + 0.15);
+      const ldx = lightDirX;
+      const ldy = lightDirY;
       const nl = Math.hypot(gx, gy, 1);
       const ll = Math.hypot(ldx, ldy, lz);
       const ndl = (-gx * ldx - gy * ldy + lz) / (nl * ll);
-      // Wrapped diffuse (light bleeds round the heaps). Right next to the sun/moon the on-screen direction
-      // swings round sharply and would print rings, so fade to front lighting there.
-      const directional = smoothstep(0.04, 0.32, len);
-      const diffuse = mix(0.8, clamp01((ndl + 0.3) / 1.3), directional);
+      // Wrapped diffuse: light bleeds round the heaps.
+      const diffuse = clamp01((ndl + 0.3) / 1.3);
 
       // Self-shadowing: march towards the light through the density map.
       // Fixed step length: steps proportional to the distance from the light would band into rings.
       const stepPx = w * 0.012;
       let optical = 0;
       for (let k = 1; k <= steps; k += 1) optical += at(D, px + ldx * stepPx * k, py + ldy * stepPx * k);
-      const transmit = mix(0.8, Math.exp(-optical * extinction * 0.28), directional);
+      const transmit = Math.exp(-optical * extinction * 0.28);
 
       // Cloud bases (cloud above on screen, clear below) sit in their own shadow; tops catch the light.
       const vr = Math.max(3, Math.round(h * 0.03));
