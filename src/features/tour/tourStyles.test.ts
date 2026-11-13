@@ -10,30 +10,26 @@ describe("guided tour responsive styles", () => {
     const mobileStyles = styles.slice(mobileStart, mobileEnd);
 
     expect(mobileStyles).toContain(".tour-menu {");
-    expect(mobileStyles).toContain("position: fixed;");
-    expect(mobileStyles).toContain("top: 72px;");
-    expect(mobileStyles).toContain("left: 12px;");
-    expect(mobileStyles).toContain("right: 12px;");
+    expect(mobileStyles).toContain(".tour-menu-root { position: static; }");
+    expect(mobileStyles).toContain("position: absolute;");
+    expect(mobileStyles).toContain("top: calc(100% + 8px);");
+    expect(mobileStyles).toContain("left: 0;");
+    expect(mobileStyles).toContain("right: 0;");
     expect(mobileStyles).toContain("width: auto;");
     expect(mobileStyles).toContain("max-height: calc(100dvh - 84px);");
     expect(mobileStyles).toContain("overflow-y: auto;");
   });
 
-  it("keeps the flight strip and spotlight stable between tour steps", () => {
-    const floaterRule = styles.slice(
-      styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)"),
-      styles.indexOf(".react-joyride__spotlight", styles.indexOf(".react-joyride__floater:has(.tour-flight-strip)")),
-    );
-
-    expect(floaterRule).toContain("opacity: 1 !important;");
-    expect(floaterRule).toContain("transition: none !important;");
-    expect(styles).toContain(".react-joyride__spotlight path + path {");
-    expect(styles).toContain("opacity: 0 !important;");
-    expect(styles).toContain("transition: none !important;");
+  it("dims everything except the spotlighted target without blocking the page", () => {
+    const spotlight = styles.slice(styles.indexOf(".tour-spotlight {"), styles.indexOf("}", styles.indexOf(".tour-spotlight {")));
+    expect(spotlight).toContain("position: fixed;");
+    expect(spotlight).toContain("pointer-events: none;");
+    expect(spotlight).toContain("200vmax");
+    expect(styles).toContain(".tour-spotlight.is-undimmed { box-shadow: 0 0 0 2px rgb(255 255 255 / 85%); }");
   });
 
   it("provides a compact touch-enabled mobile tour card", () => {
-    expect(styles).toContain(".tour-flight-strip { border-radius: 16px 16px 0 0; touch-action: none; }");
+    expect(styles).toContain("border-radius: 22px; touch-action: none; }");
     expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-strip-inner { display: none; }");
     expect(styles).toContain(".tour-flight-strip.is-collapsed .tour-flight-toggle { height: 44px; }");
   });

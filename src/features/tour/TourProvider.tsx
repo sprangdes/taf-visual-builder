@@ -1,18 +1,23 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Step } from "react-joyride";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { getTourSteps } from "./tourDefinitions";
 import { cloneTourSnapshot } from "./tourDemo";
 import { TourExitDialog } from "./TourMenu";
+import TourRunner from "./TourRunner";
 import { TourContext, type TourContextValue } from "./TourContext";
-import type { TourEditorAdapter, TourEditorSnapshot, TourId } from "./types";
+import type { TourEditorAdapter, TourEditorSnapshot, TourId, TourPeriod } from "./types";
 import { useLanguage } from "../i18n/LanguageContext";
-import { centerTourTarget } from "./tourScroll";
 
-// react-joyride and its positioning engine are only needed once a tour starts.
-const TourRunner = lazy(() => import("./TourRunner"));
+const MOBILE_QUERY = "(max-width: 639px)";
 
-function getMobileQuery(): MediaQueryList | null {
-  return typeof window === "undefined" || !window.matchMedia ? null : window.matchMedia("(max-width: 639px)");
+function subscribeMobile(onChange: () => void): () => void {
+  if (typeof window === "undefined" || !window.matchMedia) return () => undefined;
+  const query = window.matchMedia(MOBILE_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function readMobile(): boolean {
+  return typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
 }
 
 interface TourProviderProps {
@@ -22,86 +27,79 @@ interface TourProviderProps {
 
 export function TourProvider({ children, editor }: Readonly<TourProviderProps>) {
   const { text } = useLanguage();
+  const editorRef = useRef(editor);
   const [activeTour, setActiveTour] = useState<TourId | null>(null);
+  const [runId, setRunId] = useState(0);
   const [snapshot, setSnapshot] = useState<TourEditorSnapshot | null>(null);
   const [exitPending, setExitPending] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => getMobileQuery()?.matches ?? false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const finishingRef = useRef(false);
+  const [collapsedSetting, setCollapsedSetting] = useState(false);
+  const isMobile = useSyncExternalStore(subscribeMobile, readMobile, () => false);
+  const isCollapsed = isMobile && collapsedSetting;
 
   useEffect(() => {
-    const query = getMobileQuery();
-    if (!query) return;
-    const update = (event: MediaQueryListEvent) => {
-      setIsMobile(event.matches);
-      if (!event.matches) setIsCollapsed(false);
-    };
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
+    editorRef.current = editor;
+  }, [editor]);
 
   const startTour = useCallback((id: TourId) => {
-    finishingRef.current = false;
     setExitPending(false);
-    setIsCollapsed(false);
-    if (id === "quick-start") {
-      setSnapshot(cloneTourSnapshot(editor.capture()));
-      editor.loadDemo();
+    setCollapsedSetting(false);
+    const current = editorRef.current.capture();
+    // Quick start always uses the demo; other tours need it only to have a change period to point at.
+    const needsChange = getTourSteps(id, false).some((step) => step.period === "change");
+    if (id === "quick-start" || (needsChange && current.taf.changes.length === 0)) {
+      setSnapshot(cloneTourSnapshot(current));
+      editorRef.current.loadDemo();
     } else {
       setSnapshot(null);
     }
     setActiveTour(id);
-  }, [editor]);
+    setRunId((current) => current + 1);
+  }, []);
 
   const finishTour = useCallback(() => {
-    if (finishingRef.current) return;
-    finishingRef.current = true;
-    setIsCollapsed(false);
     setActiveTour(null);
+    setCollapsedSetting(false);
     if (snapshot) setExitPending(true);
   }, [snapshot]);
 
+  const selectPeriod = useCallback((period: TourPeriod) => {
+    editorRef.current.selectPeriod(period);
+  }, []);
 
-  const steps = useMemo<Step[]>(() => {
-    if (!activeTour) return [];
-    return getTourSteps(activeTour, isMobile, text.tour).map((step) => ({
-      before: () => centerTourTarget(step.target),
-      content: step.content,
-      data: {
-        id: step.id,
-        isMobile,
-      },
-      id: step.id,
-      placement: "center",
-      skipScroll: true,
-      skipBeacon: true,
-      target: step.target,
-      title: step.title,
-    }));
-  }, [activeTour, isMobile, text.tour]);
+  const toggleCollapsed = useCallback(() => setCollapsedSetting((current) => !current), []);
+
+  const steps = useMemo(
+    () => (activeTour ? getTourSteps(activeTour, isMobile, text.tour) : []),
+    [activeTour, isMobile, text.tour],
+  );
 
   const contextValue = useMemo<TourContextValue>(() => ({
     startTour,
     isRunning: activeTour !== null,
     isMobile,
     isCollapsed,
-    toggleCollapsed: () => setIsCollapsed((current) => !current),
-  }), [activeTour, isCollapsed, isMobile, startTour]);
+    toggleCollapsed,
+  }), [activeTour, isCollapsed, isMobile, startTour, toggleCollapsed]);
 
   const resolveExit = (decision: "keep" | "restore") => {
-    if (decision === "restore" && snapshot) editor.restore(snapshot);
+    if (decision === "restore" && snapshot) editorRef.current.restore(snapshot);
     setSnapshot(null);
     setExitPending(false);
-    finishingRef.current = false;
   };
 
   return (
     <TourContext.Provider value={contextValue}>
       {children}
       {activeTour !== null && (
-        <Suspense fallback={null}>
-          <TourRunner steps={steps} isMobile={isMobile} isCollapsed={isCollapsed} onFinish={finishTour} />
-        </Suspense>
+        <TourRunner
+          key={runId}
+          steps={steps}
+          isMobile={isMobile}
+          isCollapsed={isCollapsed}
+          onToggleCollapsed={toggleCollapsed}
+          onSelectPeriod={selectPeriod}
+          onFinish={finishTour}
+        />
       )}
       {exitPending && <TourExitDialog onResolve={resolveExit} />}
     </TourContext.Provider>

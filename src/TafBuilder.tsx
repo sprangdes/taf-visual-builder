@@ -9,6 +9,7 @@ import { TourMenu } from "./features/tour/TourMenu";
 import { useTour } from "./features/tour/TourContext";
 import { TourProvider } from "./features/tour/TourProvider";
 import { createTourDemoTaf } from "./features/tour/tourDemo";
+import type { TourPeriod } from "./features/tour/types";
 import { useLanguage } from "./features/i18n/LanguageContext";
 import { LanguageMenu } from "./features/i18n/LanguageMenu";
 import type { TAF, TAFChange, WeatherTrendType } from "./types/taf";
@@ -141,6 +142,13 @@ export default function TafBuilder() {
     restore: (snapshot: { taf: TAF; selectedChangeIndex: number | null }) => {
       setTaf(snapshot.taf);
       setSelectedChangeIndex(snapshot.selectedChangeIndex);
+    },
+    selectPeriod: (period: TourPeriod) => {
+      if (period === "base") {
+        setSelectedChangeIndex(null);
+      } else if (selectedChangeIndexRef.current === null && tafRef.current.changes.length > 0) {
+        setSelectedChangeIndex(0);
+      }
     },
   };
 
