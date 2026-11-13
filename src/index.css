@@ -240,7 +240,10 @@ body {
 .timeline-tick { grid-row: 1; font: 500 11px var(--mono); color: var(--text-muted); align-self: end; white-space: nowrap; }
 .timeline-tick.is-midnight { color: var(--text); font-weight: 700; }
 .timeline-cell { grid-row: 1; height: 100%; padding: 0; border: 0; background: transparent; cursor: crosshair; }
-.timeline-cell:first-child { border-radius: 999px 0 0 999px; }
+/* Round the hour cells at both ends of the lane so hover and preview fills follow the track's pill shape.
+   Cells under a change bar are not rendered, so match on the hour index rather than child position. */
+.timeline-cell[data-index="0"] { border-top-left-radius: 999px; border-bottom-left-radius: 999px; }
+.timeline-cell[data-index="23"] { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
 .timeline-cell:hover { background: rgb(255 255 255 / 16%); }
 .timeline-cell.is-preview { background: rgb(255 255 255 / 30%); }
 .timeline-cell.is-anchor { background: rgb(255 255 255 / 45%); box-shadow: inset 0 0 0 2px #fff; }
