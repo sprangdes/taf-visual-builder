@@ -217,37 +217,6 @@ function makeDeck(spec: CloudLayerSpec): Deck {
   return { spec, n, threshold, soft, towerX: 0.6 + (mulberry32(spec.seed + 99)() - 0.5) * 0.3 };
 }
 
-/** How far inside the cloud a point is (0 at the margin … 1 deep in a thick core), plus puff texture. */
-function deckBody(d: Deck, u: number, v: number): [number, number] {
-  const { spec, n } = d;
-  const p = project(spec, u, v);
-  if (!p) return [0, 0.5];
-  const s = periodic(spec, u, v, (x, y) => shape(spec, n, x, y));
-  const scale = spec.kind === "stratus" ? 1.1 : spec.kind === "cirrus" ? 2 : 2.8;
-  const puff = 0.5 + periodic(spec, u, v, (x, y) => n.billow(x * scale + 40, y * scale, 4) - 0.5);
-  // A closed deck: thickness follows the noise itself, giving darker rolls and thinner, brighter patches.
-  const depth = spec.kind === "stratus" ? 0.5 + s * 1.6 : (s - d.threshold) / 0.32;
-  return [clamp01(depth), puff];
-}
-
-function deckDensity(d: Deck, u: number, v: number): number {
-  const { spec, n } = d;
-  const p = project(spec, u, v);
-  if (!p) return 0;
-  const s = periodic(spec, u, v, (x, y) => shape(spec, n, x, y));
-  // Overhead clouds are magnified by perspective; tighten their margin in noise space to keep them sharp.
-  const soft = d.soft * (0.4 + 0.6 * (1 - p[2] / FOV));
-  let density = smoothstep(d.threshold - soft, d.threshold + soft * 2.2, s);
-  if (density > 0 && density < 0.75 && spec.kind !== "stratus") {
-    // Edge erosion: thin parts are eaten away by fine noise into ragged wisps.
-    const e = periodic(spec, u, v, (x, y) => erosion(n, x * 0.42, y * 0.42));
-    density = clamp01(density - (1 - density) * (0.35 + e * 0.9) * 0.6);
-  }
-  if (spec.kind === "cirrus") density *= 0.55;
-  // The farthest clouds dissolve into the horizon haze.
-  return density * smoothstep(0.012, 0.1, p[2]);
-}
-
 function towerDensity(d: Deck, u: number, v: number): number {
   const { spec, n } = d;
   if (spec.tower === "none") return 0;
@@ -277,7 +246,6 @@ function towerDensity(d: Deck, u: number, v: number): number {
 
 /* ---------- render ---------- */
 
-/** Draws one cloud layer onto `ctx` (a transparent canvas of spec.width × spec.height). */
 /** Separable box blur (horizontal then vertical) with running sums: O(w·h) whatever the radius. */
 function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Array {
   const tmp = new Float32Array(w * h);
@@ -305,29 +273,85 @@ function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Arr
   return dst;
 }
 
-export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: CanvasFactory): void {
-  // Render at 2/3 resolution and smooth up: enough for crisp cauliflower edges, a third of the work.
-  const w = Math.max(1, Math.round((spec.width * 2) / 3));
-  const h = Math.max(1, Math.round((spec.height * 2) / 3));
-  const deck = makeDeck(spec);
-  const { light, darkness } = spec;
-  const aspect = w / h;
+/** Everything about a layer that does not depend on the light: its shape, thickness and relief. */
+interface CloudFields {
+  w: number;
+  h: number;
+  /** Density. */
+  D: Float32Array;
+  /** Thickness (a height field: how far the cloud bulges towards us). */
+  T: Float32Array;
+  /** Puff texture. */
+  P: Float32Array;
+  /** Density blurred over roughly one heap, and the lightly blurred thickness. */
+  H: Float32Array;
+  Hf: Float32Array;
+}
 
-  // Pass 1: density, thickness (a height field: how far the cloud bulges towards us) and puff texture.
+/**
+ * The noise passes are by far the most expensive part and depend only on the layer's geometry, so the last
+ * few results are kept: when only the lighting changes (time of day, a darker storm) a layer is re-lit
+ * without recomputing its shape.
+ */
+const FIELD_CACHE_SIZE = 3;
+const fieldCache = new Map<string, CloudFields>();
+
+function computeFields(spec: CloudLayerSpec, w: number, h: number): CloudFields {
+  const deck = makeDeck(spec);
+  const { n, threshold } = deck;
+  const kind = spec.kind;
+  const altitude = 1 + Math.min(spec.altitude, 300) / 40;
+  const puffScale = kind === "stratus" ? 1.1 : kind === "cirrus" ? 2 : 2.8;
+  const shapeAt = (x: number, y: number) => shape(spec, n, x, y);
+
   const D = new Float32Array(w * h);
   const T = new Float32Array(w * h);
   const P = new Float32Array(w * h);
   for (let py = 0; py < h; py += 1) {
     const v = py / h;
+    // Projection onto the deck: elevation and distance are the same for the whole row.
+    const elevation = (HORIZON_V - v) * FOV;
+    const visible = elevation > 0.012;
+    const ground = visible ? altitude / Math.tan(elevation) : 0;
+    const sinE = visible ? Math.sin(elevation) : 1;
+    const soft = deck.soft * (0.4 + 0.6 * (1 - elevation / FOV));
+    const fade = visible ? smoothstep(0.012, 0.1, elevation) : 0;
     for (let px = 0; px < w; px += 1) {
       const u = px / w;
-      const a = deckDensity(deck, u, v);
+      const i = py * w + px;
+      let a = 0;
+      let s = 0;
+      // Horizontal tiling: every sample is cross-faded with the one a screen-width earlier (see periodic()).
+      const xa = ((u - 0.5) * 2.1 * altitude) / sinE;
+      const xb = ((u - 1 - 0.5) * 2.1 * altitude) / sinE;
+      const wa = 1 - u;
+      const norm = Math.hypot(wa, u);
+      if (visible) {
+        s = (shapeAt(xa, ground) * wa + shapeAt(xb, ground) * u) / norm;
+        let density = smoothstep(threshold - soft, threshold + soft * 2.2, s);
+        if (density > 0 && density < 0.75 && kind !== "stratus") {
+          // Edge erosion: thin parts are eaten away by fine noise into ragged wisps.
+          const e = (erosion(n, xa * 0.42, ground * 0.42) * wa + erosion(n, xb * 0.42, ground * 0.42) * u) / norm;
+          density = clamp01(density - (1 - density) * (0.35 + e * 0.9) * 0.6);
+        }
+        if (kind === "cirrus") density *= 0.55;
+        // The farthest clouds dissolve into the horizon haze.
+        a = density * fade;
+      }
       const b = spec.tower === "none" ? 0 : towerDensity(deck, u, v);
       const d = 1 - (1 - a) * (1 - b);
-      const i = py * w + px;
       D[i] = d;
       if (d < 0.004) continue;
-      const [depth, puff] = deckBody(deck, u, v);
+      // How far inside the cloud the point is (0 at the margin … 1 deep in a thick core), plus puff texture.
+      let depth = 0;
+      let puff = 0.5;
+      if (visible) {
+        const pa = n.billow(xa * puffScale + 40, ground * puffScale, 4) - 0.5;
+        const pb = n.billow(xb * puffScale + 40, ground * puffScale, 4) - 0.5;
+        puff = 0.5 + (pa * wa + pb * u) / norm;
+        // A closed deck: thickness follows the noise itself, giving darker rolls and thinner, brighter patches.
+        depth = clamp01(kind === "stratus" ? 0.5 + s * 1.6 : (s - threshold) / 0.32);
+      }
       T[i] = Math.max(depth * 0.7 + puff * 0.3 * d, b * (0.6 + puff * 0.4));
       P[i] = puff;
     }
@@ -336,6 +360,31 @@ export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: 
   // cloud forms (rounded, sunlit domes and shaded flanks) rather than fine wrinkles.
   const H = boxBlur(boxBlur(D, w, h, Math.max(2, Math.round(w / 90))), w, h, Math.max(2, Math.round(w / 90)));
   const Hf = boxBlur(T, w, h, Math.max(1, Math.round(w / 260)));
+  return { w, h, D, T, P, H, Hf };
+}
+
+function getFields(spec: CloudLayerSpec, w: number, h: number): CloudFields {
+  const key = [w, h, spec.seed, spec.cover, spec.altitude, spec.kind, spec.tower].join("|");
+  let fields = fieldCache.get(key);
+  if (fields) {
+    fieldCache.delete(key);
+  } else {
+    fields = computeFields(spec, w, h);
+    if (fieldCache.size >= FIELD_CACHE_SIZE) fieldCache.delete(fieldCache.keys().next().value as string);
+  }
+  fieldCache.set(key, fields);
+  return fields;
+}
+
+/** Draws one cloud layer onto `ctx` (a transparent canvas of spec.width × spec.height). */
+export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: CanvasFactory): void {
+  // Render at 2/3 resolution and smooth up: enough for crisp cauliflower edges, a third of the work.
+  const w = Math.max(1, Math.round((spec.width * 2) / 3));
+  const h = Math.max(1, Math.round((spec.height * 2) / 3));
+  const { D, T, P, H, Hf } = getFields(spec, w, h);
+  const { light, darkness } = spec;
+  const aspect = w / h;
+
   const at = (arr: Float32Array, x: number, y: number) => {
     const xi = ((Math.floor(x) % w) + w) % w;
     const yi = y < 0 ? 0 : y >= h ? h - 1 : y | 0;
