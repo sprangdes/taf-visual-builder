@@ -68,3 +68,45 @@ describe("NumericControl direct entry", () => {
     expect(input).toHaveValue("05");
   });
 });
+
+describe("NumericControl click-and-type", () => {
+  it("replaces the whole value with the first digit typed after focusing", () => {
+    const onChange = vi.fn();
+    renderControl({ value: 0, min: 0, max: 999, onChange, formatValue: (v) => String(v).padStart(3, "0") });
+    const input = screen.getByRole("spinbutton");
+
+    fireEvent.focus(input);
+    // Simulate Safari: the click leaves a collapsed caret at the end of the full value.
+    (input as HTMLInputElement).setSelectionRange(3, 3);
+    fireEvent.keyDown(input, { key: "2" });
+    expect(input).toHaveValue("2");
+    fireEvent.change(input, { target: { value: "25" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith(25);
+  });
+
+  it("clears the field when the first key is Backspace", () => {
+    renderControl({ value: 270, min: 0, max: 360, step: 10, onChange: vi.fn() });
+    const input = screen.getByRole("spinbutton");
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "Backspace" });
+    expect(input).toHaveValue("");
+  });
+
+  it("edits normally once the caret has been moved", () => {
+    renderControl({ value: 270, min: 0, max: 360, step: 10, onChange: vi.fn() });
+    const input = screen.getByRole("spinbutton");
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "ArrowLeft" });
+    fireEvent.keyDown(input, { key: "5" });
+    expect(input).toHaveValue("270");
+  });
+
+  it("keeps shortcuts such as Cmd+V working", () => {
+    renderControl({ value: 12, min: 0, max: 99, onChange: vi.fn() });
+    const input = screen.getByRole("spinbutton");
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: "v", metaKey: true });
+    expect(input).toHaveValue("12");
+  });
+});
