@@ -1,4 +1,3 @@
-import { useId } from "react";
 import { visibilityOptions } from "../constants/weather";
 import type {
   BaseForecast,
@@ -9,7 +8,7 @@ import type {
   Wind,
 } from "../types/taf";
 import { toBoundedNonNegativeInt, toWindDirection } from "../utils/number";
-import { GlassThumb, type ThumbTint } from "../features/motion/GlassThumb";
+import { useGlassSlide } from "../hooks/useGlassSlide";
 import {
   TIMELINE_HOURS,
   formatHour,
@@ -123,7 +122,7 @@ export default function ChangeEditor({
   const hours = getTimelineHours(startHour);
   const trend = isBase ? null : (change as TAFChange);
   const range = trend ? getChangeRange(trend, changes, startHour) : null;
-  const typeThumbId = useId();
+  const typeSegmentRef = useGlassSlide<HTMLDivElement>(trend?.type);
 
   const typeConflicts = (type: WeatherTrendType) => {
     if (!trend || !range) return false;
@@ -146,7 +145,8 @@ export default function ChangeEditor({
       <div className="period-editor-header">
         {trend && range ? (
           <div className="period-controls">
-            <div className="segmented lg-seg" role="group" aria-label={text.actions.changeType} data-tour-id="change-type">
+            <div ref={typeSegmentRef} className="segmented lg-seg" role="group" aria-label={text.actions.changeType} data-tour-id="change-type">
+              <span className="lg-thumb" aria-hidden="true"><span className="lg-thumb-glass" /></span>
               {TYPES.map((type) => (
                 <button
                   key={type}
@@ -157,7 +157,6 @@ export default function ChangeEditor({
                   className={`type-option type-option--${type.toLowerCase()} ${trend.type === type ? "is-on" : ""}`}
                   onClick={() => onChangeType?.(type)}
                 >
-                  <GlassThumb layoutId={typeThumbId} show={trend.type === type} tint={type.toLowerCase() as ThumbTint} />
                   {type}
                 </button>
               ))}

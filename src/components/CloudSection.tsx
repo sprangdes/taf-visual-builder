@@ -4,8 +4,7 @@ import { formatClouds } from "../utils/weather";
 import ConditionCard from "./ConditionCard";
 import NumericControl from "./inputs/NumericControl";
 import { useLanguage } from "../features/i18n/LanguageContext";
-import { useId } from "react";
-import { GlassThumb } from "../features/motion/GlassThumb";
+import { useGlassSlide } from "../hooks/useGlassSlide";
 
 const cloudHeightPickerOptions = Array.from({ length: 1000 }, (_, value) => ({
   value,
@@ -13,9 +12,10 @@ const cloudHeightPickerOptions = Array.from({ length: 1000 }, (_, value) => ({
 }));
 
 function CloudAmountSegment({ amount: selected, label, onSelect }: Readonly<{ amount: string; label: string; onSelect: (amount: string) => void }>) {
-  const thumbId = useId();
+  const ref = useGlassSlide<HTMLDivElement>(selected);
   return (
-    <div className="segmented segmented--small lg-seg" role="group" aria-label={label}>
+    <div ref={ref} className="segmented segmented--small lg-seg" role="group" aria-label={label}>
+      <span className="lg-thumb" aria-hidden="true"><span className="lg-thumb-glass" /></span>
       {cloudAmountOptions.map((amount) => (
         <button
           key={amount}
@@ -24,7 +24,6 @@ function CloudAmountSegment({ amount: selected, label, onSelect }: Readonly<{ am
           className={selected === amount ? "is-on" : ""}
           onClick={() => onSelect(amount)}
         >
-          <GlassThumb layoutId={thumbId} show={selected === amount} />
           {amount}
         </button>
       ))}

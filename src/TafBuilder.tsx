@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import ChangeEditor from "./components/ChangeEditor";
 import GeneratedTafOutput from "./components/GeneratedTafOutput";
 import IssueTimeInput from "./components/IssueTimeInput";
@@ -25,7 +25,7 @@ import { getSceneLight } from "./utils/sceneLight";
 import { useRenderQuality } from "./hooks/useRenderQuality";
 import { useInteractionHold } from "./hooks/useInteractionHold";
 import { useScrolled } from "./hooks/useScrolled";
-import { GlassThumb } from "./features/motion/GlassThumb";
+import { useGlassSlide } from "./hooks/useGlassSlide";
 
 function createEmptyTaf(): TAF {
   return {
@@ -103,7 +103,8 @@ export default function TafBuilder() {
   }, []);
 
   const selectedChange = selectedChangeIndex === null ? null : taf.changes[selectedChangeIndex] ?? null;
-  const periodThumbId = useId();
+  // Keyed on the tab order too: adding or re-sorting changes moves the selected tab.
+  const periodTabsRef = useGlassSlide<HTMLElement>(`${selectedChangeIndex}:${taf.changes.map((c) => `${c.type}${c.from}${c.to}`).join(",")}`);
 
   function updateChange(index: number, updatedChange: TAFChange) {
     setTaf((previous) => {
@@ -334,7 +335,8 @@ export default function TafBuilder() {
                   <h2 id="editor-title" className="visually-hidden">
                     {selectedChange ? text.sections.selectedChange.title : text.sections.base.title}
                   </h2>
-                  <nav className="period-tabs lg-seg" aria-label={text.editor.periods}>
+                  <nav ref={periodTabsRef} className="period-tabs lg-seg" aria-label={text.editor.periods}>
+                    <span className="lg-thumb" aria-hidden="true"><span className="lg-thumb-glass" /></span>
                     <button
                       type="button"
                       data-tour-id="base"
@@ -342,7 +344,6 @@ export default function TafBuilder() {
                       aria-pressed={!selectedChange}
                       onClick={() => setSelectedChangeIndex(null)}
                     >
-                      <GlassThumb layoutId={periodThumbId} show={!selectedChange} />
                       {text.sections.base.title}
                     </button>
                     {periodTabs.map(({ change, index }) => (
@@ -353,7 +354,6 @@ export default function TafBuilder() {
                         aria-pressed={selectedChangeIndex === index}
                         onClick={() => setSelectedChangeIndex(index)}
                       >
-                        <GlassThumb layoutId={periodThumbId} show={selectedChangeIndex === index} />
                         <i className={`timeline-legend-swatch timeline-legend-${change.type.toLowerCase()}`} aria-hidden="true" />
                         <span className="mono">{periodCode(change)}</span>
                       </button>

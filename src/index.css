@@ -307,16 +307,17 @@ body {
 .segmented--small { padding: 2px; }
 .segmented--small > button { min-height: 28px; padding: 0 9px; font-size: 11px; }
 
-/* Liquid selection lens (see features/motion/GlassThumb.tsx). Motion slides one lens between the options
-   with transforms only; it sits behind the label inside the selected option. */
-.lg-seg > * { position: relative; isolation: isolate; }
-.lg-thumb {
-  position: absolute; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
+/* Liquid selection lens (see hooks/useGlassSlide.ts): one persistent lens per segmented control, slid to the
+   chosen option with a compositor-only transform animation (FLIP + Web Animations). */
+.lg-seg > :not(.lg-thumb) { position: relative; z-index: 1; }
+.lg-seg > .lg-thumb { position: absolute; z-index: 0; top: 0; left: 0; width: 0; height: 0; opacity: 0; pointer-events: none; transform-origin: 0 0; will-change: transform; }
+.lg-thumb-glass {
+  position: absolute; inset: 0; border-radius: 999px; will-change: transform;
   background: var(--lg-prominent-fill); box-shadow: var(--lg-prominent-rim);
 }
-.lg-thumb--tempo { background: color-mix(in srgb, var(--tempo) 80%, transparent); box-shadow: var(--lg-tint-rim); }
-.lg-thumb--becmg { background: color-mix(in srgb, var(--becmg) 80%, transparent); box-shadow: var(--lg-tint-rim); }
-.lg-thumb--fm { background: color-mix(in srgb, var(--fm) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-seg:has(> .type-option--tempo.is-on) .lg-thumb-glass { background: color-mix(in srgb, var(--tempo) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-seg:has(> .type-option--becmg.is-on) .lg-thumb-glass { background: color-mix(in srgb, var(--becmg) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-seg:has(> .type-option--fm.is-on) .lg-thumb-glass { background: color-mix(in srgb, var(--fm) 80%, transparent); box-shadow: var(--lg-tint-rim); }
 /* The lens draws the selection; the chosen option keeps only its text styling. */
 .lg-seg > .is-on { background: transparent !important; box-shadow: none !important; }
 
