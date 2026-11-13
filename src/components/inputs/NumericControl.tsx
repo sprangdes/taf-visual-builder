@@ -27,6 +27,10 @@ export default function NumericControl({
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const valueRef = useRef(value);
   const [draft, setDraft] = useState<string | null>(null);
+  /** True right after focusing: the next digit replaces the whole value instead of being inserted. */
+  const replaceOnTypeRef = useRef(false);
+  /** Set when a pointer press is what focuses the field, so its mouseup can keep the selection. */
+  const focusingClickRef = useRef(false);
 
   useEffect(() => {
     valueRef.current = value;
@@ -105,13 +109,43 @@ export default function NumericControl({
         aria-valuetext={valueText}
         maxLength={String(max).length}
         value={draft ?? valueText}
+        onPointerDown={(e) => {
+          focusingClickRef.current = document.activeElement !== e.currentTarget;
+        }}
+        onMouseUp={(e) => {
+          // Safari collapses the selection made on focus when the click's mouseup lands; keep it.
+          if (focusingClickRef.current) e.preventDefault();
+          focusingClickRef.current = false;
+        }}
         onFocus={(e) => {
           setDraft(valueText);
+          replaceOnTypeRef.current = true;
           e.currentTarget.select();
         }}
-        onChange={(e) => setDraft(e.target.value.replace(/\D/g, ""))}
-        onBlur={(e) => commitDraft(e.currentTarget.value)}
+        onChange={(e) => {
+          replaceOnTypeRef.current = false;
+          setDraft(e.target.value.replace(/\D/g, ""));
+        }}
+        onBlur={(e) => {
+          replaceOnTypeRef.current = false;
+          commitDraft(e.currentTarget.value);
+        }}
         onKeyDown={(e) => {
+          const plainKey = !e.metaKey && !e.ctrlKey && !e.altKey;
+          if (replaceOnTypeRef.current && plainKey && /^\d$/.test(e.key)) {
+            // Click-and-type: the first digit starts a new value, whatever the caret or selection.
+            e.preventDefault();
+            replaceOnTypeRef.current = false;
+            setDraft(e.key);
+            return;
+          }
+          if (replaceOnTypeRef.current && plainKey && (e.key === "Backspace" || e.key === "Delete")) {
+            e.preventDefault();
+            replaceOnTypeRef.current = false;
+            setDraft("");
+            return;
+          }
+          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) replaceOnTypeRef.current = false;
           if (e.key === "Enter") {
             e.preventDefault();
             commitDraft(e.currentTarget.value);
@@ -124,6 +158,7 @@ export default function NumericControl({
             e.preventDefault();
             applyDelta(e.key === "ArrowUp" ? step : -step);
             setDraft(null);
+            replaceOnTypeRef.current = true;
           }
         }}
       />
