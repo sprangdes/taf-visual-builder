@@ -1,5 +1,7 @@
 import { memo, useId, useMemo, type CSSProperties } from "react";
 import RasterLayer from "./RasterLayer";
+import CloudCanvas from "../features/clouds/CloudCanvas";
+import type { CloudKind, CloudLayerSpec, CloudLight, Rgb } from "../features/clouds/cloudRenderer";
 import type { Daylight } from "../utils/daylight";
 import { getSceneLight, type SceneLight } from "../utils/sceneLight";
 import {
@@ -44,57 +46,51 @@ function svgDocument(body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${VIEW_W}" height="${VIEW_H}" viewBox="0 0 ${VIEW_W} ${VIEW_H}">${body}</svg>`;
 }
 
-function bandStops(top: number, bottom: number) {
-  const fade = 0.1;
-  return [
-    { offset: Math.max(0, top - fade), color: top <= 0 ? "#fff" : "#000" },
-    { offset: top, color: "#fff" },
-    { offset: bottom, color: "#fff" },
-    { offset: Math.min(1, bottom + fade), color: "#000" },
-  ];
+/** Cloud bitmaps are this wide; CSS scales the canvas to cover the viewport (they are soft anyway). */
+const CLOUD_W = 1200;
+const CLOUD_H = Math.round((CLOUD_W * VIEW_H) / VIEW_W);
+
+function hexToRgb(hex: string): Rgb {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
-function cloudFrequency(layer: SceneCloudLayer): string {
-  if (layer.convective) return "0.0032 0.006";
-  if (layer.height <= 20) return "0.0055 0.016";
-  if (layer.height <= 60) return "0.0042 0.0095";
-  return "0.003 0.007";
-}
-
-function cloudSvg(index: number, layer: SceneCloudLayer, params: WeatherSceneParams, light: SceneLight): string {
-  const slope = layer.convective ? 3 : 2.8;
-  const offset = -1.55 + layer.cover * 0.85 + (layer.convective ? 0.15 : 0);
-  const lighting = mixColor(light.cloudLight, light.stormShade, params.darkness * (layer.convective ? 1 : 0.85));
-  const stops = bandStops(layer.top, layer.bottom)
-    .map((stop) => `<stop offset="${stop.offset}" stop-color="${stop.color}"/>`)
-    .join("");
-  return svgDocument(
-    `<defs>`
-    + `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient>`
-    + `<mask id="m"><rect width="${VIEW_W}" height="${VIEW_H}" fill="url(#g)"/></mask>`
-    + `<filter id="f" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">`
-    + `<feTurbulence type="fractalNoise" baseFrequency="${cloudFrequency(layer)}" numOctaves="${layer.convective ? 6 : 5}" seed="${17 + index * 12}" result="n"/>`
-    + `<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${slope} ${offset.toFixed(2)}" result="a"/>`
-    + `<feDiffuseLighting in="a" surfaceScale="${layer.convective ? 6 : 4}" diffuseConstant="1.05" lighting-color="${lighting}" result="l">`
-    + `<feDistantLight azimuth="${light.azimuth}" elevation="${light.elevation}"/>`
-    + `</feDiffuseLighting>`
-    + `<feComposite in="l" in2="a" operator="in" result="c"/>`
-    + `<feGaussianBlur in="c" stdDeviation="1.4"/>`
-    + `</filter>`
-    + `</defs>`
-    + `<rect width="${VIEW_W}" height="${VIEW_H}" filter="url(#f)" mask="url(#m)" opacity="0.94"/>`,
-  );
+/** Lighting for the cloud renderer from the scene: where the sun or moon is and the sky's colours. */
+function cloudLight(daylight: Daylight, light: SceneLight, darkness: number): CloudLight {
+  const moon = daylight.moon;
+  const byMoon = daylight.night > 0.5 && moon !== null;
+  const x = byMoon ? moon.x : daylight.sunX;
+  const y = byMoon ? 0.72 - moon.height * 0.58 : 0.92 - Math.max(0, daylight.sun) * 0.8;
+  const height = byMoon ? moon.height : Math.max(0, daylight.sun);
+  const horizon = hexToRgb(light.sky[2]);
+  const lit = hexToRgb(light.cloudLight);
+  // Shaded sides pick up the sky's blue; storms pull them towards the storm shade.
+  const skyMid = mixColor(light.sky[1], light.sky[2], 0.5);
+  const shade = hexToRgb(mixColor(mixColor(skyMid, light.cloudLight, 0.3), light.stormShade, Math.min(1, 0.15 + darkness * 0.85)));
+  return { x, y, color: lit, shade, haze: horizon, low: Math.min(1, Math.max(0, 1 - height * 2.2)) };
 }
 
 interface CloudLayerProps {
   index: number;
   layer: SceneCloudLayer;
   params: WeatherSceneParams;
+  daylight: Daylight;
   light: SceneLight;
 }
 
-function CloudLayer({ index, layer, params, light }: Readonly<CloudLayerProps>) {
-  const svg = cloudSvg(index, layer, params, light);
+function CloudLayer({ index, layer, params, daylight, light }: Readonly<CloudLayerProps>) {
+  const kind: CloudKind = layer.height >= 200 ? "cirrus" : layer.cover >= 1 && !layer.convective ? "stratus" : "cumulus";
+  const spec: CloudLayerSpec = {
+    width: CLOUD_W,
+    height: CLOUD_H,
+    seed: 17 + index * 12,
+    cover: layer.cover,
+    altitude: layer.height,
+    kind,
+    tower: layer.tower,
+    light: cloudLight(daylight, light, params.darkness),
+    darkness: params.darkness,
+  };
   const duration = Math.max(18, 60 - params.windSpeed);
   const style = {
     animationDuration: `${duration}s`,
@@ -102,7 +98,7 @@ function CloudLayer({ index, layer, params, light }: Readonly<CloudLayerProps>) 
     animationTimingFunction: `steps(${DRIFT_STEPS})`,
   } as CSSProperties;
 
-  return <RasterLayer svg={svg} width={RASTER_W} height={RASTER_H} className="weather-scene-drift" style={style} />;
+  return <CloudCanvas spec={spec} className="weather-scene-drift" style={style} />;
 }
 
 interface PrecipitationLayerProps {
@@ -328,7 +324,7 @@ function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSce
       {params.thunder && <div className="weather-scene-flash" />}
 
       {params.layers.map((layer, index) => (
-        <CloudLayer key={index} index={index} layer={layer} params={params} light={light} />
+        <CloudLayer key={index} index={index} layer={layer} params={params} daylight={daylight} light={light} />
       ))}
 
       {params.thunder && <LightningBolt id={`${uid}-bolt`} />}

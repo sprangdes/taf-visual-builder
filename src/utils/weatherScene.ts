@@ -11,6 +11,8 @@ export interface SceneCloudLayer {
   cover: number;
   /** Cumulonimbus or towering cumulus. */
   convective: boolean;
+  /** Which towering cloud, if any. */
+  tower: "none" | "tcu" | "cb";
   /** Cloud base in hundreds of feet. */
   height: number;
 }
@@ -69,7 +71,8 @@ export function getWeatherSceneParams(state: WeatherState): WeatherSceneParams {
     .slice(0, 3)
     .map((cloud) => {
       const convective = Boolean(cloud.cb || cloud.tcu);
-      return { ...cloudBand(cloud.height, convective), cover: COVER_BY_AMOUNT[cloud.amount], convective, height: cloud.height };
+      const tower = cloud.cb ? "cb" : cloud.tcu ? "tcu" : "none";
+      return { ...cloudBand(cloud.height, convective), cover: COVER_BY_AMOUNT[cloud.amount], convective, tower, height: cloud.height } as SceneCloudLayer;
     });
 
   const maxCover = layers.reduce((max, layer) => Math.max(max, layer.cover), 0);
