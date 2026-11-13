@@ -297,6 +297,38 @@ body {
 .segmented--small { padding: 2px; }
 .segmented--small > button { min-height: 28px; padding: 0 9px; font-size: 11px; }
 
+/* Liquid selection thumb (see hooks/useGlassIndicator.ts): one glass lens per segmented control slides
+   to the chosen option on a spring, swelling while it travels, instead of each option painting its own. */
+.lg-seg { position: relative; isolation: isolate; }
+.lg-seg > * { position: relative; z-index: 1; }
+.lg-seg::before {
+  content: ""; position: absolute; z-index: 0; top: 0; left: 0; pointer-events: none;
+  width: var(--ind-w, 0); height: var(--ind-h, 0); border-radius: 999px;
+  transform: translate(var(--ind-x, 0), var(--ind-y, 0));
+  background: var(--lg-prominent-fill); box-shadow: var(--lg-prominent-rim);
+  opacity: 0;
+}
+.lg-seg.is-ready::before {
+  opacity: var(--ind-o, 1);
+  transition:
+    transform .5s cubic-bezier(.3, 1.22, .5, 1),
+    width .55s cubic-bezier(.25, 1.2, .45, 1),
+    height .3s ease,
+    scale .32s var(--lg-spring),
+    background-color .25s ease, box-shadow .25s ease, opacity .2s ease;
+}
+/* In flight the lens lifts and stretches like a drop of liquid, then settles back. */
+.lg-seg.is-moving::before {
+  scale: 1.05 1.12;
+  box-shadow: var(--lg-prominent-rim), 0 0 24px rgb(255 255 255 / 26%);
+  transition-duration: .5s, .55s, .3s, .14s, .25s, .25s, .2s;
+}
+.lg-seg:has(> .type-option--tempo.is-on)::before { background: color-mix(in srgb, var(--tempo) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-seg:has(> .type-option--becmg.is-on)::before { background: color-mix(in srgb, var(--becmg) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-seg:has(> .type-option--fm.is-on)::before { background: color-mix(in srgb, var(--fm) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+/* Once the thumb is live it draws the selection; the chosen option only keeps its text styling. */
+.lg-seg.is-ready > .is-on { background: transparent !important; box-shadow: none !important; transition: color .25s ease, transform .45s var(--lg-spring); }
+
 .period-editor { display: flex; flex-direction: column; gap: 16px; }
 .period-editor-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .period-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; min-width: 0; }
@@ -347,7 +379,10 @@ body {
 
 .include-switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
 .include-switch-track { position: relative; width: 40px; height: 24px; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-well-shadow), var(--lg-control-rim); transition: background .2s ease; }
-.include-switch-track i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--lens-shadow); transition: transform .2s ease; }
+.include-switch-track i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 999px; background: #fff; box-shadow: var(--lens-shadow); transition: transform .45s var(--lg-spring), width .25s var(--lg-spring); }
+/* Pressing stretches the knob into a capsule; releasing lets it spring across. */
+.include-switch:active .include-switch-track i { width: 26px; }
+.include-switch[aria-checked="true"]:active .include-switch-track i { transform: translateX(10px); }
 .include-switch[aria-checked="true"] .include-switch-track { background: color-mix(in srgb, var(--ok) 82%, transparent); box-shadow: var(--lg-tint-rim); }
 .include-switch[aria-checked="true"] .include-switch-track i { transform: translateX(16px); }
 
