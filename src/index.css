@@ -225,13 +225,20 @@ body {
 .timeline-legend-fm { background: var(--fm); }
 
 /* ---------- Timeline ---------- */
-.timeline-scroll { overflow-x: auto; padding-bottom: 4px; }
-.timeline-grid { min-width: 760px; display: flex; flex-direction: column; gap: 8px; }
-.timeline-row { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: center; }
-.timeline-lane-label { position: sticky; left: 0; z-index: 2; align-self: stretch; display: flex; align-items: center; font: 700 12px var(--mono); color: var(--text); text-shadow: 0 1px 6px rgb(8 12 36 / 80%); }
-.timeline-row--tempo .timeline-lane-label { color: var(--tempo-text); }
-.timeline-row--becmg .timeline-lane-label { color: var(--becmg-text); }
-.timeline-row--fm .timeline-lane-label { color: var(--fm-text); }
+.timeline-frame { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: start; }
+.timeline-labels { display: flex; flex-direction: column; gap: 8px; }
+.timeline-lane-label { height: 42px; display: flex; align-items: center; font: 700 12px var(--mono); color: var(--text); text-shadow: 0 1px 6px rgb(8 12 36 / 80%); }
+.timeline-lane-label--ruler { height: 18px; }
+.timeline-lane-label--tempo { color: var(--tempo-text); }
+.timeline-lane-label--becmg { color: var(--becmg-text); }
+.timeline-lane-label--fm { color: var(--fm-text); }
+/* Thin glass scrollbar instead of the platform's light track. */
+.timeline-scroll { overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 30%) transparent; }
+.timeline-scroll::-webkit-scrollbar { height: 6px; }
+.timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+.timeline-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: rgb(255 255 255 / 30%); }
+.timeline-grid { min-width: 692px; display: flex; flex-direction: column; gap: 8px; }
+.timeline-row { min-width: 0; }
 .timeline-track {
   position: relative; height: 42px; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); grid-template-rows: 1fr;
   border-radius: 999px; box-shadow: var(--lg-well-shadow);
