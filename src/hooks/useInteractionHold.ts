@@ -3,8 +3,11 @@ import { useEffect } from "react";
 export const INTERACTION_HOLD_CLASS = "scene-hold";
 const HOLD_MS = 1200;
 const SCROLL_SETTLE_MS = 600;
+/** After a press the editor and scene update for a moment; frame-rate samples then are not representative. */
+const PRESS_SETTLE_MS = 2000;
 
 let lastScrollAt = Number.NEGATIVE_INFINITY;
+let lastPressAt = Number.NEGATIVE_INFINITY;
 
 /**
  * While the user types, the weather animation is held so every frame goes to the edit itself; it resumes
@@ -26,12 +29,17 @@ export function useInteractionHold(enabled: boolean): void {
     const onScroll = () => {
       lastScrollAt = performance.now();
     };
+    const onPress = () => {
+      lastPressAt = performance.now();
+    };
 
     const holdEvents = ["keydown", "input"] as const;
     const scrollEvents = ["scroll", "wheel", "touchmove"] as const;
     holdEvents.forEach((name) => window.addEventListener(name, hold, { capture: true, passive: true }));
     scrollEvents.forEach((name) => window.addEventListener(name, onScroll, { capture: true, passive: true }));
+    window.addEventListener("pointerdown", onPress, { capture: true, passive: true });
     return () => {
+      window.removeEventListener("pointerdown", onPress, { capture: true });
       holdEvents.forEach((name) => window.removeEventListener(name, hold, { capture: true }));
       scrollEvents.forEach((name) => window.removeEventListener(name, onScroll, { capture: true }));
       window.clearTimeout(timer);
@@ -44,7 +52,12 @@ export function isInteractionHeld(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains(INTERACTION_HOLD_CLASS);
 }
 
-/** True while the page is being scrolled (and briefly after). Frame-rate samples taken then are not representative. */
-export function isScrolling(): boolean {
-  return typeof performance !== "undefined" && performance.now() - lastScrollAt < SCROLL_SETTLE_MS;
+/**
+ * True while the page is being scrolled or was just pressed (and briefly after). The animation keeps
+ * running then, but frame-rate samples taken in that window are not representative of the device.
+ */
+export function isUserActive(): boolean {
+  if (typeof performance === "undefined") return false;
+  const now = performance.now();
+  return now - lastScrollAt < SCROLL_SETTLE_MS || now - lastPressAt < PRESS_SETTLE_MS;
 }
