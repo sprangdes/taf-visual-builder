@@ -104,6 +104,7 @@ function CloudLayer({ index, layer, params, daylight, light }: Readonly<CloudLay
   return (
     <CloudCanvas
       spec={spec}
+      slot={index}
       driftSeconds={driftSeconds}
       driftDirection={driftDirection}
       driftFps={params.precipitation ? PRECIPITATION_FPS : CLOUD_DRIFT_FPS}
@@ -144,9 +145,11 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   const nominal = (kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7) / (1 + toward * 0.35);
   // Whole ticks only, so near and far layers change on exactly the same frames.
   const steps = Math.max(2, Math.round(nominal * PRECIPITATION_FPS));
+  const fallX = Math.sin(radians) * tile;
+  const fallY = Math.cos(radians) * tile;
   const fallStyle = {
-    "--fall-x": `${(Math.sin(radians) * tile).toFixed(1)}px`,
-    "--fall-y": `${(Math.cos(radians) * tile).toFixed(1)}px`,
+    "--fall-x": `${fallX.toFixed(1)}px`,
+    "--fall-y": `${fallY.toFixed(1)}px`,
     // Exact multiple of the tick (a rounded decimal drifts off the shared clock).
     "--fall-duration": `calc(${steps}s / ${PRECIPITATION_FPS})`,
     "--fall-steps": steps,
@@ -178,11 +181,26 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
 
   // The pattern is drawn in CSS pixels on an oversized layer that is moved by exactly one
   // tile per loop. Animating the HTML wrapper keeps the motion on the compositor.
-  const margin = tile * 2;
   // Gusts sway the curtain: a compositor-only skew that swings the streaks further downwind now and then.
   const gustSkew = params.gustiness * (kind === "snow" ? 14 : 9) * Math.max(Math.abs(params.drift), 0.35) * (params.drift < 0 ? -1 : 1);
+  // The layer is a texture the size of its box (times the pixel ratio squared), so it only overhangs the
+  // viewport by what the motion uncovers: one fall step upwind, plus the sideways reach of the gust skew
+  // (which pivots at 40% of the height, see .weather-scene-gust).
+  const skewTan = Math.tan((Math.abs(gustSkew) * Math.PI) / 180);
+  const sway = skewTan > 0 ? ` - 60vh * ${skewTan.toFixed(4)}` : "";
+  const overhang = (px: number) => `calc(${-Math.ceil(px + fallY * skewTan + 2)}px${sway})`;
   const curtain = (
-    <div className="weather-scene-precip" style={{ inset: -margin, opacity: 1 - night * 0.35, ...fallStyle }}>
+    <div
+      className="weather-scene-precip"
+      style={{
+        top: -Math.ceil(fallY + 2),
+        bottom: 0,
+        left: overhang(Math.max(0, fallX)),
+        right: overhang(Math.max(0, -fallX)),
+        opacity: 1 - night * 0.35,
+        ...fallStyle,
+      }}
+    >
       <svg width="100%" height="100%" focusable="false">
         <defs>
           <pattern id={`${id}-p`} width={tile} height={tile} patternUnits="userSpaceOnUse" patternTransform={`rotate(${-slant})`}>

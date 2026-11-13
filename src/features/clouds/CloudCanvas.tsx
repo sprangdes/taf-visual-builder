@@ -4,6 +4,8 @@ import type { CloudLayerSpec } from "./cloudRenderer";
 
 interface CloudCanvasProps {
   spec: CloudLayerSpec;
+  /** Position of the layer in the scene; each slot renders on its own worker. */
+  slot: number;
   /**
    * Seconds for the clouds to travel one full screen-width (they wrap round). 0 = still.
    */
@@ -22,14 +24,14 @@ interface CloudCanvasProps {
  * runs on the compositor. The previous clouds stay on screen until new ones arrive; replies for outdated
  * specs are dropped.
  */
-export default function CloudCanvas({ spec, driftSeconds, driftDirection, driftFps, className = "", style }: Readonly<CloudCanvasProps>) {
+export default function CloudCanvas({ spec, slot, driftSeconds, driftDirection, driftFps, className = "", style }: Readonly<CloudCanvasProps>) {
   const firstRef = useRef<HTMLCanvasElement>(null);
   const secondRef = useRef<HTMLCanvasElement>(null);
   const key = JSON.stringify(spec);
 
   useEffect(() => {
     let current = true;
-    requestCloudBitmap(JSON.parse(key) as CloudLayerSpec).then((bitmap) => {
+    requestCloudBitmap(JSON.parse(key) as CloudLayerSpec, slot).then((bitmap) => {
       if (!bitmap) return;
       const canvases = [firstRef.current, secondRef.current];
       if (!current || canvases.some((c) => !c)) {
@@ -47,7 +49,7 @@ export default function CloudCanvas({ spec, driftSeconds, driftDirection, driftF
     return () => {
       current = false;
     };
-  }, [key]);
+  }, [key, slot]);
 
   const moving = driftSeconds > 0;
   const stripStyle = {
@@ -58,7 +60,7 @@ export default function CloudCanvas({ spec, driftSeconds, driftDirection, driftF
           animationTimingFunction: `steps(${Math.max(1, Math.round(driftSeconds * driftFps))})`,
           animationDirection: driftDirection > 0 ? "reverse" : "normal",
         }
-      : { animation: "none" }),
+      : { animation: "none", willChange: "auto" }),
   } as unknown as CSSProperties;
 
   return (
