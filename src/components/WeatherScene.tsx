@@ -1,4 +1,5 @@
 import { memo, useId, useMemo, type CSSProperties } from "react";
+import RasterLayer from "./RasterLayer";
 import type { Daylight } from "../utils/daylight";
 import { getSceneLight, type SceneLight } from "../utils/sceneLight";
 import {
@@ -11,32 +12,36 @@ import {
 const VIEW_W = 1600;
 const VIEW_H = 1010;
 
-/** Layers are refreshed at a low rate: each step repaints the glass panels above them. */
+/**
+ * Every visible change behind the glass panels makes the browser re-blur all of them, so the
+ * moving layers share one slow clock: both precipitation layers step on the same 1/15 s tick
+ * instead of drifting in and out of phase (which doubled the repaints).
+ */
 const PRECIPITATION_FPS = 15;
 const DRIFT_STEPS = 50;
+/** Cloud and mist textures are soft: rasterising them at half size is visually identical. */
+const RASTER_W = VIEW_W / 2;
+const RASTER_H = VIEW_H / 2;
 
 interface SceneSvgProps {
   children: React.ReactNode;
   className?: string;
   style?: CSSProperties;
-  /**
-   * Rasterise at half resolution and scale up. Soft, filter-heavy layers (clouds, mist)
-   * look the same but cost a quarter of the pixels to render.
-   */
-  lowRes?: boolean;
 }
 
-function SceneSvg({ children, className = "", style, lowRes = false }: Readonly<SceneSvgProps>) {
-  const svg = (
-    <svg width="100%" height="100%" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" focusable="false">
-      {children}
-    </svg>
-  );
+function SceneSvg({ children, className = "", style }: Readonly<SceneSvgProps>) {
   return (
     <div className={`weather-scene-layer ${className}`} style={style}>
-      {lowRes ? <div className="weather-scene-lowres">{svg}</div> : svg}
+      <svg width="100%" height="100%" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid slice" focusable="false">
+        {children}
+      </svg>
     </div>
   );
+}
+
+/** Wraps markup in a standalone SVG document for <RasterLayer>. */
+function svgDocument(body: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${VIEW_W}" height="${VIEW_H}" viewBox="0 0 ${VIEW_W} ${VIEW_H}">${body}</svg>`;
 }
 
 function bandStops(top: number, bottom: number) {
@@ -56,19 +61,40 @@ function cloudFrequency(layer: SceneCloudLayer): string {
   return "0.003 0.007";
 }
 
+function cloudSvg(index: number, layer: SceneCloudLayer, params: WeatherSceneParams, light: SceneLight): string {
+  const slope = layer.convective ? 3 : 2.8;
+  const offset = -1.55 + layer.cover * 0.85 + (layer.convective ? 0.15 : 0);
+  const lighting = mixColor(light.cloudLight, light.stormShade, params.darkness * (layer.convective ? 1 : 0.85));
+  const stops = bandStops(layer.top, layer.bottom)
+    .map((stop) => `<stop offset="${stop.offset}" stop-color="${stop.color}"/>`)
+    .join("");
+  return svgDocument(
+    `<defs>`
+    + `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient>`
+    + `<mask id="m"><rect width="${VIEW_W}" height="${VIEW_H}" fill="url(#g)"/></mask>`
+    + `<filter id="f" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">`
+    + `<feTurbulence type="fractalNoise" baseFrequency="${cloudFrequency(layer)}" numOctaves="${layer.convective ? 6 : 5}" seed="${17 + index * 12}" result="n"/>`
+    + `<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${slope} ${offset.toFixed(2)}" result="a"/>`
+    + `<feDiffuseLighting in="a" surfaceScale="${layer.convective ? 6 : 4}" diffuseConstant="1.05" lighting-color="${lighting}" result="l">`
+    + `<feDistantLight azimuth="${light.azimuth}" elevation="${light.elevation}"/>`
+    + `</feDiffuseLighting>`
+    + `<feComposite in="l" in2="a" operator="in" result="c"/>`
+    + `<feGaussianBlur in="c" stdDeviation="1.4"/>`
+    + `</filter>`
+    + `</defs>`
+    + `<rect width="${VIEW_W}" height="${VIEW_H}" filter="url(#f)" mask="url(#m)" opacity="0.94"/>`,
+  );
+}
+
 interface CloudLayerProps {
-  id: string;
   index: number;
   layer: SceneCloudLayer;
   params: WeatherSceneParams;
   light: SceneLight;
 }
 
-function CloudLayer({ id, index, layer, params, light }: Readonly<CloudLayerProps>) {
-  const slope = layer.convective ? 3 : 2.8;
-  const offset = -1.55 + layer.cover * 0.85 + (layer.convective ? 0.15 : 0);
-  const lighting = mixColor(light.cloudLight, light.stormShade, params.darkness * (layer.convective ? 1 : 0.85));
-  const elevation = light.elevation;
+function CloudLayer({ index, layer, params, light }: Readonly<CloudLayerProps>) {
+  const svg = cloudSvg(index, layer, params, light);
   const duration = Math.max(18, 60 - params.windSpeed);
   const style = {
     animationDuration: `${duration}s`,
@@ -76,30 +102,7 @@ function CloudLayer({ id, index, layer, params, light }: Readonly<CloudLayerProp
     animationTimingFunction: `steps(${DRIFT_STEPS})`,
   } as CSSProperties;
 
-  return (
-    <SceneSvg className="weather-scene-drift" style={style} lowRes>
-      <defs>
-        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1">
-          {bandStops(layer.top, layer.bottom).map((stop, stopIndex) => (
-            <stop key={stopIndex} offset={stop.offset} stopColor={stop.color} />
-          ))}
-        </linearGradient>
-        <mask id={`${id}-m`}>
-          <rect width={VIEW_W} height={VIEW_H} fill={`url(#${id}-g)`} />
-        </mask>
-        <filter id={`${id}-f`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency={cloudFrequency(layer)} numOctaves={layer.convective ? 6 : 5} seed={17 + index * 12} result="n" />
-          <feColorMatrix in="n" type="matrix" values={`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${slope} ${offset.toFixed(2)}`} result="a" />
-          <feDiffuseLighting in="a" surfaceScale={layer.convective ? 6 : 4} diffuseConstant="1.05" lightingColor={lighting} result="l">
-            <feDistantLight azimuth={light.azimuth} elevation={elevation} />
-          </feDiffuseLighting>
-          <feComposite in="l" in2="a" operator="in" result="c" />
-          <feGaussianBlur in="c" stdDeviation="1.4" />
-        </filter>
-      </defs>
-      <rect width={VIEW_W} height={VIEW_H} filter={`url(#${id}-f)`} mask={`url(#${id}-m)`} opacity="0.94" />
-    </SceneSvg>
-  );
+  return <RasterLayer svg={svg} width={RASTER_W} height={RASTER_H} className="weather-scene-drift" style={style} />;
 }
 
 interface PrecipitationLayerProps {
@@ -130,12 +133,14 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   }, [intensity, kind, near, tile]);
 
   const radians = (slant * Math.PI) / 180;
-  const duration = kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7;
+  const nominal = kind === "snow" ? (near ? 5 : 8) : kind === "drizzle" ? (near ? 0.9 : 1.4) : near ? 0.36 : 0.7;
+  // Whole ticks only, so near and far layers change on exactly the same frames.
+  const steps = Math.max(2, Math.round(nominal * PRECIPITATION_FPS));
   const fallStyle = {
     "--fall-x": `${(Math.sin(radians) * tile).toFixed(1)}px`,
     "--fall-y": `${(Math.cos(radians) * tile).toFixed(1)}px`,
-    "--fall-duration": `${duration}s`,
-    "--fall-steps": Math.max(2, Math.round(duration * PRECIPITATION_FPS)),
+    "--fall-duration": `${(steps / PRECIPITATION_FPS).toFixed(4)}s`,
+    "--fall-steps": steps,
   } as CSSProperties;
 
   let shapes: React.ReactNode;
@@ -179,26 +184,22 @@ function PrecipitationLayer({ id, depth, params, night }: Readonly<Precipitation
   );
 }
 
-function FogLayer({ id, fog, night }: Readonly<{ id: string; fog: number; night: number }>) {
+function FogLayer({ fog, night }: Readonly<{ fog: number; night: number }>) {
   const [r, g, b] = [0.62 - night * 0.38, 0.66 - night * 0.38, 0.74 - night * 0.36].map((v) => v.toFixed(2));
-  return (
-    <SceneSvg style={{ opacity: Math.min(1, fog * 1.1) }} lowRes>
-      <defs>
-        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset={Math.max(0, 0.5 - fog * 0.5)} stopColor="#000" />
-          <stop offset="0.9" stopColor="#fff" />
-        </linearGradient>
-        <mask id={`${id}-m`}>
-          <rect width={VIEW_W} height={VIEW_H} fill={`url(#${id}-g)`} />
-        </mask>
-        <filter id={`${id}-f`} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.007" numOctaves="3" seed="5" />
-          <feColorMatrix type="matrix" values={`0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  0 0 0 1.3 -0.3`} />
-        </filter>
-      </defs>
-      <rect width={VIEW_W} height={VIEW_H} filter={`url(#${id}-f)`} mask={`url(#${id}-m)`} />
-    </SceneSvg>
+  const svg = svgDocument(
+    `<defs>`
+    + `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">`
+    + `<stop offset="${Math.max(0, 0.5 - fog * 0.5)}" stop-color="#000"/><stop offset="0.9" stop-color="#fff"/>`
+    + `</linearGradient>`
+    + `<mask id="m"><rect width="${VIEW_W}" height="${VIEW_H}" fill="url(#g)"/></mask>`
+    + `<filter id="f" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">`
+    + `<feTurbulence type="fractalNoise" baseFrequency="0.0016 0.007" numOctaves="3" seed="5"/>`
+    + `<feColorMatrix type="matrix" values="0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  0 0 0 1.3 -0.3"/>`
+    + `</filter>`
+    + `</defs>`
+    + `<rect width="${VIEW_W}" height="${VIEW_H}" filter="url(#f)" mask="url(#m)"/>`,
   );
+  return <RasterLayer svg={svg} width={RASTER_W} height={RASTER_H} style={{ opacity: Math.min(1, fog * 1.1) }} />;
 }
 
 function LightningBolt({ id }: Readonly<{ id: string }>) {
@@ -327,12 +328,12 @@ function WeatherScene({ params, daylight, animated = true }: Readonly<WeatherSce
       {params.thunder && <div className="weather-scene-flash" />}
 
       {params.layers.map((layer, index) => (
-        <CloudLayer key={index} id={`${uid}-c${index}`} index={index} layer={layer} params={params} light={light} />
+        <CloudLayer key={index} index={index} layer={layer} params={params} light={light} />
       ))}
 
       {params.thunder && <LightningBolt id={`${uid}-bolt`} />}
       {params.precipitation && <PrecipitationLayer id={`${uid}-pf`} depth="far" params={params} night={light.night} />}
-      {params.fog > 0 && <FogLayer id={`${uid}-fog`} fog={params.fog} night={light.night} />}
+      {params.fog > 0 && <FogLayer fog={params.fog} night={light.night} />}
       {params.haze && <div className="weather-scene-haze" />}
       {params.precipitation && <PrecipitationLayer id={`${uid}-pn`} depth="near" params={params} night={light.night} />}
       <div className="weather-scene-vignette" style={{ opacity: Math.min(1, 0.35 + d * 0.45 + light.night * 0.2) }} />

@@ -56,7 +56,8 @@ body {
 .weather-scene-layer > svg { display: block; }
 .weather-scene-drift { left: -80px; right: -80px; animation: scene-drift 40s ease-in-out infinite alternate; will-change: transform; }
 .weather-scene-precip { position: absolute; animation: scene-fall var(--fall-duration, .5s) steps(var(--fall-steps, 8)) infinite; will-change: transform; }
-.weather-scene-lowres { position: absolute; top: 0; left: 0; width: 50%; height: 50%; transform: scale(2); transform-origin: 0 0; }
+/* Canvas layers are drawn at half size and scaled up; "cover" matches the SVG slice framing. */
+.weather-scene-raster { display: block; width: 100%; height: 100%; object-fit: cover; }
 .weather-scene-precip > svg { display: block; }
 .weather-scene-flash {
   position: absolute; left: 44%; top: -6%; width: 900px; height: 640px; border-radius: 50%;
