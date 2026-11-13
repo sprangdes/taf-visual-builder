@@ -13,7 +13,6 @@
 
   /* Liquid glass */
   --glass-bg: rgb(255 255 255 / 14%);
-  --glass-bg-soft: rgb(255 255 255 / 11%);
   --glass-bg-inset: rgb(18 26 66 / 20%);
   --glass-blur: blur(22px) saturate(180%);
   /* Liquid glass material: no outlines. Edges are a specular rim (bright where light catches the
@@ -29,6 +28,8 @@
   --lg-control-fill-hover: rgb(255 255 255 / 22%);
   --lg-control-rim: inset 0 1px 0 rgb(255 255 255 / 40%), inset 0 -1px 0 rgb(255 255 255 / 10%), inset 0 0 0 .5px rgb(255 255 255 / 12%);
   --lg-well: rgb(8 14 40 / 15%);
+  --lg-group: rgb(255 255 255 / 5%);
+  --lg-divider: rgb(255 255 255 / 12%);
   --lg-well-shadow: inset 0 1px 3px rgb(0 0 0 / 24%), inset 0 -1px 0 rgb(255 255 255 / 9%);
   --lens: rgb(255 255 255 / 92%);
   --lens-shadow: inset 0 1px 0 rgb(255 255 255 / 90%), inset 0 -2px 4px rgb(30 40 90 / 12%), 0 4px 14px rgb(12 18 48 / 25%);
@@ -102,7 +103,7 @@ body {
   backdrop-filter: var(--glass-blur);
 }
 /* Specular rim: a 1px gradient ring drawn with a mask, so its brightness follows the light. */
-:is(.glass-panel, .condition-card, .language-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip, .mobile-output-bar)::after {
+:is(.glass-panel, .language-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip, .mobile-output-bar)::after {
   content: ""; position: absolute; inset: 0; z-index: 1; padding: 1px; border-radius: inherit; pointer-events: none;
   /* Brightest where the light hits, a weaker bounce on the opposite corner, nearly clear along the sides.
      The ends are tinted cool and warm like light splitting at a glass edge. */
@@ -307,15 +308,14 @@ body {
 @container (min-width: 940px) {
   .condition-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "wind vis clouds"; }
 }
+/* Content inside a glass panel stays flat: one glass layer, then grouping by tint and spacing only. */
 .condition-card {
   min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 12px;
-  position: relative; --lg-rim-strength: .7;
-  border-radius: 22px; background: var(--lg-sheen), var(--glass-bg-soft);
-  box-shadow: var(--lg-depth), 0 1px 2px rgb(6 10 30 / 10%), 0 8px 20px -10px rgb(6 10 30 / 26%);
+  border-radius: 22px; background: var(--lg-group);
 }
 .condition-card.is-inactive {
-  --lg-rim-strength: .25; background: rgb(255 255 255 / 4%); box-shadow: none;
-  outline: 1px dashed rgb(255 255 255 / 32%); outline-offset: -1px;
+  background: transparent;
+  outline: 1px dashed rgb(255 255 255 / 28%); outline-offset: -1px;
 }
 .condition-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .condition-card-header h3 { margin: 0; font-size: 14px; font-weight: 700; }
@@ -379,13 +379,15 @@ body {
 .chip:hover { background: var(--lg-control-fill-hover); }
 .chip.is-on { background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); }
 .chip-remove { font-size: 14px; line-height: 1; opacity: .65; }
-.weather-selection { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 18px; background: var(--lg-well); box-shadow: var(--lg-well-shadow); }
+.weather-selection { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--lg-divider); }
 .weather-selection-tokens { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; align-items: center; }
 .weather-selection-empty { color: var(--text-muted); }
 .inline-error { color: #ffd2d2; font-size: 12px; font-weight: 600; }
 
-.cloud-layers { display: flex; flex-direction: column; gap: 10px; }
-.cloud-layer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 18px; background: var(--lg-well); box-shadow: var(--lg-well-shadow); }
+.cloud-layers { display: flex; flex-direction: column; }
+.cloud-layer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; }
+.cloud-layer-row + .cloud-layer-row { border-top: 1px solid var(--lg-divider); }
+.cloud-layer-row:first-child { padding-top: 0; }
 .cloud-measurement-group, .cloud-type-group { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .cloud-type-group .chip { height: 28px; min-width: 0; padding: 0 10px; font-size: 11px; }
 .cloud-delete-button { width: 28px; height: 28px; margin-left: auto; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-control-rim); color: #fff; cursor: pointer; }
@@ -406,7 +408,7 @@ body {
 .copy-button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: var(--lens); color: var(--ink); box-shadow: var(--lens-shadow); font-size: 12px; font-weight: 700; cursor: pointer; }
 .copy-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .taf-code {
-  min-height: 150px; margin: 0 12px 12px; padding: 14px; border-radius: 18px; background: var(--lg-well); box-shadow: var(--lg-well-shadow);
+  min-height: 150px; margin: 0; padding: 4px 20px 20px;
   color: #eef2ff; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.85 var(--mono);
 }
 .taf-code-line { display: block; }
@@ -447,7 +449,6 @@ body {
 /* Bright skies (day, dawn, dusk): tint the glass darker so white text keeps its contrast. */
 .taf-app[data-phase="day"], .taf-app[data-phase="dawn"], .taf-app[data-phase="dusk"] {
   --glass-bg: rgb(14 20 50 / 32%);
-  --glass-bg-soft: rgb(255 255 255 / 6%);
   --glass-bg-inset: rgb(10 16 44 / 22%);
   --code-panel: rgb(10 14 40 / 55%);
 }
@@ -455,7 +456,6 @@ body {
 /* ---------- Dark glass ---------- */
 .taf-app.taf-dark {
   --glass-bg: rgb(8 12 30 / 48%);
-  --glass-bg-soft: rgb(8 12 30 / 34%);
   --glass-bg-inset: rgb(0 0 0 / 22%);
   --code-panel: rgb(4 6 18 / 62%);
 }
@@ -465,6 +465,8 @@ body {
   --lg-control-fill: rgb(255 255 255 / 9%);
   --lg-control-fill-hover: rgb(255 255 255 / 16%);
   --lg-well: rgb(0 0 0 / 17%);
+  --lg-group: rgb(255 255 255 / 4%);
+  --lg-divider: rgb(255 255 255 / 10%);
 }
 
 /* ---------- Responsive ---------- */
