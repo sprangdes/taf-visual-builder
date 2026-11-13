@@ -97,14 +97,16 @@ describe("TafBuilder aviation workbench", () => {
     expect(document.documentElement).toHaveClass("scene-hold");
   });
 
-  it("keeps the weather animation running while the page scrolls", () => {
+  it("keeps the weather animation running while the page scrolls or buttons are pressed", () => {
     render(<TafBuilder />);
     document.documentElement.classList.remove("scene-hold");
     fireEvent.scroll(window);
     fireEvent.wheel(window, { deltaY: 120 });
     fireEvent.pointerDown(window, { pointerType: "touch" });
-    expect(document.documentElement).not.toHaveClass("scene-hold");
     fireEvent.pointerDown(window, { pointerType: "mouse" });
+    fireEvent.click(window);
+    expect(document.documentElement).not.toHaveClass("scene-hold");
+    fireEvent.keyDown(window, { key: "1" });
     expect(document.documentElement).toHaveClass("scene-hold");
   });
 

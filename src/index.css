@@ -114,10 +114,17 @@ body {
 .taf-app { position: relative; min-height: 100vh; color: var(--text); overflow-x: clip; }
 .app-content { position: relative; z-index: 1; }
 
+/* The blur and tint live on a separate backdrop layer (::before) under the panel's content. Anything that
+   animates inside the panel (selection lens, press feedback, hovers) then only repaints the content layer
+   instead of forcing the browser to recompute the whole panel's backdrop blur every frame. */
 .glass-panel {
-  position: relative;
-  background: var(--lg-sheen), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent);
+  position: relative; isolation: isolate;
+  --panel-bg: var(--lg-sheen), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent);
   box-shadow: var(--lg-depth), var(--lg-float);
+}
+.glass-panel::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: var(--panel-bg);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
 }
@@ -147,12 +154,11 @@ body {
   opacity: 0; pointer-events: none; transition: opacity .2s ease;
 }
 .appbar-wrap.is-scrolled::before { opacity: 1; }
-.appbar-wrap.is-scrolled .workbench-appbar { background: var(--lg-sheen), rgb(18 26 62 / 74%); box-shadow: var(--lg-depth), 0 2px 4px rgb(6 10 30 / 18%), 0 16px 36px -8px rgb(6 10 30 / 42%); }
-.taf-dark .appbar-wrap.is-scrolled .workbench-appbar { background: var(--lg-sheen), rgb(8 12 30 / 82%); }
+.appbar-wrap.is-scrolled .workbench-appbar { --panel-bg: var(--lg-sheen), rgb(18 26 62 / 74%); box-shadow: var(--lg-depth), 0 2px 4px rgb(6 10 30 / 18%), 0 16px 36px -8px rgb(6 10 30 / 42%); }
+.taf-dark .appbar-wrap.is-scrolled .workbench-appbar { --panel-bg: var(--lg-sheen), rgb(8 12 30 / 82%); }
 .workbench-appbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px;
   padding: 14px 18px; border-radius: 26px;
-  background: var(--lg-sheen), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent);
 }
 .workbench-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .workbench-brand-mark {
@@ -490,8 +496,9 @@ body {
 .mobile-output-bar { display: none; }
 
 /* Lite rendering: devices that cannot keep up with live backdrop blur get tinted panels instead. */
-.taf-app.is-lite .glass-panel { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(26 36 76 / 78%); }
-.taf-app.is-lite.taf-dark .glass-panel { background: rgb(8 12 30 / 86%); }
+.taf-app.is-lite .glass-panel { --panel-bg: rgb(26 36 76 / 78%); }
+.taf-app.is-lite .glass-panel::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.taf-app.is-lite.taf-dark .glass-panel { --panel-bg: rgb(8 12 30 / 86%); }
 
 .taf-app[data-phase="night"] { --lg-rim-ambient: .8; }
 
@@ -508,7 +515,7 @@ body {
   --glass-bg-inset: rgb(0 0 0 / 22%);
   --code-panel: rgb(4 6 18 / 62%);
 }
-.taf-dark .workbench-appbar { background: var(--lg-sheen), color-mix(in srgb, rgb(8 12 30 / 52%) var(--lg-fill), transparent); }
+.taf-dark .workbench-appbar { --panel-bg: var(--lg-sheen), color-mix(in srgb, rgb(8 12 30 / 52%) var(--lg-fill), transparent); }
 .taf-app.taf-dark {
   --lg-rim-strength: .6;
   --lg-control-fill: rgb(255 255 255 / 9%);
@@ -560,7 +567,7 @@ body {
   .mobile-output-bar {
     position: fixed; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 90;
     display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 10px 14px;
-    border-radius: 20px; background: var(--code-panel); color: var(--text); text-align: left; cursor: pointer;
+    border-radius: 20px; --panel-bg: var(--code-panel); color: var(--text); text-align: left; cursor: pointer;
     transition: opacity .2s ease, transform .2s ease;
   }
   .mobile-output-bar.is-hidden { opacity: 0; transform: translateY(16px); pointer-events: none; }
