@@ -14,7 +14,9 @@
   /* Liquid glass */
   --glass-bg: rgb(255 255 255 / 14%);
   --glass-bg-inset: rgb(18 26 66 / 20%);
-  --glass-blur: blur(22px) saturate(180%);
+  /* Set from the glass transparency slider (see features/appearance/glass.ts); these match its default. */
+  --glass-blur: blur(18.8px) saturate(180%);
+  --lg-fill: 70%;
   /* Liquid glass material: no outlines. Edges are a specular rim (bright where light catches the
      corners, fading along the sides), surfaces carry a soft top sheen and inner depth. */
   --lg-rim-strength: 1;
@@ -104,13 +106,13 @@ body {
 
 .glass-panel {
   position: relative;
-  background: var(--lg-sheen), var(--glass-bg);
+  background: var(--lg-sheen), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent);
   box-shadow: var(--lg-depth), var(--lg-float);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
 }
 /* Specular rim: a 1px gradient ring drawn with a mask, so its brightness follows the light. */
-:is(.glass-panel, .language-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip, .mobile-output-bar)::after {
+:is(.glass-panel, .language-menu, .glass-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip, .mobile-output-bar)::after {
   content: ""; position: absolute; inset: 0; z-index: 1; padding: 1px; border-radius: inherit; pointer-events: none;
   /* Brightest where the light hits, a weaker bounce on the opposite corner, nearly clear along the sides.
      The ends are tinted cool and warm like light splitting at a glass edge. */
@@ -140,7 +142,7 @@ body {
 .workbench-appbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px;
   padding: 14px 18px; border-radius: 26px;
-  background: var(--lg-sheen), var(--glass-bg);
+  background: var(--lg-sheen), color-mix(in srgb, var(--glass-bg) var(--lg-fill), transparent);
 }
 .workbench-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .workbench-brand-mark {
@@ -223,13 +225,20 @@ body {
 .timeline-legend-fm { background: var(--fm); }
 
 /* ---------- Timeline ---------- */
-.timeline-scroll { overflow-x: auto; padding-bottom: 4px; }
-.timeline-grid { min-width: 760px; display: flex; flex-direction: column; gap: 8px; }
-.timeline-row { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: center; }
-.timeline-lane-label { position: sticky; left: 0; z-index: 2; align-self: stretch; display: flex; align-items: center; font: 700 12px var(--mono); color: var(--text); text-shadow: 0 1px 6px rgb(8 12 36 / 80%); }
-.timeline-row--tempo .timeline-lane-label { color: var(--tempo-text); }
-.timeline-row--becmg .timeline-lane-label { color: var(--becmg-text); }
-.timeline-row--fm .timeline-lane-label { color: var(--fm-text); }
+.timeline-frame { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: start; }
+.timeline-labels { display: flex; flex-direction: column; gap: 8px; }
+.timeline-lane-label { height: 42px; display: flex; align-items: center; font: 700 12px var(--mono); color: var(--text); text-shadow: 0 1px 6px rgb(8 12 36 / 80%); }
+.timeline-lane-label--ruler { height: 18px; }
+.timeline-lane-label--tempo { color: var(--tempo-text); }
+.timeline-lane-label--becmg { color: var(--becmg-text); }
+.timeline-lane-label--fm { color: var(--fm-text); }
+/* Thin glass scrollbar instead of the platform's light track. */
+.timeline-scroll { overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 30%) transparent; }
+.timeline-scroll::-webkit-scrollbar { height: 6px; }
+.timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+.timeline-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: rgb(255 255 255 / 30%); }
+.timeline-grid { min-width: 692px; display: flex; flex-direction: column; gap: 8px; }
+.timeline-row { min-width: 0; }
 .timeline-track {
   position: relative; height: 42px; display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); grid-template-rows: 1fr;
   border-radius: 999px; box-shadow: var(--lg-well-shadow);
@@ -472,7 +481,7 @@ body {
   --glass-bg-inset: rgb(0 0 0 / 22%);
   --code-panel: rgb(4 6 18 / 62%);
 }
-.taf-dark .workbench-appbar { background: var(--lg-sheen), rgb(8 12 30 / 52%); }
+.taf-dark .workbench-appbar { background: var(--lg-sheen), color-mix(in srgb, rgb(8 12 30 / 52%) var(--lg-fill), transparent); }
 .taf-app.taf-dark {
   --lg-rim-strength: .6;
   --lg-control-fill: rgb(255 255 255 / 9%);
@@ -545,8 +554,28 @@ body.taf-dark-page {
   --popover-solid: rgb(12 16 36);
   --popover-hover: rgb(255 255 255 / 10%);
 }
-.tour-menu-root, .language-menu-root { position: relative; }
-.language-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip {
+.tour-menu-root, .language-menu-root, .glass-menu-root { position: relative; }
+.glass-menu {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 1000;
+  width: 248px; box-sizing: border-box; padding: 14px 16px 12px; border-radius: 20px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.glass-menu-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 700; }
+.glass-menu-header strong { font: 700 13px var(--mono); color: var(--text-muted); }
+.glass-menu-scale { display: flex; justify-content: space-between; margin-top: -4px; color: var(--text-muted); font-size: 11px; }
+.glass-menu input[type="range"] { width: 100%; height: 22px; margin: 0; appearance: none; background: transparent; cursor: pointer; }
+.glass-menu input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, #fff 0 var(--glass-progress), rgb(255 255 255 / 25%) var(--glass-progress) 100%); }
+.glass-menu input[type="range"]::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: #fff; box-shadow: var(--lens-shadow); }
+.glass-menu input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; background: rgb(255 255 255 / 25%); }
+.glass-menu input[type="range"]::-moz-range-progress { height: 6px; border-radius: 999px; background: #fff; }
+.glass-menu input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; box-shadow: var(--lens-shadow); }
+.glass-menu-reset {
+  align-self: flex-end; min-height: 30px; padding: 0 12px; border: 0; border-radius: 999px;
+  background: var(--lg-control-fill); box-shadow: var(--lg-control-rim); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.glass-menu-reset:hover:not(:disabled) { background: var(--lg-control-fill-hover); }
+.glass-menu-reset:disabled { opacity: .45; cursor: default; }
+.language-menu, .glass-menu, .tour-menu, .tour-exit-dialog, .tour-flight-strip {
   background: var(--popover-bg);
   color: var(--text);
   box-shadow: var(--popover-shadow);
@@ -554,7 +583,7 @@ body.taf-dark-page {
   backdrop-filter: var(--popover-blur);
 }
 /* Menus sit inside the blurred header, where a nested backdrop blur cannot sample the page; keep them solid. */
-.language-menu, .tour-menu { background: var(--popover-solid); }
+.language-menu, .glass-menu, .tour-menu { background: var(--popover-solid); }
 .language-menu {
   position: absolute;
   top: calc(100% + 10px);

@@ -130,10 +130,18 @@ export default function Timeline({
 
   return (
     <div className="timeline">
+      <div className="timeline-frame">
+      {/* Lane names stay outside the horizontal scroller so tracks never slide underneath them. */}
+      <div className="timeline-labels">
+        <span className="timeline-lane-label timeline-lane-label--ruler" aria-hidden="true" />
+        <span className="timeline-lane-label">{text.timeline.base}</span>
+        {LANES.map((type) => (
+          <span key={type} className={`timeline-lane-label timeline-lane-label--${type.toLowerCase()}`}>{type}</span>
+        ))}
+      </div>
       <div className="timeline-scroll">
         <div className="timeline-grid" onPointerLeave={() => setHoverIndex(null)}>
           <div className="timeline-row timeline-ruler" aria-hidden="true">
-            <span className="timeline-lane-label" />
             <div className="timeline-track timeline-track--ruler">
               {hours.map((hour, index) => (
                 <span key={hour} className={`timeline-tick ${hour === 0 ? "is-midnight" : ""}`} style={{ gridColumn: index + 1 }}>
@@ -144,7 +152,6 @@ export default function Timeline({
           </div>
 
           <div className="timeline-row">
-            <span className="timeline-lane-label">{text.timeline.base}</span>
             <div className="timeline-track">
               <button
                 type="button"
@@ -171,7 +178,6 @@ export default function Timeline({
             const laneTabStop = preferred !== undefined && freeIndexes.includes(preferred) ? preferred : freeIndexes[0];
             return (
               <div key={type} className={`timeline-row timeline-row--${type.toLowerCase()}`}>
-                <span className="timeline-lane-label">{type}</span>
                 <div
                   className="timeline-track"
                   data-lane={type}
@@ -247,6 +253,7 @@ export default function Timeline({
             );
           })}
         </div>
+      </div>
       </div>
       <p className="timeline-hint" aria-live="polite">
         {pending ? text.timeline.pendingHint(formatHour(hours[pending.index])) : text.timeline.hint}
