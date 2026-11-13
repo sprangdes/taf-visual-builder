@@ -1,12 +1,12 @@
 /**
- * Illustrated cloud renderer: clouds are built from soft, individually shaded "puffs" drawn with Canvas 2D
- * gradients, the way hand-painted weather illustrations are, rather than from thresholded noise (which reads
- * as flat cut-outs). It only needs a 2D canvas context, so it runs in a Web Worker on an OffscreenCanvas,
- * or on the main thread as a fallback.
+ * Realistic cloud renderer, run in a Web Worker (OffscreenCanvas) or on the main thread as a fallback.
  *
- * Each layer is a deck at its own altitude seen from the ground. Clouds are placed in ground space and
- * projected: they shrink, crowd and flatten towards the horizon and fade into its haze, while overhead
- * clouds are large. Coverage (FEW … OVC) sets how much of the sky the clouds fill.
+ * Each layer is a deck at its own altitude seen from the ground: screen rows are projected onto the deck,
+ * so clouds shrink and flatten towards the horizon and fade into its haze. Density is domain-warped
+ * fractal noise, eroded at the edges by finer noise so cloud margins break into wisps. Lighting marches a
+ * few samples from each point towards the sun or moon and applies Beer–Lambert extinction, with a
+ * "powder" term (thin edges glow, thick cores darken) and forward scattering when the light is behind the
+ * cloud — the cues that make the sky read as volumetric rather than painted.
  */
 
 export type CloudKind = "cumulus" | "stratus" | "cirrus";
@@ -23,7 +23,7 @@ export interface CloudLight {
   shade: Rgb;
   /** Sky colour near the horizon, for aerial perspective. */
   haze: Rgb;
-  /** 0 = light high in the sky, 1 = on the horizon (warm rims, glowing edges). */
+  /** 0 = light high in the sky, 1 = on the horizon (warm, glowing edges). */
   low: number;
 }
 
@@ -46,7 +46,7 @@ export interface CloudLayerSpec {
 export type Ctx = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
 export type CanvasFactory = (width: number, height: number) => Ctx;
 
-/* ---------- helpers ---------- */
+/* ---------- noise ---------- */
 
 function mulberry32(seed: number) {
   let a = seed >>> 0;
@@ -59,293 +59,277 @@ function mulberry32(seed: number) {
   };
 }
 
+const GRAD = [1, 1, -1, 1, 1, -1, -1, -1, 1, 0, -1, 0, 0, 1, 0, -1];
+
+function createNoise(seed: number) {
+  const random = mulberry32(seed);
+  const p = new Uint8Array(256);
+  for (let i = 0; i < 256; i += 1) p[i] = i;
+  for (let i = 255; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    const t = p[i];
+    p[i] = p[j];
+    p[j] = t;
+  }
+  const perm = new Uint8Array(512);
+  for (let i = 0; i < 512; i += 1) perm[i] = p[i & 255];
+
+  const noise = (x: number, y: number) => {
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const xf = x - xi;
+    const yf = y - yi;
+    const X = xi & 255;
+    const Y = yi & 255;
+    const u = xf * xf * xf * (xf * (xf * 6 - 15) + 10);
+    const v = yf * yf * yf * (yf * (yf * 6 - 15) + 10);
+    const aa = (perm[perm[X] + Y] & 7) * 2;
+    const ab = (perm[perm[X] + Y + 1] & 7) * 2;
+    const ba = (perm[perm[X + 1] + Y] & 7) * 2;
+    const bb = (perm[perm[X + 1] + Y + 1] & 7) * 2;
+    const gaa = GRAD[aa] * xf + GRAD[aa + 1] * yf;
+    const gba = GRAD[ba] * (xf - 1) + GRAD[ba + 1] * yf;
+    const gab = GRAD[ab] * xf + GRAD[ab + 1] * (yf - 1);
+    const gbb = GRAD[bb] * (xf - 1) + GRAD[bb + 1] * (yf - 1);
+    const x1 = gaa + u * (gba - gaa);
+    const x2 = gab + u * (gbb - gab);
+    return (x1 + v * (x2 - x1)) * 1.4;
+  };
+
+  const fbm = (x: number, y: number, octaves: number) => {
+    let sum = 0;
+    let amp = 0.5;
+    let freq = 1;
+    for (let o = 0; o < octaves; o += 1) {
+      sum += amp * noise(x * freq + o * 17.3, y * freq - o * 9.1);
+      freq *= 2.02;
+      amp *= 0.5;
+    }
+    return sum;
+  };
+
+  /** Billowy noise in about [0, 1] (folded absolute values give rounded, cauliflower-like heaps). */
+  const billow = (x: number, y: number, octaves: number) => {
+    let sum = 0;
+    let amp = 0.5;
+    let freq = 1;
+    let norm = 0;
+    for (let o = 0; o < octaves; o += 1) {
+      sum += amp * (1 - Math.abs(noise(x * freq + o * 31.7, y * freq + o * 5.3)));
+      norm += amp;
+      freq *= 2.07;
+      amp *= 0.5;
+    }
+    return sum / norm;
+  };
+
+  return { fbm, billow };
+}
+
+type Noise = ReturnType<typeof createNoise>;
+
+/* ---------- helpers ---------- */
+
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smoothstep = (a: number, b: number, v: number) => {
+  const t = clamp01((v - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
-const mixRgb = (a: Rgb, b: Rgb, t: number): Rgb => [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
-const rgba = (c: Rgb, alpha: number) =>
-  `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${clamp01(alpha).toFixed(3)})`;
 
 /** Screen row of the horizon (the ground line sits just below the bottom edge of the scene). */
-const HORIZON_V = 1.02;
-/** Vertical angle spanned by the sky from the top of the screen to the horizon (radians). */
+const HORIZON_V = 1.03;
+/** Vertical angle the sky spans, top of the screen to the horizon (radians). */
 const FOV = 0.95;
 
-const elevationAt = (v: number) => (HORIZON_V - v) * FOV;
-/** Fraction of haze colour mixed into a cloud at this elevation (aerial perspective). */
-const hazeAt = (elevation: number) => {
-  const t = 1 - clamp01((elevation - 0.02) / 0.42);
-  return t * t * 0.65;
-};
+/* ---------- density ---------- */
 
-/* ---------- puffs ---------- */
-
-interface Palette {
-  lit: Rgb;
-  shade: Rgb;
-  base: Rgb;
+interface Deck {
+  spec: CloudLayerSpec;
+  n: Noise;
+  threshold: number;
+  soft: number;
+  towerX: number;
 }
 
-function palette(spec: CloudLayerSpec, elevation: number): Palette {
-  const { light, darkness } = spec;
-  const haze = hazeAt(elevation);
-  const lit = mixRgb(light.color, light.haze, haze);
-  const shade = mixRgb(mixRgb(light.shade, [70, 76, 92], darkness * 0.55), light.haze, haze * 0.8);
-  const base = mixRgb(shade, [40, 44, 58], 0.25 + darkness * 0.45);
-  return { lit, shade, base: mixRgb(base, light.haze, haze * 0.7) };
+/** Deck coordinates (lateral, distance) and elevation for a screen point; null below the haze line. */
+function project(spec: CloudLayerSpec, u: number, v: number): [number, number, number] | null {
+  const elevation = (HORIZON_V - v) * FOV;
+  if (elevation <= 0.012) return null;
+  const altitude = 1 + Math.min(spec.altitude, 300) / 40;
+  const ground = altitude / Math.tan(elevation);
+  const lateral = ((u - 0.5) * 2.1 * altitude) / Math.sin(elevation);
+  return [lateral, ground, elevation];
 }
 
-/** One soft, round heap: a disc of cloud that thins out towards its rim (shading is applied per cloud). */
-function drawPuff(ctx: Ctx, x: number, y: number, r: number, color: Rgb, alpha: number) {
-  const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r);
-  // Feather a fixed band at the rim so big heaps keep a crisp edge instead of a blur that grows with size.
-  const edge = Math.max(0.6, 1 - 16 / Math.max(1, r));
-  g.addColorStop(0, rgba(color, alpha));
-  g.addColorStop(edge, rgba(color, alpha * 0.92));
-  g.addColorStop(1, rgba(color, 0));
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-/**
- * Lights a cloud already drawn on `ctx`: tops in the light colour, sides and base in shade, a soft
- * highlight on the side facing the light. Uses source-atop so only the cloud's own pixels change.
- */
-function shadeCloud(ctx: Ctx, cx: number, topY: number, baseY: number, width: number, pal: Palette, lightDir: [number, number], glow: number) {
-  ctx.save();
-  ctx.globalCompositeOperation = "source-atop";
-  const body = ctx.createLinearGradient(0, topY, 0, baseY);
-  body.addColorStop(0, rgba(pal.lit, 1));
-  body.addColorStop(0.6, rgba(mixRgb(pal.lit, pal.shade, 0.3), 1));
-  body.addColorStop(1, rgba(pal.shade, 1));
-  ctx.fillStyle = body;
-  ctx.fillRect(cx - width, topY - width, width * 2, baseY - topY + width * 2);
-  // Highlight where the light strikes, and a warm/bright rim when the light is low.
-  const hx = cx + lightDir[0] * width * 0.3;
-  const hy = topY + (baseY - topY) * 0.3;
-  const hi = ctx.createRadialGradient(hx, hy, 0, hx, hy, width * 0.55);
-  hi.addColorStop(0, rgba(pal.lit, 0.65 + glow * 0.3));
-  hi.addColorStop(1, rgba(pal.lit, 0));
-  ctx.fillStyle = hi;
-  ctx.fillRect(cx - width, topY - width, width * 2, baseY - topY + width * 2);
-  ctx.restore();
-}
-
-/** A cumulus: heaps stacked into a dome over a flat base, then lit as one body. */
-function drawCumulus(
-  ctx: Ctx,
-  rand: () => number,
-  cx: number,
-  baseY: number,
-  width: number,
-  pal: Palette,
-  lightDir: [number, number],
-  alpha: number,
-  glow: number,
-  tall: number,
-) {
-  const white: Rgb = [255, 255, 255];
-  // Columns of heaps standing on the base line, tallest in the middle: the body is continuous from the
-  // flat bottom up to the dome, and the column tops give the cauliflower outline.
-  const columns = 4 + Math.min(tall > 1 ? 12 : 7, Math.floor(width / 34));
-  let topY = baseY;
-  for (let i = 0; i < columns; i += 1) {
-    const t = (i / (columns - 1)) * 2 - 1;
-    const dome = Math.sqrt(Math.max(0, 1 - t * t * 0.9));
-    const x = cx + t * width * 0.38 + (rand() - 0.5) * width * 0.05;
-    const columnTop = baseY - width * (0.12 + dome * tall * (0.55 + rand() * 0.45));
-    let r = width * (0.1 + 0.05 * dome) * (0.85 + rand() * 0.3);
-    let y = baseY - r * 0.85;
-    while (true) {
-      drawPuff(ctx, x + (rand() - 0.5) * r * 0.4, y, r, white, alpha);
-      topY = Math.min(topY, y - r);
-      if (y - r * 0.6 <= columnTop) break;
-      y -= r * 0.65;
-      r *= 1.04;
-    }
+/** Raw shape value before thresholding (higher = more cloud). */
+function shape(spec: CloudLayerSpec, n: Noise, x: number, y: number): number {
+  if (spec.kind === "cirrus") {
+    const sx = x * 0.09;
+    const sy = y * 1.0;
+    const curl = n.fbm(sx * 1.4, sy * 0.3, 3) * 1.3;
+    return n.fbm(sx * 0.6, sy * 0.4, 3) * 0.55 + n.fbm((sx + curl * 0.4) * 1.3, (sy + curl) * 2.4, 5) * 0.45;
   }
-  shadeCloud(ctx, cx, topY, baseY, width, pal, lightDir, glow);
-
-  // Flat base: trim the bottom to a soft straight edge.
-  ctx.save();
-  ctx.globalCompositeOperation = "destination-out";
-  const band = width * 0.05;
-  const cut = ctx.createLinearGradient(0, baseY - band, 0, baseY + band * 1.5);
-  cut.addColorStop(0, "rgba(0,0,0,0)");
-  cut.addColorStop(1, "rgba(0,0,0,1)");
-  ctx.fillStyle = cut;
-  ctx.fillRect(cx - width, baseY - band, width * 2, width);
-  ctx.restore();
+  if (spec.kind === "stratus") {
+    return n.fbm(x * 0.2, y * 0.26, 5) * 0.85 + n.fbm(x * 1.1, y * 1.4, 3) * 0.15;
+  }
+  const sx = x * 0.42;
+  const sy = y * 0.42;
+  const wx = n.fbm(sx * 0.7 + 3.1, sy * 0.7 + 7.7, 3);
+  const wy = n.fbm(sx * 0.7 - 5.2, sy * 0.7 + 1.3, 3);
+  const mass = n.fbm(sx + wx * 0.55, sy + wy * 0.55, 5);
+  const heaps = n.billow(sx * 2.2 + wx * 0.3, sy * 2.2, 4);
+  return mass + (heaps - 0.55) * 0.28;
 }
 
-/* ---------- layers ---------- */
-
-/**
- * Cumulus field: walk rows from the horizon (far, drawn first) up past the top of the screen (overhead,
- * drawn last); at each row the projected size follows the distance to the deck.
- */
-function cumulusDeck(ctx: Ctx, spec: CloudLayerSpec, rand: () => number, scratch: () => Ctx) {
-  const { width: W, height: H } = spec;
-  const altitude = 1 + Math.min(spec.altitude, 250) / 45;
-  const glow = clamp01(spec.light.low) * 0.5;
-  let v = 0.995;
-  while (v > -0.15) {
-    const e = Math.max(0.03, elevationAt(v));
-    const scale = Math.sin(e) / altitude;
-    const cloudW = W * (0.45 + spec.cover * 0.5) * scale * 0.85;
-    const cloudH = cloudW * (0.32 + 0.25 * Math.sin(e));
-    const rowStep = Math.max(0.006, (cloudH / H) * 0.6);
-    // Expected share of this row band covered = count × cloud area / band area ≈ cover.
-    const perRow = (spec.cover * W * rowStep * H) / Math.max(4, cloudW * cloudH * 0.62);
-    let count = Math.floor(perRow) + (rand() < perRow % 1 ? 1 : 0);
-    const pal = palette(spec, e);
-    const alpha = clamp01(0.35 + Math.sin(e) * 2.2) * 0.98;
-    while (count-- > 0) {
-      const w = cloudW * (0.6 + rand() * 0.8);
-      const cx = rand() * (W + w) - w / 2;
-      const baseY = (v + (rand() - 0.5) * rowStep) * H;
-      const lx = spec.light.x * W - cx;
-      const ly = spec.light.y * H - baseY;
-      const ll = Math.hypot(lx, ly) || 1;
-      // Each cloud is drawn alone first, so its base trim and shading do not cut into its neighbours.
-      const c = scratch();
-      c.clearRect(0, 0, W, H);
-      drawCumulus(c, rand, cx, baseY, w, pal, [lx / ll, ly / ll], alpha, glow, 0.3 + Math.sin(e) * 0.25);
-      ctx.drawImage(c.canvas as CanvasImageSource, 0, 0);
-    }
-    v -= rowStep;
-  }
+/** Fine erosion noise: breaks cloud margins into wisps without touching thick cores. */
+function erosion(n: Noise, x: number, y: number): number {
+  return n.fbm(x * 3.1, y * 3.1, 3);
 }
 
-function stratusDeck(ctx: Ctx, spec: CloudLayerSpec, rand: () => number) {
-  const { width: W, height: H } = spec;
-  // A closed grey deck, darker overhead, lighter and hazier towards the horizon…
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  for (const stop of [0, 0.5, 0.8, 1]) {
-    const pal = palette(spec, elevationAt(stop));
-    sky.addColorStop(stop, rgba(mixRgb(pal.shade, pal.lit, 0.3 + stop * 0.4), 0.97));
+function makeDeck(spec: CloudLayerSpec): Deck {
+  const n = createNoise(spec.seed);
+  const rand = mulberry32(spec.seed ^ 0x5bd1e995);
+  const samples: number[] = [];
+  for (let i = 0; i < 1800; i += 1) {
+    const p = project(spec, rand(), rand() * 0.88);
+    if (p) samples.push(shape(spec, n, p[0], p[1]));
   }
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-  // …with soft rolls and thinner, lighter patches giving it structure, smaller towards the horizon.
-  let v = 0.98;
-  while (v > -0.1) {
-    const e = Math.max(0.03, elevationAt(v));
-    const size = W * 0.55 * Math.sin(e);
-    const pal = palette(spec, e);
-    for (let i = 0; i < 4; i += 1) {
-      const cx = rand() * W;
-      const cy = v * H + (rand() - 0.5) * size * 0.2;
-      const rx = size * (0.6 + rand() * 0.8);
-      const ry = rx * (0.16 + Math.sin(e) * 0.2);
-      const light = rand() < 0.5;
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-      g.addColorStop(0, rgba(light ? pal.lit : pal.base, light ? 0.22 : 0.28));
-      g.addColorStop(1, rgba(light ? pal.lit : pal.base, 0));
-      ctx.fillStyle = g;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(1, ry / rx);
-      ctx.translate(-cx, -cy);
-      ctx.beginPath();
-      ctx.arc(cx, cy, rx, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-    v -= Math.max(0.02, Math.sin(e) * 0.09);
-  }
+  samples.sort((a, b) => a - b);
+  const soft = spec.kind === "cirrus" ? 0.12 : spec.kind === "stratus" ? 0.16 : 0.1;
+  // Pick the threshold so the requested share of the visible sky is cloud.
+  const threshold =
+    spec.cover >= 0.99 ? samples[0] - soft * 3 : samples[Math.min(samples.length - 1, Math.floor((1 - spec.cover) * samples.length))];
+  return { spec, n, threshold, soft, towerX: 0.6 + (mulberry32(spec.seed + 99)() - 0.5) * 0.3 };
 }
 
-function cirrusDeck(ctx: Ctx, spec: CloudLayerSpec, rand: () => number) {
-  const { width: W, height: H } = spec;
-  const strands = Math.round(10 + spec.cover * 26);
-  ctx.save();
-  ctx.lineCap = "round";
-  for (let s = 0; s < strands; s += 1) {
-    const v = 0.05 + Math.pow(rand(), 0.8) * 0.8;
-    const e = elevationAt(v);
-    const pal = palette(spec, e);
-    const len = W * (0.25 + rand() * 0.45) * (0.4 + Math.sin(e));
-    const x0 = rand() * (W + len) - len;
-    const y0 = v * H;
-    const curl = (rand() - 0.5) * H * 0.08;
-    // A fibrous streak: several fine, faint strokes along a gentle curve, fading at both ends.
-    for (let f = 0; f < 7; f += 1) {
-      const off = (f - 3) * (2 + Math.sin(e) * 4);
-      const g = ctx.createLinearGradient(x0, y0, x0 + len, y0 + curl);
-      const a = (0.14 + rand() * 0.16) * (0.5 + Math.sin(e));
-      g.addColorStop(0, rgba(pal.lit, 0));
-      g.addColorStop(0.3 + rand() * 0.2, rgba(pal.lit, a));
-      g.addColorStop(1, rgba(pal.lit, 0));
-      ctx.strokeStyle = g;
-      ctx.lineWidth = 1.5 + rand() * 4 * (0.4 + Math.sin(e));
-      ctx.beginPath();
-      ctx.moveTo(x0, y0 + off);
-      ctx.bezierCurveTo(x0 + len * 0.35, y0 + off - curl * 0.6, x0 + len * 0.7, y0 + off + curl, x0 + len, y0 + off + curl * 0.4 + (rand() - 0.5) * 10);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
+/** How far inside the cloud a point is (0 at the margin … 1 deep in a thick core), plus puff texture. */
+function deckBody(d: Deck, u: number, v: number): [number, number] {
+  const { spec, n } = d;
+  const p = project(spec, u, v);
+  if (!p) return [0, 0.5];
+  const s = shape(spec, n, p[0], p[1]);
+  const scale = spec.kind === "stratus" ? 1.1 : spec.kind === "cirrus" ? 2 : 2.8;
+  const puff = n.billow(p[0] * scale + 40, p[1] * scale, 4);
+  // A closed deck: thickness follows the noise itself, giving darker rolls and thinner, brighter patches.
+  const depth = spec.kind === "stratus" ? 0.5 + s * 1.6 : (s - d.threshold) / 0.32;
+  return [clamp01(depth), puff];
 }
 
-/**
- * A towering cumulus / cumulonimbus rising from the horizon: built like any cumulus, only far taller, so it
- * shares the cauliflower outline and lighting. A CB also carries an anvil sheared downwind (to the left).
- */
-function tower(ctx: Ctx, spec: CloudLayerSpec, rand: () => number, scratch: () => Ctx) {
-  const { width: W, height: H } = spec;
+function deckDensity(d: Deck, u: number, v: number): number {
+  const { spec, n } = d;
+  const p = project(spec, u, v);
+  if (!p) return 0;
+  const s = shape(spec, n, p[0], p[1]);
+  // Overhead clouds are magnified by perspective; tighten their margin in noise space to keep them sharp.
+  const soft = d.soft * (0.4 + 0.6 * (1 - p[2] / FOV));
+  let density = smoothstep(d.threshold - soft, d.threshold + soft * 2.2, s);
+  if (density > 0 && density < 0.75 && spec.kind !== "stratus") {
+    // Edge erosion: thin parts are eaten away by fine noise into ragged wisps.
+    const e = erosion(n, p[0] * 0.42, p[1] * 0.42);
+    density = clamp01(density - (1 - density) * (0.35 + e * 0.9) * 0.6);
+  }
+  if (spec.kind === "cirrus") density *= 0.55;
+  // The farthest clouds dissolve into the horizon haze.
+  return density * smoothstep(0.012, 0.1, p[2]);
+}
+
+function towerDensity(d: Deck, u: number, v: number): number {
+  const { spec, n } = d;
+  if (spec.tower === "none") return 0;
   const cb = spec.tower === "cb";
-  const cx = W * (0.62 + (rand() - 0.5) * 0.24);
-  const baseY = H * 1.0;
-  const width = W * (cb ? 0.3 : 0.22);
-  const crownY = H * (cb ? 0.2 : 0.45);
-  // Column height ≈ width × (0.12 + tall × ~0.8) → choose `tall` so the crown reaches crownY.
-  const tall = ((baseY - crownY) / width - 0.12) / 0.8;
-  const pal = palette({ ...spec, darkness: Math.min(1, spec.darkness + (cb ? 0.25 : 0.1)) }, elevationAt(0.55));
-  const lx = spec.light.x * W - cx;
-  const ly = spec.light.y * H - crownY;
-  const ll = Math.hypot(lx, ly) || 1;
-  const c = scratch();
-  c.clearRect(0, 0, W, H);
+  const top = cb ? 0.16 : 0.44;
+  if (v < top - 0.08) return 0;
+  const aspect = spec.width / spec.height;
+  const t = clamp01((v - top) / (1 - top)); // 0 at the crown, 1 at the base
+  let half = (cb ? 0.1 : 0.075) * (0.72 + 0.4 * Math.sqrt(t));
+  let centre = d.towerX;
   if (cb) {
-    // Anvil lobes behind the crown, flattened and thinning out downwind.
-    for (let i = 0; i < 12; i += 1) {
-      const t = i / 11;
-      const x = cx + width * 0.15 - width * 1.05 * t + (rand() - 0.5) * width * 0.08;
-      const rx = width * (0.32 - 0.14 * t) * (0.85 + rand() * 0.3);
-      c.save();
-      c.translate(x, crownY + H * 0.03 + t * H * 0.02);
-      c.scale(1, 0.38);
-      drawPuff(c, 0, 0, rx, [255, 255, 255], 0.95 - t * 0.4);
-      c.restore();
-    }
+    // Anvil: a flat-topped shelf under the tropopause, sheared downwind (left).
+    const shelf = smoothstep(top + 0.13, top + 0.025, v);
+    half += 0.17 * shelf;
+    centre -= 0.12 * shelf;
   }
-  drawCumulus(c, rand, cx, baseY, width, pal, [lx / ll, ly / ll], 0.98, clamp01(spec.light.low) * 0.4, tall);
-  ctx.drawImage(c.canvas as CanvasImageSource, 0, 0);
+  const x = u * aspect * 5;
+  const y = v * 5;
+  const heaps = n.billow(x, y, 5);
+  const wobble = n.fbm(x * 0.5 + 11, y * 0.5, 3);
+  const dx = Math.abs(u - centre + wobble * 0.025) / half;
+  const crown = cb ? top + (heaps - 0.5) * 0.015 : top + (heaps - 0.5) * 0.09;
+  let density = smoothstep(0, 0.28, 1 - dx + (heaps - 0.55) * 0.75);
+  density *= smoothstep(crown - 0.015, crown + 0.03, v);
+  return density;
 }
 
 /* ---------- render ---------- */
 
 /** Draws one cloud layer onto `ctx` (a transparent canvas of spec.width × spec.height). */
 export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: CanvasFactory): void {
-  const rand = mulberry32(spec.seed);
+  // Render at half resolution: clouds are soft, and the canvas is smoothed back up to full size.
+  const w = Math.max(1, Math.round(spec.width / 2));
+  const h = Math.max(1, Math.round(spec.height / 2));
+  const deck = makeDeck(spec);
+  const { light, darkness } = spec;
+  const density = (u: number, v: number) => {
+    const a = deckDensity(deck, u, v);
+    if (spec.tower === "none") return a;
+    const b = towerDensity(deck, u, v);
+    return 1 - (1 - a) * (1 - b);
+  };
+
+  const small = createContext(w, h);
+  const image = small.createImageData(w, h);
+  const out = image.data;
+  const steps = 4;
+  const extinction = 0.9 + darkness * 1.4;
+  const ambientShade = 0.5 - darkness * 0.2;
+
+  for (let py = 0; py < h; py += 1) {
+    const v = py / h;
+    const elevation = (HORIZON_V - v) * FOV;
+    // Aerial perspective: low clouds take on the horizon colour.
+    const haze = (1 - smoothstep(0.02, 0.5, elevation)) * 0.6;
+    for (let px = 0; px < w; px += 1) {
+      const u = px / w;
+      const d = density(u, v);
+      if (d < 0.004) continue;
+
+      // March towards the light, accumulating the cloud in between (screen-space self-shadowing).
+      let lx = light.x - u;
+      let ly = light.y - v;
+      const len = Math.hypot(lx, ly) || 1;
+      const stepLen = Math.min(0.03, len / steps) * (spec.kind === "stratus" ? 0.6 : 1);
+      lx = (lx / len) * stepLen;
+      ly = (ly / len) * stepLen;
+      let optical = 0;
+      for (let s = 1; s <= steps; s += 1) optical += density(u + lx * s, v + ly * s);
+      const transmit = Math.exp(-optical * extinction * 0.3);
+      // Thick cores are darker (more light scattered away before reaching us); heaps catch light unevenly.
+      const [depth, puff] = deckBody(deck, u, v);
+      const towerD = spec.tower === "none" ? 0 : towerDensity(deck, u, v);
+      const thick = Math.max(depth, towerD * 0.7);
+      const powder = 1 - Math.exp(-d * 2.4);
+      // Forward scattering: with the light low or behind the cloud, its thin margins glow.
+      const silver = (1 - d) * (0.15 + light.low * 0.6) * clamp01(1 - len * 1.4 + 0.5);
+      // Most of the light we see is scattered skylight; direct light adds on the side facing the sun.
+      // Mixing (not multiplying) keeps thickness and puff detail visible even deep inside dense decks.
+      const direct = 0.62 + 0.38 * transmit * mix(1, powder, 0.3);
+      const body = 1 - thick * (0.42 + darkness * 0.28);
+      const texture = 0.55 + puff * 0.8;
+      let lit = direct * body * texture + silver;
+      lit = clamp01(ambientShade * 0.4 + (1 - ambientShade * 0.4) * lit);
+
+      const i = (py * w + px) * 4;
+      for (let c = 0; c < 3; c += 1) {
+        const col = mix(light.shade[c], light.color[c], lit);
+        out[i + c] = mix(col, light.haze[c], haze);
+      }
+      out[i + 3] = Math.round(clamp01(d * 1.1) * 250);
+    }
+  }
+  small.putImageData(image, 0, 0);
   ctx.clearRect(0, 0, spec.width, spec.height);
-  let scratch: Ctx | null = null;
-  const getScratch = () => (scratch ??= createContext(spec.width, spec.height));
-
-  if (spec.kind === "stratus") stratusDeck(ctx, spec, rand);
-  else if (spec.kind === "cirrus") cirrusDeck(ctx, spec, rand);
-  else cumulusDeck(ctx, spec, rand, getScratch);
-  if (spec.tower !== "none") tower(ctx, spec, rand, getScratch);
-
-  // Haze swallows the clouds right at the horizon.
-  ctx.save();
-  ctx.globalCompositeOperation = "destination-out";
-  const fade = ctx.createLinearGradient(0, spec.height * 0.9, 0, spec.height);
-  fade.addColorStop(0, "rgba(0,0,0,0)");
-  fade.addColorStop(1, "rgba(0,0,0,0.85)");
-  ctx.fillStyle = fade;
-  ctx.fillRect(0, spec.height * 0.9, spec.width, spec.height * 0.1);
-  ctx.restore();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(small.canvas as CanvasImageSource, 0, 0, spec.width, spec.height);
 }

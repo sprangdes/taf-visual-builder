@@ -24,7 +24,7 @@ import { formatLocalTime, getChangeInstant, getDaylight, getForecastInstant } fr
 import { getSceneLight } from "./utils/sceneLight";
 import { useRenderQuality } from "./hooks/useRenderQuality";
 import { useInteractionHold } from "./hooks/useInteractionHold";
-import { useScrolled } from "./hooks/useScrolled";
+import { useScrollProgress } from "./hooks/useScrolled";
 import { useGlassSlide } from "./hooks/useGlassSlide";
 
 function createEmptyTaf(): TAF {
@@ -183,7 +183,8 @@ export default function TafBuilder() {
   const sceneMoving = sceneAnimated && (quality === "full" || forceMotion);
   const autoPaused = sceneAnimated && !sceneMoving;
   useInteractionHold(sceneMoving);
-  const scrolled = useScrolled();
+  const appbarRef = useRef<HTMLDivElement>(null);
+  useScrollProgress(appbarRef);
   // The band behind the sticky header fades content out in the same colour as the sky above it.
   const sceneLight = useMemo(() => getSceneLight(deferredDaylight, deferredSceneParams.darkness), [deferredDaylight, deferredSceneParams.darkness]);
   // Glass rims catch the scene's sun or moon: 135deg when it sits far left, 225deg far right.
@@ -206,7 +207,7 @@ export default function TafBuilder() {
         <WeatherScene params={deferredSceneParams} daylight={deferredDaylight} animated={sceneMoving} />
 
         <div className="app-content">
-          <div className={`appbar-wrap ${scrolled ? "is-scrolled" : ""}`}>
+          <div ref={appbarRef} className="appbar-wrap">
             <header className="workbench-appbar glass-panel">
               <div className="workbench-brand">
                 <span className="workbench-brand-mark" aria-hidden="true">TAF</span>
