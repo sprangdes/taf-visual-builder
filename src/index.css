@@ -25,6 +25,7 @@
   /* Top light, bottom shade, and a faint glow trapped along the edge of the glass. */
   --lg-depth: inset 0 12px 24px -20px rgb(255 255 255 / 30%), inset 0 -14px 28px -22px rgb(0 0 0 / 34%), inset 0 0 14px rgb(255 255 255 / 5%);
   --lg-spring: cubic-bezier(.3, 1.55, .5, 1);
+  --lg-spring-duration: .45s;
   --lg-float: 0 1px 2px rgb(6 10 30 / 16%), 0 14px 40px -8px rgb(6 10 30 / 34%);
   --lg-control-fill: rgb(255 255 255 / 13%);
   --lg-control-fill-hover: rgb(255 255 255 / 22%);
@@ -57,6 +58,15 @@
   --fm-text: #e9d5ff;
   --ok: #34c759;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* A sampled physical spring (stiffness 320, damping 24): eases in, overshoots ~6% and settles,
+   where the cubic-bezier fallback can only overshoot once and stop. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --lg-spring: linear(0, 0.029, 0.104, 0.207, 0.324, 0.445, 0.561, 0.668, 0.762, 0.842, 0.907, 0.959, 0.997, 1.025, 1.043, 1.054, 1.058, 1.058, 1.054, 1.049, 1.043, 1.036, 1.029, 1.022, 1.016, 1.011, 1.007, 1.004, 1.001, 0.999, 0.998, 0.997, 0.997, 0.997, 0.997, 0.997, 0.997, 0.998, 0.998, 0.999, 1);
+    --lg-spring-duration: .58s;
+  }
 }
 
 .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
@@ -198,7 +208,7 @@ body {
 /* Liquid response: controls swell slightly and glow while pressed, then settle back on a spring. */
 :is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button, .cloud-add-button,
     .change-delete-button, .tour-flight-buttons button, .tour-exit-actions button, .language-menu > button, .tour-menu > button) {
-  transition: transform .45s var(--lg-spring), background-color .2s ease, box-shadow .2s ease;
+  transition: transform var(--lg-spring-duration) var(--lg-spring), background-color .2s ease, box-shadow .2s ease;
 }
 :is(.icon-button, .chip, .period-tab, .segmented > button, .copy-button, .scene-control-button, .cloud-delete-button, .cloud-add-button,
     .change-delete-button, .tour-flight-buttons button, .tour-exit-actions button):active:not(:disabled) {
@@ -297,37 +307,18 @@ body {
 .segmented--small { padding: 2px; }
 .segmented--small > button { min-height: 28px; padding: 0 9px; font-size: 11px; }
 
-/* Liquid selection thumb (see hooks/useGlassIndicator.ts): one glass lens per segmented control slides
-   to the chosen option on a spring, swelling while it travels, instead of each option painting its own. */
-.lg-seg { position: relative; isolation: isolate; }
-.lg-seg > * { position: relative; z-index: 1; }
-.lg-seg::before {
-  content: ""; position: absolute; z-index: 0; top: 0; left: 0; pointer-events: none;
-  width: var(--ind-w, 0); height: var(--ind-h, 0); border-radius: 999px;
-  transform: translate(var(--ind-x, 0), var(--ind-y, 0));
+/* Liquid selection lens (see features/motion/GlassThumb.tsx). Motion slides one lens between the options
+   with transforms only; it sits behind the label inside the selected option. */
+.lg-seg > * { position: relative; isolation: isolate; }
+.lg-thumb {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
   background: var(--lg-prominent-fill); box-shadow: var(--lg-prominent-rim);
-  opacity: 0;
 }
-.lg-seg.is-ready::before {
-  opacity: var(--ind-o, 1);
-  transition:
-    transform .5s cubic-bezier(.3, 1.22, .5, 1),
-    width .55s cubic-bezier(.25, 1.2, .45, 1),
-    height .3s ease,
-    scale .32s var(--lg-spring),
-    background-color .25s ease, box-shadow .25s ease, opacity .2s ease;
-}
-/* In flight the lens lifts and stretches like a drop of liquid, then settles back. */
-.lg-seg.is-moving::before {
-  scale: 1.05 1.12;
-  box-shadow: var(--lg-prominent-rim), 0 0 24px rgb(255 255 255 / 26%);
-  transition-duration: .5s, .55s, .3s, .14s, .25s, .25s, .2s;
-}
-.lg-seg:has(> .type-option--tempo.is-on)::before { background: color-mix(in srgb, var(--tempo) 80%, transparent); box-shadow: var(--lg-tint-rim); }
-.lg-seg:has(> .type-option--becmg.is-on)::before { background: color-mix(in srgb, var(--becmg) 80%, transparent); box-shadow: var(--lg-tint-rim); }
-.lg-seg:has(> .type-option--fm.is-on)::before { background: color-mix(in srgb, var(--fm) 80%, transparent); box-shadow: var(--lg-tint-rim); }
-/* Once the thumb is live it draws the selection; the chosen option only keeps its text styling. */
-.lg-seg.is-ready > .is-on { background: transparent !important; box-shadow: none !important; transition: color .25s ease, transform .45s var(--lg-spring); }
+.lg-thumb--tempo { background: color-mix(in srgb, var(--tempo) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-thumb--becmg { background: color-mix(in srgb, var(--becmg) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+.lg-thumb--fm { background: color-mix(in srgb, var(--fm) 80%, transparent); box-shadow: var(--lg-tint-rim); }
+/* The lens draws the selection; the chosen option keeps only its text styling. */
+.lg-seg > .is-on { background: transparent !important; box-shadow: none !important; }
 
 .period-editor { display: flex; flex-direction: column; gap: 16px; }
 .period-editor-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
@@ -379,7 +370,7 @@ body {
 
 .include-switch { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
 .include-switch-track { position: relative; width: 40px; height: 24px; border-radius: 999px; background: var(--lg-control-fill); box-shadow: var(--lg-well-shadow), var(--lg-control-rim); transition: background .2s ease; }
-.include-switch-track i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 999px; background: #fff; box-shadow: var(--lens-shadow); transition: transform .45s var(--lg-spring), width .25s var(--lg-spring); }
+.include-switch-track i { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 999px; background: #fff; box-shadow: var(--lens-shadow); transition: transform var(--lg-spring-duration) var(--lg-spring), width .25s var(--lg-spring); }
 /* Pressing stretches the knob into a capsule; releasing lets it spring across. */
 .include-switch:active .include-switch-track i { width: 26px; }
 .include-switch[aria-checked="true"]:active .include-switch-track i { transform: translateX(10px); }
