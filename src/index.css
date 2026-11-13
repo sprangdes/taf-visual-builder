@@ -79,7 +79,7 @@ body {
 @keyframes scene-bolt { 0%, 85.5%, 100% { opacity: 0; } 86% { opacity: 1; } 87.5% { opacity: 0; } 89.5% { opacity: .9; } 91% { opacity: 0; } }
 
 /* ---------- Shell ---------- */
-.taf-app { position: relative; min-height: 100vh; color: var(--text); }
+.taf-app { position: relative; min-height: 100vh; color: var(--text); overflow-x: clip; }
 .app-content { position: relative; z-index: 1; }
 
 .glass-panel {
@@ -90,6 +90,19 @@ body {
 }
 
 .appbar-wrap { position: sticky; top: 0; z-index: 100; max-width: 1440px; margin: 0 auto; padding: 14px 28px 0; box-sizing: border-box; }
+/* Once the page scrolls, content passing under the sticky header fades out behind a sky-coloured band
+   (covering the gap above the header too) and the header itself turns more opaque. */
+.appbar-wrap::before {
+  content: ""; position: absolute; z-index: -1; top: 0; left: calc(50% - 50vw); width: 100vw; height: calc(100% + 28px);
+  background: linear-gradient(to bottom,
+    var(--scene-sky-top, #142042) 0,
+    var(--scene-sky-top, #142042) calc(100% - 40px),
+    transparent);
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.appbar-wrap.is-scrolled::before { opacity: 1; }
+.appbar-wrap.is-scrolled .workbench-appbar { background: rgb(18 26 62 / 74%); box-shadow: var(--glass-highlight), 0 12px 32px rgb(6 10 30 / 38%); }
+.taf-dark .appbar-wrap.is-scrolled .workbench-appbar { background: rgb(8 12 30 / 82%); }
 .workbench-appbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px;
   padding: 14px 18px; border-radius: 26px;
@@ -427,6 +440,7 @@ body {
 }
 @media (max-width: 640px) {
   .appbar-wrap { position: relative; padding: 10px 10px 0; }
+  .appbar-wrap::before { display: none; }
   .workbench-appbar { border-radius: 22px; padding: 12px; }
   .workbench-brand h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .workbench-actions { gap: 4px; }
