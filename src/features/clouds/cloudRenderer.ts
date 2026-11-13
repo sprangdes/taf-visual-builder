@@ -179,7 +179,8 @@ function shape(spec: CloudLayerSpec, n: Noise, x: number, y: number): number {
   const wy = n.fbm(sx * 0.7 - 5.2, sy * 0.7 + 1.3, 3);
   const mass = n.fbm(sx + wx * 0.55, sy + wy * 0.55, 5);
   const heaps = n.billow(sx * 2.2 + wx * 0.3, sy * 2.2, 4);
-  return mass + (heaps - 0.55) * 0.28;
+  const florets = n.billow(sx * 6.5 + wy * 0.5, sy * 6.5, 3);
+  return mass + (heaps - 0.55) * 0.28 + (florets - 0.55) * 0.07;
 }
 
 /** Fine erosion noise: breaks cloud margins into wisps without touching thick cores. */
@@ -264,67 +265,143 @@ function towerDensity(d: Deck, u: number, v: number): number {
 /* ---------- render ---------- */
 
 /** Draws one cloud layer onto `ctx` (a transparent canvas of spec.width × spec.height). */
+/** Separable box blur (horizontal then vertical) with running sums: O(w·h) whatever the radius. */
+function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  const tmp = new Float32Array(w * h);
+  const dst = new Float32Array(w * h);
+  const span = r * 2 + 1;
+  for (let y = 0; y < h; y += 1) {
+    let sum = 0;
+    const row = y * w;
+    for (let x = -r; x <= r; x += 1) sum += src[row + Math.min(w - 1, Math.max(0, x))];
+    for (let x = 0; x < w; x += 1) {
+      tmp[row + x] = sum / span;
+      sum += src[row + Math.min(w - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+    }
+  }
+  for (let x = 0; x < w; x += 1) {
+    let sum = 0;
+    for (let y = -r; y <= r; y += 1) sum += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+    for (let y = 0; y < h; y += 1) {
+      dst[y * w + x] = sum / span;
+      sum += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+    }
+  }
+  return dst;
+}
+
 export function renderCloudLayer(ctx: Ctx, spec: CloudLayerSpec, createContext: CanvasFactory): void {
-  // Render at half resolution: clouds are soft, and the canvas is smoothed back up to full size.
-  const w = Math.max(1, Math.round(spec.width / 2));
-  const h = Math.max(1, Math.round(spec.height / 2));
+  // Render at 2/3 resolution and smooth up: enough for crisp cauliflower edges, a third of the work.
+  const w = Math.max(1, Math.round((spec.width * 2) / 3));
+  const h = Math.max(1, Math.round((spec.height * 2) / 3));
   const deck = makeDeck(spec);
   const { light, darkness } = spec;
-  const density = (u: number, v: number) => {
-    const a = deckDensity(deck, u, v);
-    if (spec.tower === "none") return a;
-    const b = towerDensity(deck, u, v);
-    return 1 - (1 - a) * (1 - b);
+  const aspect = w / h;
+
+  // Pass 1: density, thickness (a height field: how far the cloud bulges towards us) and puff texture.
+  const D = new Float32Array(w * h);
+  const T = new Float32Array(w * h);
+  const P = new Float32Array(w * h);
+  for (let py = 0; py < h; py += 1) {
+    const v = py / h;
+    for (let px = 0; px < w; px += 1) {
+      const u = px / w;
+      const a = deckDensity(deck, u, v);
+      const b = spec.tower === "none" ? 0 : towerDensity(deck, u, v);
+      const d = 1 - (1 - a) * (1 - b);
+      const i = py * w + px;
+      D[i] = d;
+      if (d < 0.004) continue;
+      const [depth, puff] = deckBody(deck, u, v);
+      T[i] = Math.max(depth * 0.7 + puff * 0.3 * d, b * (0.6 + puff * 0.4));
+      P[i] = puff;
+    }
+  }
+  // Large-scale height field: the density blurred over roughly one heap, so lighting follows whole
+  // cloud forms (rounded, sunlit domes and shaded flanks) rather than fine wrinkles.
+  const H = boxBlur(boxBlur(D, w, h, Math.max(2, Math.round(w / 90))), w, h, Math.max(2, Math.round(w / 90)));
+  const Hf = boxBlur(T, w, h, Math.max(1, Math.round(w / 260)));
+  const at = (arr: Float32Array, x: number, y: number) => {
+    const xi = x < 0 ? 0 : x >= w ? w - 1 : x | 0;
+    const yi = y < 0 ? 0 : y >= h ? h - 1 : y | 0;
+    return arr[yi * w + xi];
   };
 
   const small = createContext(w, h);
   const image = small.createImageData(w, h);
   const out = image.data;
-  const steps = 4;
-  const extinction = 0.9 + darkness * 1.4;
-  const ambientShade = 0.5 - darkness * 0.2;
+  const steps = 6;
+  const extinction = 0.75 + darkness * 1.2;
+  const ambient = 0.42 - darkness * 0.16;
+  // Light direction: on screen towards the sun/moon, and out of the screen by how high it stands.
+  const lz = 0.35 + (1 - light.low) * 0.9;
+  const relief = spec.kind === "stratus" ? 5 : spec.kind === "cirrus" ? 3 : 9;
+  const sampleR = Math.max(1, Math.round(w / 300));
 
+  // Pass 2: lighting.
   for (let py = 0; py < h; py += 1) {
     const v = py / h;
     const elevation = (HORIZON_V - v) * FOV;
-    // Aerial perspective: low clouds take on the horizon colour.
     const haze = (1 - smoothstep(0.02, 0.5, elevation)) * 0.6;
     for (let px = 0; px < w; px += 1) {
-      const u = px / w;
-      const d = density(u, v);
+      const i = py * w + px;
+      const d = D[i];
       if (d < 0.004) continue;
+      const u = px / w;
 
-      // March towards the light, accumulating the cloud in between (screen-space self-shadowing).
-      let lx = light.x - u;
-      let ly = light.y - v;
-      const len = Math.hypot(lx, ly) || 1;
-      const stepLen = Math.min(0.03, len / steps) * (spec.kind === "stratus" ? 0.6 : 1);
-      lx = (lx / len) * stepLen;
-      ly = (ly / len) * stepLen;
+      // Surface normal of the height field: bulges facing the light are bright, creases dark.
+      const R = sampleR * 3;
+      // Big forms from the blurred field; heap detail (stronger in closed decks) from the lightly blurred one.
+      const fine = spec.kind === "stratus" ? 1.4 : 0.75;
+      const gx = (at(H, px + R, py) - at(H, px - R, py)) * relief * 1.6 + (at(Hf, px + sampleR, py) - at(Hf, px - sampleR, py)) * relief * fine;
+      const gy = (at(H, px, py + R) - at(H, px, py - R)) * relief * 1.6 + (at(Hf, px, py + sampleR) - at(Hf, px, py - sampleR)) * relief * fine;
+      let ldx = light.x - u;
+      let ldy = light.y - v;
+      const len = Math.hypot(ldx * aspect, ldy) || 1;
+      ldx = (ldx * aspect) / len;
+      ldy /= len;
+      const nl = Math.hypot(gx, gy, 1);
+      const ll = Math.hypot(ldx, ldy, lz);
+      const ndl = (-gx * ldx - gy * ldy + lz) / (nl * ll);
+      // Wrapped diffuse (light bleeds round the heaps). Right next to the sun/moon the on-screen direction
+      // swings round sharply and would print rings, so fade to front lighting there.
+      const directional = smoothstep(0.04, 0.32, len);
+      const diffuse = mix(0.8, clamp01((ndl + 0.3) / 1.3), directional);
+
+      // Self-shadowing: march towards the light through the density map.
+      // Fixed step length: steps proportional to the distance from the light would band into rings.
+      const stepPx = w * 0.012;
       let optical = 0;
-      for (let s = 1; s <= steps; s += 1) optical += density(u + lx * s, v + ly * s);
-      const transmit = Math.exp(-optical * extinction * 0.3);
-      // Thick cores are darker (more light scattered away before reaching us); heaps catch light unevenly.
-      const [depth, puff] = deckBody(deck, u, v);
-      const towerD = spec.tower === "none" ? 0 : towerDensity(deck, u, v);
-      const thick = Math.max(depth, towerD * 0.7);
-      const powder = 1 - Math.exp(-d * 2.4);
-      // Forward scattering: with the light low or behind the cloud, its thin margins glow.
-      const silver = (1 - d) * (0.15 + light.low * 0.6) * clamp01(1 - len * 1.4 + 0.5);
-      // Most of the light we see is scattered skylight; direct light adds on the side facing the sun.
-      // Mixing (not multiplying) keeps thickness and puff detail visible even deep inside dense decks.
-      const direct = 0.62 + 0.38 * transmit * mix(1, powder, 0.3);
-      const body = 1 - thick * (0.42 + darkness * 0.28);
-      const texture = 0.55 + puff * 0.8;
-      let lit = direct * body * texture + silver;
-      lit = clamp01(ambientShade * 0.4 + (1 - ambientShade * 0.4) * lit);
+      for (let k = 1; k <= steps; k += 1) optical += at(D, px + ldx * stepPx * k, py + ldy * stepPx * k);
+      const transmit = mix(0.8, Math.exp(-optical * extinction * 0.28), directional);
 
-      const i = (py * w + px) * 4;
+      // Cloud bases (cloud above on screen, clear below) sit in their own shadow; tops catch the light.
+      const vr = Math.max(3, Math.round(h * 0.03));
+      const above = at(H, px, py - vr);
+      const below = at(H, px, py + vr);
+      const base = spec.kind === "cumulus" ? clamp01((above - below) * 1.2) : 0;
+
+      const thick = T[i];
+      const powder = 1 - Math.exp(-d * 3);
+      const silver = (1 - d) * (0.12 + light.low * 0.7) * clamp01(1.5 - len * 1.6);
+      let lit =
+        (0.32 + 0.68 * diffuse) *
+          (0.55 + 0.45 * transmit) *
+          mix(1, powder, 0.25) *
+          (1 - thick * (0.3 + darkness * 0.3)) *
+          (1 - base * (0.35 + darkness * 0.2)) +
+        silver;
+      lit *= 0.84 + P[i] * 0.3;
+      lit = clamp01(ambient * 0.5 + (1 - ambient * 0.5) * lit);
+
+      const o = i * 4;
       for (let c = 0; c < 3; c += 1) {
+        // Shadows are tinted by the sky; a slightly warm white where the light hits fully.
         const col = mix(light.shade[c], light.color[c], lit);
-        out[i + c] = mix(col, light.haze[c], haze);
+        out[o + c] = mix(col, light.haze[c], haze);
       }
-      out[i + 3] = Math.round(clamp01(d * 1.1) * 250);
+      // Thin margins are translucent, cores opaque.
+      out[o + 3] = Math.round(clamp01(d * 1.15) ** 0.85 * 250);
     }
   }
   small.putImageData(image, 0, 0);
