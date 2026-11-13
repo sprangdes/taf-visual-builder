@@ -18,6 +18,7 @@ export interface Translation {
   app: { title: string; subtitle: string; pageTitle: string };
   language: { open: string; menu: string };
   theme: { light: string; dark: string };
+  glass: { open: string; title: string; frosted: string; clear: string; reset: string; value: (percent: number) => string };
   legend: string;
   sections: Record<"context" | "base" | "timeline" | "selectedChange" | "output", { title: string; description: string }>;
   fields: { station: string; stationPlaceholder: string; issueTime: string };
@@ -70,6 +71,7 @@ export const en: Translation = {
   app: { title: "TAF Visual Builder", subtitle: "Aviation Weather Workbench", pageTitle: "Create Terminal Aerodrome Forecast" },
   language: { open: "Choose language", menu: "Languages" },
   theme: { light: "Switch to light mode", dark: "Switch to dark mode" },
+  glass: { open: "Adjust glass transparency", title: "Glass transparency", frosted: "Frosted", clear: "Clear", reset: "Reset", value: (percent) => `${percent}% transparent` },
   legend: "Change type legend",
   sections: {
     context: { title: "Forecast context", description: "Identify the aerodrome and forecast issue time." },
@@ -169,6 +171,7 @@ export const zhTW: Translation = {
   app: { title: "TAF 視覺化編輯器", subtitle: "航空氣象工作台", pageTitle: "建立機場終端預報" },
   language: { open: "選擇語言", menu: "語言" },
   theme: { light: "切換至淺色模式", dark: "切換至深色模式" },
+  glass: { open: "調整玻璃透明度", title: "玻璃透明度", frosted: "霧面", clear: "通透", reset: "恢復預設", value: (percent) => `透明度 ${percent}%` },
   legend: "變化類型圖例",
   sections: {
     context: { title: "預報基本資料", description: "設定機場與預報發布時間。" },

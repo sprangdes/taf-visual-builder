@@ -12,6 +12,7 @@ import { createTourDemoTaf } from "./features/tour/tourDemo";
 import type { TourPeriod } from "./features/tour/types";
 import { useLanguage } from "./features/i18n/LanguageContext";
 import { LanguageMenu } from "./features/i18n/LanguageMenu";
+import { GlassMenu } from "./features/appearance/GlassMenu";
 import type { TAF, TAFChange, WeatherTrendType } from "./types/taf";
 import { addChange, generateTAFLines } from "./utils/taf";
 import { describeBase, describePeriod } from "./utils/tafInsights";
@@ -264,6 +265,7 @@ export default function TafBuilder() {
                 <span className="workbench-actions-divider" aria-hidden="true" />
                 <TourLauncher />
                 <LanguageMenu />
+                <GlassMenu />
                 <button
                   type="button"
                   aria-label={isDark ? text.theme.light : text.theme.dark}
