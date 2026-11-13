@@ -30,6 +30,11 @@ export default function RasterLayer({ svg, width, height, className = "", style 
     image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     image
       .decode()
+      .then(() => new Promise<void>((resolve) => {
+        // Rasterising the filters blocks the main thread; wait two frames so whatever the click that
+        // changed the scene started (e.g. a control's slide) is committed to the compositor first.
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }))
       .then(() => {
         if (cancelled) return;
         const context = canvas.getContext("2d");

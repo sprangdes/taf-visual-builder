@@ -25,7 +25,7 @@ import { getSceneLight } from "./utils/sceneLight";
 import { useRenderQuality } from "./hooks/useRenderQuality";
 import { useInteractionHold } from "./hooks/useInteractionHold";
 import { useScrolled } from "./hooks/useScrolled";
-import { useGlassIndicator } from "./hooks/useGlassIndicator";
+import { useGlassSlide } from "./hooks/useGlassSlide";
 
 function createEmptyTaf(): TAF {
   return {
@@ -103,8 +103,8 @@ export default function TafBuilder() {
   }, []);
 
   const selectedChange = selectedChangeIndex === null ? null : taf.changes[selectedChangeIndex] ?? null;
-  // Depends on the order too: re-sorting the tabs moves the selected one.
-  const periodTabsRef = useGlassIndicator<HTMLElement>(`${selectedChangeIndex}:${taf.changes.map((c) => `${c.type}${c.from}${c.to}`).join(",")}`);
+  // Keyed on the tab order too: adding or re-sorting changes moves the selected tab.
+  const periodTabsRef = useGlassSlide<HTMLElement>(`${selectedChangeIndex}:${taf.changes.map((c) => `${c.type}${c.from}${c.to}`).join(",")}`);
 
   function updateChange(index: number, updatedChange: TAFChange) {
     setTaf((previous) => {
@@ -336,6 +336,7 @@ export default function TafBuilder() {
                     {selectedChange ? text.sections.selectedChange.title : text.sections.base.title}
                   </h2>
                   <nav ref={periodTabsRef} className="period-tabs lg-seg" aria-label={text.editor.periods}>
+                    <span className="lg-thumb" aria-hidden="true"><span className="lg-thumb-glass" /></span>
                     <button
                       type="button"
                       data-tour-id="base"

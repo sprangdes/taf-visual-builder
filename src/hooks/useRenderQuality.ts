@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isInteractionHeld, isScrolling } from "./useInteractionHold";
+import { isInteractionHeld, isUserActive } from "./useInteractionHold";
 
 /**
  * full    – animated weather scene behind blurred glass
@@ -18,7 +18,7 @@ function measureFps(durationMs: number): Promise<number | null> {
     let frames = 0;
     const start = performance.now();
     const tick = (now: number) => {
-      if (isInteractionHeld() || isScrolling() || document.hidden) {
+      if (isInteractionHeld() || isUserActive() || document.hidden) {
         resolve(null);
         return;
       }
